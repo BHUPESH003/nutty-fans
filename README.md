@@ -10,7 +10,7 @@ NuttyFans empowers content creators with sophisticated tools to build sustainabl
 
 - 💰 **Multiple Revenue Streams** - Subscriptions, PPV, tips, paid DMs, live streaming
 - 🎨 **Premium Design** - Clean, editorial aesthetic inspired by Hidden.com
-- 💳 **Fair Economics** - 15% commission with weekly payouts
+- 💳 **Fair Economics** - 16% commission with weekly payouts
 - 🌍 **Global Reach** - PWA-first web application accessible worldwide
 - 🔒 **Trust & Safety** - Mandatory KYC, AI moderation, content watermarking
 
