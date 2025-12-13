@@ -72,7 +72,7 @@ NuttyFans addresses these gaps by combining **premium aesthetics** (inspired by 
 Current platforms charge 20-30% commission, significantly impacting creator earnings. For a creator earning $10,000/month:
 - OnlyFans (20%): Creator retains $8,000
 - Patreon (12% + payment fees): Creator retains ~$8,500
-- **NuttyFans (15%)**: Creator retains **$8,500** with better tools
+- **NuttyFans (16%)**: Creator retains **$8,500** with better tools
 
 #### 2.1.2 Poor Discovery Mechanisms
 Creators struggle to grow audiences organically. Current platforms lack:
