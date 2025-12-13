@@ -26,7 +26,7 @@ NuttyFans is a next-generation global creator monetization platform that empower
 
 - **Multi-Revenue Streams**: Subscriptions, PPV, tips, paid DMs, live streaming
 - **Premium Experience**: Hidden.com-inspired editorial aesthetic
-- **Fair Economics**: 15% commission with weekly payouts
+- **Fair Economics**: 16% commission with faster payouts
 - **Global Reach**: PWA-first web application with worldwide accessibility
 - **Trust & Safety**: Mandatory KYC, AI moderation, watermarking
 
