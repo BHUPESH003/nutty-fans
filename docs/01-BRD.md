@@ -47,7 +47,7 @@ NuttyFans addresses these gaps by combining **premium aesthetics** (inspired by 
 
 | Aspect | Competitors | NuttyFans |
 |--------|-------------|-----------|
-| Commission Rate | 20-30% | **15%** |
+| Commission Rate | 20-30% | **16%** |
 | Payout Frequency | Bi-weekly/Monthly | **Weekly** |
 | UI/UX Design | Functional | **Premium Editorial** |
 | Content Categories | Usually single-focus | **Mixed with Strict Segregation** |
