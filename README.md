@@ -100,6 +100,14 @@ MUX_TOKEN_ID="..."
 MUX_TOKEN_SECRET="..."
 ```
 
+## ⚠️ IMPORTANT
+This project follows strict USER and PROJECT rules.
+
+Before making any change, read:
+- /rules/USER_RULES.md
+- /rules/PROJECT_RULES.md
+
+
 ## Project Structure
 
 ```

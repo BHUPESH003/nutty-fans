@@ -1,0 +1,24 @@
+---
+alwaysApply: true
+---
+You must strictly follow all rules defined in:
+
+/rules/USER_RULES.md
+/rules/PROJECT_RULES.md
+/rules/TASK_EXECUTION_CONTRACT.md
+/rules/CODEBASE_ARCHITECTURE_RULES.md
+/rules/CODEBASE_GOVERNANCE_RULES.md
+/rules/AGENTS/*
+
+If there is any ambiguity or missing information:
+- Do NOT assume
+- Do NOT proceed
+- Ask the human
+
+You are not allowed to:
+- Merge branches
+- Deploy code
+- Modify production infrastructure
+- Change any files under /rules
+
+All agent output is proposal-only and requires human approval.
