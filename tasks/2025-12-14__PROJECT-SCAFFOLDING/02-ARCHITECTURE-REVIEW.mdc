@@ -1,0 +1,993 @@
+# 02-ARCHITECTURE-REVIEW.mdc
+
+**Task:** PROJECT-SCAFFOLDING  
+**Date:** 2025-12-14  
+**Tech Lead Agent Version:** 1.0  
+**Status:** ✅ APPROVED — Locked
+
+---
+
+## 1. Executive Summary
+
+This document defines the technical architecture for the NuttyFans Next.js project scaffold. The decisions herein establish foundational patterns that all future development must follow.
+
+### 1.1 Scope Confirmation
+
+| In Scope | Out of Scope |
+|----------|--------------|
+| Folder structure per CODEBASE_ARCHITECTURE_RULES | Authentication |
+| Path alias configuration | Database integration |
+| TypeScript compiler options | API implementation |
+| ESLint flat config specification | UI features |
+| Prettier configuration | Business logic |
+| next.config.ts specification | State management |
+| Tailwind CSS base setup | Testing framework config |
+| Git hooks configuration | CI/CD pipeline |
+
+---
+
+## 2. Architectural Alignment
+
+### 2.1 Rule Compliance Matrix
+
+| Rule Document | Key Requirement | Scaffold Compliance |
+|---------------|-----------------|---------------------|
+| CODEBASE_ARCHITECTURE_RULES §2 | Layered architecture (Route → Controller → Service → Repository) | ✅ Folder structure supports this |
+| CODEBASE_ARCHITECTURE_RULES §3 | App Router only, no business logic in `app/` | ✅ Enforced via structure |
+| CODEBASE_ARCHITECTURE_RULES §5 | UI/Container component separation | ✅ `components/ui/` and `components/containers/` |
+| CODEBASE_ARCHITECTURE_RULES §6 | Single API client | ✅ `services/apiClient.ts` placeholder |
+| CODEBASE_GOVERNANCE_RULES §2 | Single source of truth for linting/formatting | ✅ Flat ESLint + Prettier |
+| CODEBASE_GOVERNANCE_RULES §3 | TypeScript strict mode | ✅ Enforced |
+| CODEBASE_GOVERNANCE_RULES §13 | pnpm mandatory | ✅ pnpm only |
+| PROJECT_RULES §P6 | Next.js App Router, TypeScript, Tailwind + ShadCN | ✅ Base setup ready |
+
+---
+
+## 3. Technical Decisions
+
+### 3.1 Path Alias Configuration
+
+**Decision:** Use `@/` prefix for all `src/` imports.
+
+**Configuration:**
+
+```json
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  }
+}
+```
+
+**Rationale:**
+
+| Factor | Decision |
+|--------|----------|
+| Convention | `@/` is the Next.js standard (used in official examples) |
+| Simplicity | Single prefix reduces cognitive load |
+| Tool Support | Native support in Next.js, VS Code, ESLint |
+| Refactoring | Easier file moves without breaking imports |
+
+**Usage Examples:**
+
+```typescript
+// ✅ ALLOWED
+import { Button } from '@/components/ui/button';
+import { apiClient } from '@/services/apiClient';
+import { useAuth } from '@/hooks/useAuth';
+
+// ❌ FORBIDDEN
+import { Button } from '../../../components/ui/button';
+import { Button } from 'src/components/ui/button';
+```
+
+---
+
+### 3.2 TypeScript Compiler Configuration
+
+**Decision:** Strict TypeScript with Next.js optimizations.
+
+**Full `tsconfig.json` Specification:**
+
+```json
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "compilerOptions": {
+    // Strict Type Checking
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": true,
+    
+    // Module Resolution
+    "target": "ES2022",
+    "lib": ["dom", "dom.iterable", "ES2022"],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    
+    // Path Aliases
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    
+    // Next.js Requirements
+    "jsx": "preserve",
+    "incremental": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": true,
+    
+    // Plugin
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ]
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}
+```
+
+**Rationale for Key Options:**
+
+| Option | Value | Rationale |
+|--------|-------|-----------|
+| `strict` | `true` | CODEBASE_GOVERNANCE_RULES §3.1 mandate |
+| `noUncheckedIndexedAccess` | `true` | Prevents runtime undefined errors on arrays/objects |
+| `noImplicitOverride` | `true` | Explicit override keyword prevents accidental overrides |
+| `noPropertyAccessFromIndexSignature` | `true` | Forces bracket notation for dynamic keys |
+| `target` | `ES2022` | Modern target, matches Node 20.x capabilities |
+| `moduleResolution` | `bundler` | Next.js 15 recommended setting |
+
+---
+
+### 3.3 ESLint Configuration (Flat Config)
+
+**Decision:** ESLint 9.x flat config with Next.js + TypeScript rules.
+
+**File:** `eslint.config.mjs`
+
+**Configuration Structure:**
+
+```javascript
+import { FlatCompat } from '@eslint/eslintrc';
+import js from '@eslint/js';
+import typescriptPlugin from '@typescript-eslint/eslint-plugin';
+import typescriptParser from '@typescript-eslint/parser';
+import importPlugin from 'eslint-plugin-import';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// FlatCompat is required to use eslint-config-next with ESLint 9 flat config
+const compat = new FlatCompat({
+  baseDirectory: __dirname,
+  recommendedConfig: js.configs.recommended,
+});
+
+export default [
+  // Global ignores
+  {
+    ignores: [
+      '.next/**',
+      'node_modules/**',
+      'dist/**',
+      'coverage/**',
+      'out/**',
+      'build/**',
+    ],
+  },
+
+  // Base JS recommended
+  js.configs.recommended,
+
+  // Next.js configuration via FlatCompat
+  // eslint-config-next includes React, React Hooks, and Next.js rules
+  ...compat.extends('next/core-web-vitals'),
+
+  // TypeScript files - additional rules
+  {
+    files: ['**/*.ts', '**/*.tsx'],
+    languageOptions: {
+      parser: typescriptParser,
+      parserOptions: {
+        project: './tsconfig.json',
+        ecmaVersion: 'latest',
+        sourceType: 'module',
+      },
+    },
+    plugins: {
+      '@typescript-eslint': typescriptPlugin,
+      'import': importPlugin,
+    },
+    rules: {
+      // TypeScript strict rules
+      '@typescript-eslint/no-explicit-any': 'error',
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      '@typescript-eslint/explicit-function-return-type': 'off',
+      '@typescript-eslint/no-floating-promises': 'error',
+
+      // Import rules
+      'import/order': ['error', {
+        'groups': [
+          'builtin',
+          'external',
+          'internal',
+          'parent',
+          'sibling',
+          'index',
+        ],
+        'pathGroups': [
+          {
+            'pattern': '@/**',
+            'group': 'internal',
+            'position': 'before',
+          },
+        ],
+        'newlines-between': 'always',
+        'alphabetize': {
+          'order': 'asc',
+          'caseInsensitive': true,
+        },
+      }],
+      'import/no-duplicates': 'error',
+
+      // General rules
+      'no-console': ['warn', { allow: ['warn', 'error'] }],
+      'prefer-const': 'error',
+      'no-var': 'error',
+    },
+  },
+];
+```
+
+**Key Implementation Notes:**
+
+| Aspect | Explanation |
+|--------|-------------|
+| `FlatCompat` | Required to use `eslint-config-next` (legacy format) with ESLint 9 flat config |
+| `next/core-web-vitals` | Includes React, React Hooks, and Next.js rules automatically |
+| No direct plugin imports | React/React Hooks plugins are included via `eslint-config-next` |
+
+**Rule Justifications:**
+
+| Rule | Setting | Rationale |
+|------|---------|-----------|
+| `@typescript-eslint/no-explicit-any` | `error` | CODEBASE_GOVERNANCE_RULES §3.1 — `any` forbidden |
+| `@typescript-eslint/no-floating-promises` | `error` | Prevent unhandled promise rejections |
+| `import/order` | Configured | Consistent import organization |
+| `no-console` | `warn` | Allow console.warn/error, flag console.log |
+
+---
+
+### 3.4 Prettier Configuration
+
+**Decision:** Standard Prettier with Tailwind plugin.
+
+**File:** `.prettierrc`
+
+```json
+{
+  "semi": true,
+  "singleQuote": true,
+  "tabWidth": 2,
+  "trailingComma": "es5",
+  "printWidth": 100,
+  "bracketSpacing": true,
+  "bracketSameLine": false,
+  "arrowParens": "always",
+  "endOfLine": "lf",
+  "plugins": ["prettier-plugin-tailwindcss"]
+}
+```
+
+**Rationale:**
+
+| Option | Value | Rationale |
+|--------|-------|-----------|
+| `singleQuote` | `true` | Industry standard for TypeScript/React |
+| `printWidth` | `100` | Balance readability and screen space |
+| `trailingComma` | `es5` | Clean git diffs, ES5 compatible |
+| `endOfLine` | `lf` | Unix line endings (cross-platform consistency) |
+| `prettier-plugin-tailwindcss` | Enabled | Auto-sort Tailwind classes |
+
+---
+
+### 3.5 next.config.ts Specification
+
+**Decision:** Minimal, production-ready configuration.
+
+```typescript
+import type { NextConfig } from 'next';
+
+const nextConfig: NextConfig = {
+  // React strict mode for development
+  reactStrictMode: true,
+  
+  // Optimize production builds
+  poweredByHeader: false,
+  
+  // Image optimization
+  images: {
+    formats: ['image/avif', 'image/webp'],
+    remotePatterns: [
+      // Add allowed image domains here as needed
+    ],
+  },
+  
+  // Experimental features (stable in Next.js 15)
+  experimental: {
+    typedRoutes: true,
+  },
+  
+  // Security headers (basic set)
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          {
+            key: 'X-DNS-Prefetch-Control',
+            value: 'on',
+          },
+          {
+            key: 'X-Frame-Options',
+            value: 'SAMEORIGIN',
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          {
+            key: 'Referrer-Policy',
+            value: 'strict-origin-when-cross-origin',
+          },
+        ],
+      },
+    ];
+  },
+};
+
+export default nextConfig;
+```
+
+**Key Decisions:**
+
+| Setting | Value | Rationale |
+|---------|-------|-----------|
+| `reactStrictMode` | `true` | Catch React issues early |
+| `poweredByHeader` | `false` | Security: don't expose tech stack |
+| `typedRoutes` | `true` | Type-safe Link components |
+| Security headers | Basic set | Per CODEBASE_ARCHITECTURE_RULES §5.2 |
+
+---
+
+### 3.6 Tailwind CSS Configuration
+
+**Decision:** Minimal base configuration, ready for ShadCN.
+
+**File:** `tailwind.config.ts`
+
+```typescript
+import type { Config } from 'tailwindcss';
+
+const config: Config = {
+  darkMode: 'class',
+  content: [
+    './src/**/*.{js,ts,jsx,tsx,mdx}',
+  ],
+  theme: {
+    extend: {
+      // CSS custom properties for future theming
+      colors: {
+        border: 'hsl(var(--border))',
+        input: 'hsl(var(--input))',
+        ring: 'hsl(var(--ring))',
+        background: 'hsl(var(--background))',
+        foreground: 'hsl(var(--foreground))',
+        primary: {
+          DEFAULT: 'hsl(var(--primary))',
+          foreground: 'hsl(var(--primary-foreground))',
+        },
+        secondary: {
+          DEFAULT: 'hsl(var(--secondary))',
+          foreground: 'hsl(var(--secondary-foreground))',
+        },
+        destructive: {
+          DEFAULT: 'hsl(var(--destructive))',
+          foreground: 'hsl(var(--destructive-foreground))',
+        },
+        muted: {
+          DEFAULT: 'hsl(var(--muted))',
+          foreground: 'hsl(var(--muted-foreground))',
+        },
+        accent: {
+          DEFAULT: 'hsl(var(--accent))',
+          foreground: 'hsl(var(--accent-foreground))',
+        },
+        card: {
+          DEFAULT: 'hsl(var(--card))',
+          foreground: 'hsl(var(--card-foreground))',
+        },
+      },
+      borderRadius: {
+        lg: 'var(--radius)',
+        md: 'calc(var(--radius) - 2px)',
+        sm: 'calc(var(--radius) - 4px)',
+      },
+    },
+  },
+  plugins: [],
+};
+
+export default config;
+```
+
+**Rationale:**
+
+| Decision | Rationale |
+|----------|-----------|
+| CSS variables for colors | ShadCN-ready, enables runtime theme switching |
+| `darkMode: 'class'` | Explicit dark mode control |
+| Minimal plugins | No plugins until needed (YAGNI) |
+| Content paths | Only scan `src/` directory |
+
+---
+
+## 4. Folder Structure Specification
+
+### 4.1 Complete Structure
+
+```
+nuttyfans/
+├── .cursor/
+│   └── .rules
+├── .husky/
+│   └── pre-commit
+├── docs/
+│   └── (existing docs)
+├── rules/
+│   └── (existing rules)
+├── tasks/
+│   └── (task folders)
+├── scripts/
+│   └── .gitkeep
+├── tests/
+│   └── .gitkeep
+├── src/
+│   ├── app/
+│   │   ├── layout.tsx
+│   │   ├── page.tsx
+│   │   ├── globals.css
+│   │   └── api/
+│   │       └── .gitkeep
+│   ├── components/
+│   │   ├── ui/
+│   │   │   └── .gitkeep
+│   │   └── containers/
+│   │       └── .gitkeep
+│   ├── lib/
+│   │   ├── utils.ts
+│   │   └── middleware/
+│   │       └── .gitkeep
+│   ├── hooks/
+│   │   └── .gitkeep
+│   ├── services/
+│   │   └── apiClient.ts
+│   ├── styles/
+│   │   └── .gitkeep
+│   └── types/
+│       └── index.ts
+├── .editorconfig
+├── .env.example
+├── .gitignore
+├── .prettierrc
+├── .prettierignore
+├── eslint.config.mjs
+├── next.config.ts
+├── next-env.d.ts
+├── package.json
+├── pnpm-lock.yaml
+├── postcss.config.js
+├── README.md
+├── tailwind.config.ts
+└── tsconfig.json
+```
+
+### 4.2 Folder Ownership Matrix
+
+| Folder | Purpose | Allowed Content | Owner |
+|--------|---------|-----------------|-------|
+| `src/app/` | Next.js App Router | Pages, layouts, route handlers | Frontend Agent |
+| `src/app/api/` | API route handlers | Route handlers only (thin layer) | Backend Agent |
+| `src/components/ui/` | UI components (dumb) | Pure rendering components | Frontend Agent |
+| `src/components/containers/` | Container components (smart) | Data fetching, state | Frontend Agent |
+| `src/lib/` | Utilities | Shared utilities, helpers | Both Agents |
+| `src/lib/middleware/` | Middleware | Auth, rate limiting, logging | Backend Agent |
+| `src/hooks/` | React hooks | Custom hooks | Frontend Agent |
+| `src/services/` | Service layer | API client, business logic | Both Agents |
+| `src/styles/` | Global styles | CSS files | Frontend Agent |
+| `src/types/` | TypeScript types | Type definitions | Both Agents |
+| `tests/` | Test files | All test files | QA Agent |
+| `scripts/` | Build/utility scripts | Automation scripts | DevOps Agent |
+
+---
+
+## 5. File Content Specifications
+
+### 5.1 `src/lib/utils.ts`
+
+```typescript
+import { type ClassValue, clsx } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
+/**
+ * Utility for merging Tailwind CSS classes.
+ * Combines clsx for conditional classes with tailwind-merge for deduplication.
+ */
+export function cn(...inputs: ClassValue[]): string {
+  return twMerge(clsx(inputs));
+}
+```
+
+**Dependencies Required:**
+- `clsx`
+- `tailwind-merge`
+
+---
+
+### 5.2 `src/services/apiClient.ts`
+
+```typescript
+/**
+ * API Client Placeholder
+ * 
+ * This file will contain the single source of truth for all API requests.
+ * Per CODEBASE_ARCHITECTURE_RULES §6.1, all network calls must go through this client.
+ * 
+ * Implementation will be added when backend endpoints are defined.
+ */
+
+// Placeholder export to prevent empty module errors
+export const API_VERSION = 'v1';
+```
+
+---
+
+### 5.3 `src/types/index.ts`
+
+```typescript
+/**
+ * Global Type Definitions
+ * 
+ * This file exports shared types used across the application.
+ * Domain-specific types should be co-located with their respective modules.
+ */
+
+// Re-export common types when defined
+export {};
+```
+
+---
+
+### 5.4 `src/app/globals.css`
+
+```css
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+```
+
+---
+
+### 5.5 `.env.example`
+
+```bash
+# NuttyFans Environment Configuration
+# Copy this file to .env.local and fill in values
+
+# ============================================
+# APPLICATION
+# ============================================
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+NODE_ENV=development
+
+# ============================================
+# DATABASE (Future - Placeholder)
+# ============================================
+# DATABASE_URL=
+
+# ============================================
+# AUTHENTICATION (Future - Placeholder)
+# ============================================
+# NEXTAUTH_SECRET=
+# NEXTAUTH_URL=http://localhost:3000
+
+# ============================================
+# EXTERNAL SERVICES (Future - Placeholders)
+# ============================================
+# STRIPE_SECRET_KEY=
+# STRIPE_WEBHOOK_SECRET=
+# AWS_S3_BUCKET=
+# AWS_ACCESS_KEY_ID=
+# AWS_SECRET_ACCESS_KEY=
+```
+
+---
+
+### 5.6 `.gitignore`
+
+```gitignore
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Next.js
+.next/
+out/
+
+# Build outputs
+dist/
+build/
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Testing
+coverage/
+
+# TypeScript
+*.tsbuildinfo
+
+# Misc
+*.pem
+.vercel
+```
+
+---
+
+### 5.7 `.editorconfig`
+
+```ini
+# EditorConfig - https://editorconfig.org
+
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+indent_size = 2
+indent_style = space
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.md]
+trim_trailing_whitespace = false
+
+[*.{yml,yaml}]
+indent_size = 2
+```
+
+---
+
+### 5.8 `postcss.config.js`
+
+```javascript
+module.exports = {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+};
+```
+
+---
+
+### 5.9 `.prettierignore`
+
+```
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+.next/
+out/
+dist/
+build/
+
+# Generated files
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+
+# Coverage
+coverage/
+```
+
+---
+
+## 6. Package.json Specification
+
+### 6.1 Scripts
+
+```json
+{
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "tsc --noEmit",
+    "prepare": "husky"
+  }
+}
+```
+
+### 6.2 Dependencies (Exact Versions)
+
+```json
+{
+  "dependencies": {
+    "next": "^15.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "clsx": "^2.1.0",
+    "tailwind-merge": "^2.2.0"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.0.0",
+    "@eslint/js": "^9.0.0",
+    "@types/node": "^20.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "autoprefixer": "^10.4.0",
+    "eslint": "^9.0.0",
+    "eslint-config-next": "^15.0.0",
+    "eslint-plugin-import": "^2.29.0",
+    "husky": "^9.0.0",
+    "lint-staged": "^15.0.0",
+    "postcss": "^8.4.0",
+    "prettier": "^3.0.0",
+    "prettier-plugin-tailwindcss": "^0.6.0",
+    "tailwindcss": "^3.4.0",
+    "typescript": "^5.7.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "packageManager": "pnpm@9.0.0"
+}
+```
+
+### 6.3 Lint-Staged Configuration
+
+```json
+{
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix --max-warnings 0",
+      "prettier --write"
+    ],
+    "*.{json,md,css}": [
+      "prettier --write"
+    ]
+  }
+}
+```
+
+---
+
+## 7. Git Hooks Specification
+
+### 7.1 Husky Pre-Commit Hook
+
+**File:** `.husky/pre-commit`
+
+```bash
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+pnpm lint-staged
+```
+
+---
+
+## 8. Risk Assessment
+
+### 8.1 Technical Risks
+
+| Risk | Probability | Impact | Mitigation |
+|------|-------------|--------|------------|
+| ESLint 9 flat config compatibility issues | Medium | Low | Use stable plugin versions; fallback to eslintrc if needed |
+| TypeScript strict mode breaking third-party types | Low | Medium | Use `skipLibCheck: true` |
+| Tailwind CSS variable inheritance issues | Low | Low | Test thoroughly in base layout |
+| Husky git hooks not triggering | Low | Medium | Document manual setup for Windows users |
+
+### 8.2 Mitigation Strategies
+
+1. **ESLint Compatibility**: Pin all ESLint plugin versions; test before upgrading
+2. **TypeScript**: Start with recommended settings; add stricter rules incrementally
+3. **Cross-Platform**: Use LF line endings; document pnpm version requirements
+
+---
+
+## 9. Trade-Offs
+
+### 9.1 Decisions Made
+
+| Decision | Alternative Considered | Why Chosen |
+|----------|----------------------|------------|
+| `@/` path alias only | Multiple aliases (`@components/`, `@lib/`) | Simplicity; single alias is sufficient |
+| ESLint flat config | Legacy `.eslintrc` | Future-proof; ESLint 9 is the standard |
+| CSS variables for Tailwind colors | Static color values | Enables ShadCN theming; runtime dark mode |
+| Minimal `next.config.ts` | Feature-heavy config | YAGNI; add features when needed |
+| `noUncheckedIndexedAccess` enabled | Disabled for convenience | Catches real bugs at the cost of verbosity |
+
+### 9.2 Deferred Decisions
+
+| Topic | Reason | When to Revisit |
+|-------|--------|-----------------|
+| Testing framework (Vitest vs Jest) | Out of scope for scaffolding | Testing setup task |
+| State management (Zustand, etc.) | Out of scope for scaffolding | First feature requiring state |
+| ShadCN component installation | Explicitly out of scope | UI/UX implementation task |
+| CI/CD configuration | Out of scope for scaffolding | DevOps task |
+
+---
+
+## 10. Verification Criteria
+
+### 10.1 Success Criteria
+
+| Criteria | Verification Command | Expected Result |
+|----------|---------------------|-----------------|
+| Project builds | `pnpm build` | Exit code 0 |
+| Linting passes | `pnpm lint` | Exit code 0, no warnings |
+| Formatting passes | `pnpm format:check` | Exit code 0 |
+| TypeScript compiles | `pnpm typecheck` | Exit code 0 |
+| Dev server starts | `pnpm dev` | Server on localhost:3000 |
+| Git hooks installed | `ls .husky/pre-commit` | File exists |
+
+### 10.2 Manual Verification
+
+- [ ] Folder structure matches specification
+- [ ] All `.gitkeep` files present in empty directories
+- [ ] Path aliases work in IDE
+- [ ] Prettier formats on save
+- [ ] ESLint errors show in IDE
+
+---
+
+## 11. Next Phase
+
+**Ready for:** Engineering Agents (Frontend Agent for scaffold implementation)
+
+**Prerequisites for Engineering:**
+- [ ] Human approval of this architecture review
+- [ ] No blocking questions or clarifications
+
+---
+
+## 12. Open Questions
+
+**None.** All deferred decisions from PM Research have been addressed.
+
+If there are questions about any decision, I will pause and await clarification per U5 (Question-First Rule).
+
+---
+
+## Document Metadata
+
+| Field | Value |
+|-------|-------|
+| Created | 2025-12-14 |
+| Author | Tech Lead Agent |
+| Status | ✅ **APPROVED** |
+| Human Approval | ✅ Approved (2025-12-14) |
+| Next Phase | 04-ENGINEERING/ (after approval) |
+
+---
+
+## ✅ APPROVED
+
+This architecture review has been **approved and locked**.
+
+- **Approval Date:** 2025-12-14
+- **Approved By:** Human Owner
+
+Per TASK_EXECUTION_CONTRACT §Phase 2, architecture is now frozen. Engineering phase may begin.
