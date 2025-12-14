@@ -6,15 +6,15 @@
 
 ## 📚 Documentation Index
 
-| Document | Description | Audience |
-|----------|-------------|----------|
-| [01-BRD.md](./01-BRD.md) | Business Requirements Document | Leadership, Stakeholders |
-| [02-PRD.md](./02-PRD.md) | Product Requirements Document | Product, Engineering, Design |
-| [03-TECHNICAL-ARCHITECTURE.md](./03-TECHNICAL-ARCHITECTURE.md) | System Design & Architecture | Engineering, DevOps |
-| [04-DATABASE-SCHEMA.md](./04-DATABASE-SCHEMA.md) | Database Schema & ERD | Engineering |
-| [05-API-SPECIFICATION.md](./05-API-SPECIFICATION.md) | REST API Documentation | Engineering |
-| [06-UI-UX-BLUEPRINT.md](./06-UI-UX-BLUEPRINT.md) | Design System & UX Flows | Design, Frontend |
-| [07-PROJECT-TRACKER.md](./07-PROJECT-TRACKER.md) | Sprint Plan & Milestones | Project Management |
+| Document                                                       | Description                    | Audience                     |
+| -------------------------------------------------------------- | ------------------------------ | ---------------------------- |
+| [01-BRD.md](./01-BRD.md)                                       | Business Requirements Document | Leadership, Stakeholders     |
+| [02-PRD.md](./02-PRD.md)                                       | Product Requirements Document  | Product, Engineering, Design |
+| [03-TECHNICAL-ARCHITECTURE.md](./03-TECHNICAL-ARCHITECTURE.md) | System Design & Architecture   | Engineering, DevOps          |
+| [04-DATABASE-SCHEMA.md](./04-DATABASE-SCHEMA.md)               | Database Schema & ERD          | Engineering                  |
+| [05-API-SPECIFICATION.md](./05-API-SPECIFICATION.md)           | REST API Documentation         | Engineering                  |
+| [06-UI-UX-BLUEPRINT.md](./06-UI-UX-BLUEPRINT.md)               | Design System & UX Flows       | Design, Frontend             |
+| [07-PROJECT-TRACKER.md](./07-PROJECT-TRACKER.md)               | Sprint Plan & Milestones       | Project Management           |
 
 ---
 
@@ -51,42 +51,45 @@ Phase 3: Polish & Launch│ Weeks 17-24 │ Testing, Optimization, Launch
 
 ### Key Milestones
 
-| Milestone | Week | Description |
-|-----------|------|-------------|
-| Alpha | 8 | Internal testing |
-| Closed Beta | 12 | Limited external testing |
-| Open Beta | 16 | Public testing |
-| Release Candidate | 20 | Feature freeze |
-| Production Launch | 24 | Go live |
+| Milestone         | Week | Description              |
+| ----------------- | ---- | ------------------------ |
+| Alpha             | 8    | Internal testing         |
+| Closed Beta       | 12   | Limited external testing |
+| Open Beta         | 16   | Public testing           |
+| Release Candidate | 20   | Feature freeze           |
+| Production Launch | 24   | Go live                  |
 
 ---
 
 ## 👥 Team & Contacts
 
-| Role | Responsibility |
-|------|----------------|
+| Role            | Responsibility                      |
+| --------------- | ----------------------------------- |
 | Product Manager | Requirements, roadmap, stakeholders |
-| Tech Lead | Architecture, technical decisions |
-| Engineering | Development, testing |
-| Design | UI/UX, design system |
-| DevOps | Infrastructure, deployment |
-| QA | Testing, quality assurance |
+| Tech Lead       | Architecture, technical decisions   |
+| Engineering     | Development, testing                |
+| Design          | UI/UX, design system                |
+| DevOps          | Infrastructure, deployment          |
+| QA              | Testing, quality assurance          |
 
 ---
 
 ## 🚀 Getting Started
 
 ### For Product Team
+
 1. Start with [01-BRD.md](./01-BRD.md) for business context
 2. Review [02-PRD.md](./02-PRD.md) for detailed requirements
 3. Check [07-PROJECT-TRACKER.md](./07-PROJECT-TRACKER.md) for sprint planning
 
 ### For Engineering Team
+
 1. Review [03-TECHNICAL-ARCHITECTURE.md](./03-TECHNICAL-ARCHITECTURE.md) for system design
 2. Study [04-DATABASE-SCHEMA.md](./04-DATABASE-SCHEMA.md) for data models
 3. Reference [05-API-SPECIFICATION.md](./05-API-SPECIFICATION.md) for API contracts
 
 ### For Design Team
+
 1. Review [06-UI-UX-BLUEPRINT.md](./06-UI-UX-BLUEPRINT.md) for design system
 2. Check [02-PRD.md](./02-PRD.md) for user flows and requirements
 
@@ -109,5 +112,4 @@ All documents in this repository are confidential and intended for internal use 
 
 ---
 
-*Last Updated: December 12, 2025*
-
+_Last Updated: December 12, 2025_

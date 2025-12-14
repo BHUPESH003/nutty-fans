@@ -627,5 +627,4 @@ CREATE INDEX idx_dmca_requests_created_at ON dmca_requests(created_at DESC);
 
 ---
 
-*This document is confidential and intended for internal use only.*
-
+_This document is confidential and intended for internal use only._

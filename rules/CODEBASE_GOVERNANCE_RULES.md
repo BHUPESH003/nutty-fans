@@ -112,7 +112,6 @@ All code **must** conform automatically.
 ### 2.2 Enforcement
 
 - Formatting and linting must run:
-
   - On save (local)
   - On commit (pre-commit hook)
   - In CI (blocking)
@@ -315,7 +314,6 @@ Forbidden:
 ### **13.4 CI Enforcement**
 
 - CI must fail if:
-
   - `package-lock.json` exists
   - `yarn.lock` exists
   - Any dependency command uses `npm` or `yarn`

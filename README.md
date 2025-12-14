@@ -16,17 +16,17 @@ NuttyFans empowers content creators with sophisticated tools to build sustainabl
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|------------|
+| Layer    | Technology                           |
+| -------- | ------------------------------------ |
 | Frontend | Next.js 14+, Tailwind CSS, shadcn/ui |
-| Backend | Next.js API Routes, Server Actions |
-| Database | PostgreSQL (Neon), Prisma ORM |
-| Cache | Redis (Upstash) |
-| Storage | AWS S3, CloudFront CDN |
-| Payments | Stripe Connect |
-| Video | Mux |
-| Search | Meilisearch |
-| Auth | NextAuth.js v5 |
+| Backend  | Next.js API Routes, Server Actions   |
+| Database | PostgreSQL (Neon), Prisma ORM        |
+| Cache    | Redis (Upstash)                      |
+| Storage  | AWS S3, CloudFront CDN               |
+| Payments | Stripe Connect                       |
+| Video    | Mux                                  |
+| Search   | Meilisearch                          |
+| Auth     | NextAuth.js v5                       |
 
 ## Documentation
 
@@ -101,12 +101,13 @@ MUX_TOKEN_SECRET="..."
 ```
 
 ## ⚠️ IMPORTANT
+
 This project follows strict USER and PROJECT rules.
 
 Before making any change, read:
+
 - /rules/USER_RULES.md
 - /rules/PROJECT_RULES.md
-
 
 ## Project Structure
 
@@ -165,5 +166,4 @@ Proprietary - All rights reserved.
 
 ---
 
-*Built with ❤️ by the NuttyFans Team*
-
+_Built with ❤️ by the NuttyFans Team_

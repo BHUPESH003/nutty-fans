@@ -10,6 +10,7 @@
 ## Authentication
 
 ### Headers
+
 ```
 Authorization: Bearer <jwt_token>
 Content-Type: application/json
@@ -17,6 +18,7 @@ X-Request-ID: <uuid>
 ```
 
 ### Error Response Format
+
 ```json
 {
   "error": {
@@ -34,9 +36,11 @@ X-Request-ID: <uuid>
 ### 1. Authentication
 
 #### POST /auth/register
+
 Register a new user account.
 
 **Request:**
+
 ```json
 {
   "email": "user@example.com",
@@ -50,6 +54,7 @@ Register a new user account.
 ```
 
 **Response (201):**
+
 ```json
 {
   "user": {
@@ -63,9 +68,11 @@ Register a new user account.
 ```
 
 #### POST /auth/login
+
 Authenticate user and return tokens.
 
 **Request:**
+
 ```json
 {
   "email": "user@example.com",
@@ -74,6 +81,7 @@ Authenticate user and return tokens.
 ```
 
 **Response (200):**
+
 ```json
 {
   "accessToken": "jwt_token",
@@ -88,18 +96,23 @@ Authenticate user and return tokens.
 ```
 
 #### POST /auth/refresh
+
 Refresh access token.
 
 #### POST /auth/logout
+
 Invalidate current session.
 
 #### POST /auth/forgot-password
+
 Request password reset email.
 
 #### POST /auth/reset-password
+
 Reset password with token.
 
 #### POST /auth/verify-email
+
 Verify email with token.
 
 ---
@@ -107,9 +120,11 @@ Verify email with token.
 ### 2. Users
 
 #### GET /users/me
+
 Get current user profile.
 
 **Response (200):**
+
 ```json
 {
   "id": "uuid",
@@ -118,18 +133,21 @@ Get current user profile.
   "username": "johndoe",
   "avatarUrl": "https://...",
   "role": "user",
-  "walletBalance": 50.00,
+  "walletBalance": 50.0,
   "createdAt": "2024-01-15T00:00:00Z"
 }
 ```
 
 #### PATCH /users/me
+
 Update current user profile.
 
 #### GET /users/:username
+
 Get public user profile.
 
 #### DELETE /users/me
+
 Delete user account (soft delete).
 
 ---
@@ -137,9 +155,11 @@ Delete user account (soft delete).
 ### 3. Creators
 
 #### POST /creators/apply
+
 Apply to become a creator.
 
 **Request:**
+
 ```json
 {
   "bio": "Fitness enthusiast...",
@@ -150,9 +170,11 @@ Apply to become a creator.
 ```
 
 #### GET /creators/:username
+
 Get creator public profile.
 
 **Response (200):**
+
 ```json
 {
   "id": "uuid",
@@ -177,22 +199,26 @@ Get creator public profile.
 ```
 
 #### PATCH /creators/me
+
 Update creator profile.
 
 #### GET /creators/me/analytics
+
 Get creator analytics.
 
 **Query Params:**
+
 - `period`: `7d`, `30d`, `90d`, `all`
 
 **Response (200):**
+
 ```json
 {
   "revenue": {
-    "total": 5000.00,
-    "subscriptions": 4000.00,
-    "ppv": 800.00,
-    "tips": 200.00
+    "total": 5000.0,
+    "subscriptions": 4000.0,
+    "ppv": 800.0,
+    "tips": 200.0
   },
   "subscribers": {
     "total": 250,
@@ -208,9 +234,11 @@ Get creator analytics.
 ```
 
 #### GET /creators/me/subscribers
+
 Get list of subscribers.
 
 #### GET /creators/me/payouts
+
 Get payout history.
 
 ---
@@ -218,9 +246,11 @@ Get payout history.
 ### 4. Posts
 
 #### GET /posts
+
 Get posts feed.
 
 **Query Params:**
+
 - `type`: `feed`, `explore`, `creator`
 - `creatorId`: Filter by creator
 - `category`: Filter by category
@@ -229,6 +259,7 @@ Get posts feed.
 - `limit`: 20 (default)
 
 **Response (200):**
+
 ```json
 {
   "posts": [
@@ -267,9 +298,11 @@ Get posts feed.
 ```
 
 #### POST /posts
+
 Create a new post.
 
 **Request:**
+
 ```json
 {
   "content": "New post caption",
@@ -282,27 +315,35 @@ Create a new post.
 ```
 
 #### GET /posts/:id
+
 Get single post.
 
 #### PATCH /posts/:id
+
 Update post.
 
 #### DELETE /posts/:id
+
 Delete post.
 
 #### POST /posts/:id/like
+
 Like a post.
 
 #### DELETE /posts/:id/like
+
 Unlike a post.
 
 #### POST /posts/:id/bookmark
+
 Bookmark a post.
 
 #### DELETE /posts/:id/bookmark
+
 Remove bookmark.
 
 #### POST /posts/:id/purchase
+
 Purchase PPV post.
 
 ---
@@ -310,9 +351,11 @@ Purchase PPV post.
 ### 5. Media
 
 #### POST /media/upload-url
+
 Get presigned upload URL.
 
 **Request:**
+
 ```json
 {
   "filename": "video.mp4",
@@ -322,6 +365,7 @@ Get presigned upload URL.
 ```
 
 **Response (200):**
+
 ```json
 {
   "uploadUrl": "https://s3.amazonaws.com/...",
@@ -331,9 +375,11 @@ Get presigned upload URL.
 ```
 
 #### POST /media/:id/complete
+
 Mark upload as complete and trigger processing.
 
 #### GET /media/:id/status
+
 Get media processing status.
 
 ---
@@ -341,9 +387,11 @@ Get media processing status.
 ### 6. Subscriptions
 
 #### POST /subscriptions
+
 Subscribe to a creator.
 
 **Request:**
+
 ```json
 {
   "creatorId": "uuid",
@@ -352,6 +400,7 @@ Subscribe to a creator.
 ```
 
 **Response (201):**
+
 ```json
 {
   "subscription": {
@@ -366,9 +415,11 @@ Subscribe to a creator.
 ```
 
 #### GET /subscriptions
+
 Get user's active subscriptions.
 
 #### DELETE /subscriptions/:id
+
 Cancel subscription.
 
 ---
@@ -376,12 +427,14 @@ Cancel subscription.
 ### 7. Wallet & Payments
 
 #### GET /wallet
+
 Get wallet balance and history.
 
 **Response (200):**
+
 ```json
 {
-  "balance": 50.00,
+  "balance": 50.0,
   "currency": "USD",
   "transactions": [
     {
@@ -396,24 +449,28 @@ Get wallet balance and history.
 ```
 
 #### POST /wallet/topup
+
 Add funds to wallet.
 
 **Request:**
+
 ```json
 {
-  "amount": 50.00,
+  "amount": 50.0,
   "paymentMethodId": "pm_xxx"
 }
 ```
 
 #### POST /tips
+
 Send a tip to creator.
 
 **Request:**
+
 ```json
 {
   "creatorId": "uuid",
-  "amount": 10.00,
+  "amount": 10.0,
   "message": "Great content!"
 }
 ```
@@ -423,15 +480,19 @@ Send a tip to creator.
 ### 8. Messages
 
 #### GET /conversations
+
 Get list of conversations.
 
 #### GET /conversations/:id/messages
+
 Get messages in conversation.
 
 #### POST /conversations/:id/messages
+
 Send a message.
 
 **Request:**
+
 ```json
 {
   "content": "Hello!",
@@ -441,6 +502,7 @@ Send a message.
 ```
 
 #### POST /conversations/:id/messages/:messageId/purchase
+
 Purchase PPV message.
 
 ---
@@ -448,17 +510,21 @@ Purchase PPV message.
 ### 9. Notifications
 
 #### GET /notifications
+
 Get user notifications.
 
 **Query Params:**
+
 - `unreadOnly`: `true`, `false`
 - `cursor`: Pagination cursor
 - `limit`: 20 (default)
 
 #### PATCH /notifications/:id/read
+
 Mark notification as read.
 
 #### POST /notifications/read-all
+
 Mark all notifications as read.
 
 ---
@@ -466,21 +532,26 @@ Mark all notifications as read.
 ### 10. Search & Explore
 
 #### GET /search
+
 Search creators and content.
 
 **Query Params:**
+
 - `q`: Search query
 - `type`: `creators`, `posts`, `all`
 - `category`: Filter by category
 - `nsfw`: `true`, `false`
 
 #### GET /explore/categories
+
 Get all categories.
 
 #### GET /explore/trending
+
 Get trending content.
 
 #### GET /explore/featured
+
 Get featured creators.
 
 ---
@@ -488,9 +559,11 @@ Get featured creators.
 ### 11. Live Streams
 
 #### POST /streams
+
 Create a new live stream.
 
 **Request:**
+
 ```json
 {
   "title": "Live Q&A",
@@ -502,6 +575,7 @@ Create a new live stream.
 ```
 
 **Response (201):**
+
 ```json
 {
   "stream": {
@@ -515,15 +589,19 @@ Create a new live stream.
 ```
 
 #### GET /streams/:id
+
 Get stream details.
 
 #### POST /streams/:id/start
+
 Start the stream.
 
 #### POST /streams/:id/end
+
 End the stream.
 
 #### GET /streams/live
+
 Get currently live streams.
 
 ---
@@ -531,9 +609,11 @@ Get currently live streams.
 ### 12. Reports & Moderation
 
 #### POST /reports
+
 Submit a report.
 
 **Request:**
+
 ```json
 {
   "reportedType": "post",
@@ -548,27 +628,35 @@ Submit a report.
 ### 13. Admin Endpoints
 
 #### GET /admin/users
+
 List all users (paginated).
 
 #### GET /admin/creators/pending
+
 Get pending KYC applications.
 
 #### POST /admin/creators/:id/approve
+
 Approve creator KYC.
 
 #### POST /admin/creators/:id/reject
+
 Reject creator KYC.
 
 #### GET /admin/reports
+
 Get pending reports.
 
 #### PATCH /admin/reports/:id
+
 Resolve report.
 
 #### GET /admin/analytics
+
 Platform-wide analytics.
 
 #### POST /admin/content/:id/remove
+
 Remove content.
 
 ---
@@ -576,9 +664,11 @@ Remove content.
 ## Webhooks
 
 ### Stripe Webhooks
+
 **Endpoint:** `POST /webhooks/stripe`
 
 Events handled:
+
 - `payment_intent.succeeded`
 - `payment_intent.failed`
 - `customer.subscription.created`
@@ -589,9 +679,11 @@ Events handled:
 - `payout.failed`
 
 ### Mux Webhooks
+
 **Endpoint:** `POST /webhooks/mux`
 
 Events handled:
+
 - `video.asset.ready`
 - `video.asset.errored`
 - `video.live_stream.active`
@@ -602,13 +694,12 @@ Events handled:
 ## Rate Limits
 
 | Endpoint Group | Rate Limit |
-|----------------|------------|
-| Auth | 5/min |
-| General API | 100/min |
-| Upload | 10/min |
-| Search | 30/min |
+| -------------- | ---------- |
+| Auth           | 5/min      |
+| General API    | 100/min    |
+| Upload         | 10/min     |
+| Search         | 30/min     |
 
 ---
 
-*This document is confidential and intended for internal use only.*
-
+_This document is confidential and intended for internal use only._

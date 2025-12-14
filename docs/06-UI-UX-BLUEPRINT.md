@@ -22,14 +22,14 @@
 
 ### 1.1 Design Principles
 
-| Principle | Description |
-|-----------|-------------|
-| **Premium Minimalism** | Clean, editorial aesthetic inspired by Hidden.com |
-| **Content-First** | UI serves the content, not the other way around |
-| **Progressive Disclosure** | Show complexity only when needed |
-| **Trust & Safety** | Clear visual cues for verification, safety |
-| **Mobile-First** | Designed for mobile, enhanced for desktop |
-| **Accessible** | WCAG 2.1 AA compliant |
+| Principle                  | Description                                       |
+| -------------------------- | ------------------------------------------------- |
+| **Premium Minimalism**     | Clean, editorial aesthetic inspired by Hidden.com |
+| **Content-First**          | UI serves the content, not the other way around   |
+| **Progressive Disclosure** | Show complexity only when needed                  |
+| **Trust & Safety**         | Clear visual cues for verification, safety        |
+| **Mobile-First**           | Designed for mobile, enhanced for desktop         |
+| **Accessible**             | WCAG 2.1 AA compliant                             |
 
 ### 1.2 Brand Personality
 
@@ -54,6 +54,7 @@
 ### 1.3 Visual References
 
 **Primary Inspiration:** Hidden.com
+
 - Clean typography
 - Generous whitespace
 - Muted color palette with bold accents
@@ -61,6 +62,7 @@
 - Minimal UI chrome
 
 **Secondary Inspiration:**
+
 - Notion (clean interface)
 - Linear (premium SaaS aesthetic)
 - Glossier (brand warmth)
@@ -98,30 +100,31 @@
 ```
 
 **CSS Variables:**
+
 ```css
 :root {
   /* Background */
-  --bg-primary: #FFFFFF;
-  --bg-secondary: #F5F5F5;
-  --bg-tertiary: #E5E5E5;
-  --bg-dark: #0A0A0A;
-  
+  --bg-primary: #ffffff;
+  --bg-secondary: #f5f5f5;
+  --bg-tertiary: #e5e5e5;
+  --bg-dark: #0a0a0a;
+
   /* Text */
-  --text-primary: #0A0A0A;
+  --text-primary: #0a0a0a;
   --text-secondary: #737373;
-  --text-muted: #A3A3A3;
-  --text-inverse: #FFFFFF;
-  
+  --text-muted: #a3a3a3;
+  --text-inverse: #ffffff;
+
   /* Accent */
-  --accent-primary: #FF3366;
-  --accent-primary-hover: #E6295C;
-  --accent-success: #10B981;
-  --accent-warning: #F59E0B;
-  --accent-error: #EF4444;
-  
+  --accent-primary: #ff3366;
+  --accent-primary-hover: #e6295c;
+  --accent-success: #10b981;
+  --accent-warning: #f59e0b;
+  --accent-error: #ef4444;
+
   /* Border */
-  --border-light: #E5E5E5;
-  --border-medium: #D4D4D4;
+  --border-light: #e5e5e5;
+  --border-medium: #d4d4d4;
 }
 ```
 
@@ -554,33 +557,33 @@
 
 ### 6.1 Core Components
 
-| Component | Variants | Description |
-|-----------|----------|-------------|
-| **Button** | Primary, Secondary, Ghost, Danger | Action buttons |
-| **Input** | Text, Password, Search, Textarea | Form inputs |
-| **Card** | Post, Creator, Payment, Stats | Content containers |
-| **Avatar** | XS, SM, MD, LG, XL | User avatars |
-| **Badge** | Verified, Live, New, Premium | Status indicators |
-| **Modal** | Default, Full, Bottom Sheet | Overlays |
-| **Toast** | Success, Error, Info, Warning | Notifications |
-| **Tabs** | Default, Pills, Underline | Navigation |
-| **Dropdown** | Menu, Select, Multi-select | Selection |
-| **Skeleton** | Text, Image, Card | Loading states |
+| Component    | Variants                          | Description        |
+| ------------ | --------------------------------- | ------------------ |
+| **Button**   | Primary, Secondary, Ghost, Danger | Action buttons     |
+| **Input**    | Text, Password, Search, Textarea  | Form inputs        |
+| **Card**     | Post, Creator, Payment, Stats     | Content containers |
+| **Avatar**   | XS, SM, MD, LG, XL                | User avatars       |
+| **Badge**    | Verified, Live, New, Premium      | Status indicators  |
+| **Modal**    | Default, Full, Bottom Sheet       | Overlays           |
+| **Toast**    | Success, Error, Info, Warning     | Notifications      |
+| **Tabs**     | Default, Pills, Underline         | Navigation         |
+| **Dropdown** | Menu, Select, Multi-select        | Selection          |
+| **Skeleton** | Text, Image, Card                 | Loading states     |
 
 ### 6.2 Domain Components
 
-| Component | Description |
-|-----------|-------------|
-| **PostCard** | Displays a single post with media, actions |
-| **CreatorCard** | Creator preview with follow/subscribe |
-| **SubscriptionCard** | Subscription options and pricing |
-| **MediaGallery** | Image/video gallery with lightbox |
-| **PaywallOverlay** | Locked content overlay |
-| **TipButton** | Quick tip with amount selection |
-| **LiveBadge** | Animated live indicator |
-| **MessageBubble** | Chat message component |
-| **NotificationItem** | Notification list item |
-| **StatCard** | Analytics stat display |
+| Component            | Description                                |
+| -------------------- | ------------------------------------------ |
+| **PostCard**         | Displays a single post with media, actions |
+| **CreatorCard**      | Creator preview with follow/subscribe      |
+| **SubscriptionCard** | Subscription options and pricing           |
+| **MediaGallery**     | Image/video gallery with lightbox          |
+| **PaywallOverlay**   | Locked content overlay                     |
+| **TipButton**        | Quick tip with amount selection            |
+| **LiveBadge**        | Animated live indicator                    |
+| **MessageBubble**    | Chat message component                     |
+| **NotificationItem** | Notification list item                     |
+| **StatCard**         | Analytics stat display                     |
 
 ---
 
@@ -588,39 +591,38 @@
 
 ### 7.1 Animations
 
-| Interaction | Animation | Duration |
-|-------------|-----------|----------|
-| Page Transition | Fade + Slide | 200ms |
-| Modal Open | Scale + Fade | 150ms |
-| Button Press | Scale (0.98) | 100ms |
-| Like | Heart burst | 400ms |
-| Pull to Refresh | Spring bounce | 300ms |
-| Skeleton Loading | Shimmer | 1500ms loop |
-| Toast Entry | Slide + Fade | 200ms |
-| Infinite Scroll | Fade in | 150ms |
+| Interaction      | Animation     | Duration    |
+| ---------------- | ------------- | ----------- |
+| Page Transition  | Fade + Slide  | 200ms       |
+| Modal Open       | Scale + Fade  | 150ms       |
+| Button Press     | Scale (0.98)  | 100ms       |
+| Like             | Heart burst   | 400ms       |
+| Pull to Refresh  | Spring bounce | 300ms       |
+| Skeleton Loading | Shimmer       | 1500ms loop |
+| Toast Entry      | Slide + Fade  | 200ms       |
+| Infinite Scroll  | Fade in       | 150ms       |
 
 ### 7.2 Gesture Support
 
-| Gesture | Action |
-|---------|--------|
-| Pull Down | Refresh feed |
-| Swipe Left (Messages) | Delete/Archive |
-| Double Tap (Post) | Like |
-| Long Press (Post) | Quick actions menu |
-| Pinch (Media) | Zoom |
-| Swipe (Stories) | Next/Previous |
+| Gesture               | Action             |
+| --------------------- | ------------------ |
+| Pull Down             | Refresh feed       |
+| Swipe Left (Messages) | Delete/Archive     |
+| Double Tap (Post)     | Like               |
+| Long Press (Post)     | Quick actions menu |
+| Pinch (Media)         | Zoom               |
+| Swipe (Stories)       | Next/Previous      |
 
 ### 7.3 Loading States
 
-| State | Implementation |
-|-------|----------------|
-| Initial Load | Full-screen skeleton |
-| Infinite Scroll | Inline skeleton cards |
-| Action Pending | Button spinner + disabled |
-| Media Loading | Blur placeholder + spinner |
-| Error State | Retry button + message |
+| State           | Implementation             |
+| --------------- | -------------------------- |
+| Initial Load    | Full-screen skeleton       |
+| Infinite Scroll | Inline skeleton cards      |
+| Action Pending  | Button spinner + disabled  |
+| Media Loading   | Blur placeholder + spinner |
+| Error State     | Retry button + message     |
 
 ---
 
-*This document is confidential and intended for internal use only.*
-
+_This document is confidential and intended for internal use only._

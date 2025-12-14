@@ -9,7 +9,6 @@
 ### **U1. Final Authority**
 
 - **You are the single final decision-maker** for:
-
   - Architecture
   - Scope
   - Merges
@@ -225,7 +224,6 @@ Even with approval — these remain manual.
 If an agent is blocked for >1 step:
 
 - It must summarize:
-
   - What’s blocked
   - Why
   - What it needs from you
