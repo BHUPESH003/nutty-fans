@@ -1,0 +1,861 @@
+# 02-ARCHITECTURE-REVIEW.mdc
+
+**Task:** DATABASE-SCHEMA-DESIGN  
+**Date:** 2025-12-14  
+**Tech Lead Agent Version:** 1.0  
+**Status:** ✅ APPROVED — All Tables to be Created Initially
+
+---
+
+## 1. Executive Summary
+
+This document provides the technical architecture review and complete schema design updates for the NuttyFans database. All additions are to the **design document only** — no database implementation exists yet.
+
+### 1.1 Current State
+
+| Item | Status |
+|------|--------|
+| Schema design document | ✅ Exists (`docs/04-DATABASE-SCHEMA.md`) |
+| **Database implementation** | ❌ **NOT YET CREATED** |
+| **Migrations** | ❌ **NOT YET WRITTEN** |
+| **ORM models (Prisma)** | ❌ **NOT YET CREATED** |
+
+### 1.2 Scope of Changes
+
+| Category | Count |
+|----------|-------|
+| **New Tables (ALL)** | 14 |
+| **New Composite Indexes** | 9 |
+| **New Partial Indexes** | 3 |
+| **Tables to Partition** | 7 |
+| **Total Tables After** | 38 |
+
+> **HUMAN DECISION:** All tables (formerly P0 + P1) will be created in the initial schema to avoid future migration complexity.
+
+---
+
+## 2. PM Research Validation
+
+### 2.1 Gap Analysis Validation
+
+| Gap | PM Recommendation | Tech Lead Validation |
+|-----|-------------------|----------------------|
+| GAP-001: Comments | Add `comments` table | ✅ **APPROVED** — Essential for engagement |
+| GAP-002: Admin Roles | Add 3-tier admin system | ✅ **APPROVED** — Required for operations |
+| GAP-003: Content Tags | Add `tags` + `post_tags` | ✅ **APPROVED** — Required for discovery |
+| GAP-004: Tip Goals | Add tip goal tracking | ✅ **APPROVED** — Creator engagement feature |
+| GAP-005: Subscription History | Add event tracking | ✅ **APPROVED** — Critical for analytics |
+| GAP-006: User Activity | Add activity tracking | ✅ **APPROVED with partition requirement** |
+| GAP-007: Content Bundles | Add bundle tables | ✅ **APPROVED** — P1 monetization feature |
+
+### 2.2 Additional Technical Concerns Identified
+
+| Concern | Description | Resolution |
+|---------|-------------|------------|
+| **Missing comment likes** | Comments need like tracking | Add `comment_likes` table |
+| **Tag moderation** | Tags need moderation workflow | Add `is_pending` field to tags |
+| **Bundle access control** | Need efficient access checks | Add index for user-bundle lookups |
+| **Partition automation** | Manual partition creation is error-prone | Document pg_partman integration |
+
+---
+
+## 3. Core New Table Definitions
+
+### 3.1 Comments Table
+
+```sql
+-- ============================================
+-- COMMENTS TABLE
+-- Purpose: Post comments with nested reply support
+-- Priority: P0
+-- ============================================
+CREATE TABLE comments (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  post_id         UUID NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+  user_id         UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  parent_id       UUID REFERENCES comments(id) ON DELETE CASCADE,
+  content         TEXT NOT NULL,
+  like_count      INTEGER DEFAULT 0,
+  reply_count     INTEGER DEFAULT 0,
+  is_hidden       BOOLEAN DEFAULT FALSE,
+  is_pinned       BOOLEAN DEFAULT FALSE,
+  hidden_reason   VARCHAR(100),
+  hidden_by       UUID REFERENCES users(id),
+  hidden_at       TIMESTAMP,
+  created_at      TIMESTAMP DEFAULT NOW(),
+  updated_at      TIMESTAMP DEFAULT NOW()
+);
+
+-- Primary access patterns
+CREATE INDEX idx_comments_post_id ON comments(post_id);
+CREATE INDEX idx_comments_user_id ON comments(user_id);
+CREATE INDEX idx_comments_parent_id ON comments(parent_id);
+
+-- Feed queries: top-level comments for a post, ordered by time
+CREATE INDEX idx_comments_post_toplevel ON comments(post_id, created_at DESC) 
+  WHERE parent_id IS NULL AND is_hidden = FALSE;
+
+-- Replies to a comment
+CREATE INDEX idx_comments_replies ON comments(parent_id, created_at ASC) 
+  WHERE parent_id IS NOT NULL AND is_hidden = FALSE;
+```
+
+**Design Notes:**
+- `parent_id` enables nested replies (single level recommended for UX)
+- `like_count` is denormalized for performance (updated via trigger)
+- `is_hidden` supports moderation without deletion
+- Partial indexes optimize the most common queries
+
+---
+
+### 3.2 Comment Likes Table
+
+```sql
+-- ============================================
+-- COMMENT LIKES TABLE
+-- Purpose: Track likes on comments
+-- Priority: P0
+-- ============================================
+CREATE TABLE comment_likes (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  comment_id  UUID NOT NULL REFERENCES comments(id) ON DELETE CASCADE,
+  user_id     UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at  TIMESTAMP DEFAULT NOW(),
+  UNIQUE(comment_id, user_id)
+);
+
+CREATE INDEX idx_comment_likes_comment_id ON comment_likes(comment_id);
+CREATE INDEX idx_comment_likes_user_id ON comment_likes(user_id);
+```
+
+---
+
+### 3.3 Admin Roles Table
+
+```sql
+-- ============================================
+-- ADMIN ROLES TABLE
+-- Purpose: Define admin role types
+-- Priority: P0
+-- ============================================
+CREATE TABLE admin_roles (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name        VARCHAR(50) UNIQUE NOT NULL,
+  description TEXT,
+  is_active   BOOLEAN DEFAULT TRUE,
+  created_at  TIMESTAMP DEFAULT NOW(),
+  updated_at  TIMESTAMP DEFAULT NOW()
+);
+
+-- Seed data (to be inserted via migration)
+-- INSERT INTO admin_roles (name, description) VALUES
+--   ('super_admin', 'Full platform access'),
+--   ('moderator', 'Content and user moderation'),
+--   ('support', 'Customer support access');
+```
+
+---
+
+### 3.4 Admin Permissions Table
+
+```sql
+-- ============================================
+-- ADMIN PERMISSIONS TABLE
+-- Purpose: Map permissions to roles
+-- Priority: P0
+-- ============================================
+CREATE TABLE admin_permissions (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  role_id     UUID NOT NULL REFERENCES admin_roles(id) ON DELETE CASCADE,
+  permission  VARCHAR(100) NOT NULL,
+  created_at  TIMESTAMP DEFAULT NOW(),
+  UNIQUE(role_id, permission)
+);
+
+CREATE INDEX idx_admin_permissions_role_id ON admin_permissions(role_id);
+CREATE INDEX idx_admin_permissions_permission ON admin_permissions(permission);
+
+-- Permission values (to be seeded):
+-- manage_users, manage_creators, moderate_content, review_reports,
+-- resolve_reports, manage_payouts, view_analytics, manage_categories,
+-- manage_dmca, ban_users, suspend_users, view_transactions,
+-- issue_refunds, manage_admins
+```
+
+---
+
+### 3.5 User Admin Roles Table
+
+```sql
+-- ============================================
+-- USER ADMIN ROLES TABLE
+-- Purpose: Assign admin roles to users
+-- Priority: P0
+-- ============================================
+CREATE TABLE user_admin_roles (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  role_id     UUID NOT NULL REFERENCES admin_roles(id) ON DELETE CASCADE,
+  assigned_by UUID REFERENCES users(id),
+  assigned_at TIMESTAMP DEFAULT NOW(),
+  revoked_at  TIMESTAMP,
+  is_active   BOOLEAN DEFAULT TRUE,
+  created_at  TIMESTAMP DEFAULT NOW(),
+  UNIQUE(user_id, role_id)
+);
+
+CREATE INDEX idx_user_admin_roles_user_id ON user_admin_roles(user_id);
+CREATE INDEX idx_user_admin_roles_role_id ON user_admin_roles(role_id);
+
+-- Active admin roles for permission checks
+CREATE INDEX idx_user_admin_roles_active ON user_admin_roles(user_id, role_id) 
+  WHERE is_active = TRUE;
+```
+
+---
+
+### 3.6 Tags Table
+
+```sql
+-- ============================================
+-- TAGS TABLE
+-- Purpose: Content tags/hashtags for discovery
+-- Priority: P0
+-- ============================================
+CREATE TABLE tags (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name        VARCHAR(100) NOT NULL,
+  slug        VARCHAR(100) UNIQUE NOT NULL,
+  usage_count INTEGER DEFAULT 0,
+  is_nsfw     BOOLEAN DEFAULT FALSE,
+  is_banned   BOOLEAN DEFAULT FALSE,
+  is_pending  BOOLEAN DEFAULT FALSE,
+  banned_reason VARCHAR(255),
+  created_at  TIMESTAMP DEFAULT NOW(),
+  updated_at  TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_tags_slug ON tags(slug);
+CREATE INDEX idx_tags_usage_count ON tags(usage_count DESC);
+
+-- For tag suggestions (active, non-banned tags)
+CREATE INDEX idx_tags_active ON tags(slug, usage_count DESC) 
+  WHERE is_banned = FALSE AND is_pending = FALSE;
+
+-- For moderation queue
+CREATE INDEX idx_tags_pending ON tags(created_at DESC) 
+  WHERE is_pending = TRUE;
+```
+
+**Design Notes:**
+- `slug` is URL-safe version of tag name (lowercase, no spaces)
+- `usage_count` denormalized for trending tags feature
+- `is_pending` for new tags awaiting moderation
+- `is_banned` for prohibited tags
+
+---
+
+### 3.7 Post Tags Table
+
+```sql
+-- ============================================
+-- POST TAGS TABLE
+-- Purpose: Junction table for post-tag relationships
+-- Priority: P0
+-- ============================================
+CREATE TABLE post_tags (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  post_id     UUID NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+  tag_id      UUID NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
+  created_at  TIMESTAMP DEFAULT NOW(),
+  UNIQUE(post_id, tag_id)
+);
+
+CREATE INDEX idx_post_tags_post_id ON post_tags(post_id);
+CREATE INDEX idx_post_tags_tag_id ON post_tags(tag_id);
+```
+
+---
+
+### 3.8 Tip Goals Table
+
+```sql
+-- ============================================
+-- TIP GOALS TABLE
+-- Purpose: Creator tip goal campaigns
+-- Priority: P0
+-- ============================================
+CREATE TABLE tip_goals (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  creator_id      UUID NOT NULL REFERENCES creator_profiles(id) ON DELETE CASCADE,
+  title           VARCHAR(255) NOT NULL,
+  description     TEXT,
+  target_amount   DECIMAL(10,2) NOT NULL CHECK (target_amount > 0),
+  current_amount  DECIMAL(10,2) DEFAULT 0 CHECK (current_amount >= 0),
+  contributor_count INTEGER DEFAULT 0,
+  status          VARCHAR(20) DEFAULT 'active' 
+                    CHECK (status IN ('active', 'completed', 'cancelled')),
+  started_at      TIMESTAMP DEFAULT NOW(),
+  deadline_at     TIMESTAMP,
+  completed_at    TIMESTAMP,
+  created_at      TIMESTAMP DEFAULT NOW(),
+  updated_at      TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_tip_goals_creator_id ON tip_goals(creator_id);
+CREATE INDEX idx_tip_goals_status ON tip_goals(status);
+
+-- Active goals for a creator
+CREATE INDEX idx_tip_goals_creator_active ON tip_goals(creator_id) 
+  WHERE status = 'active';
+```
+
+---
+
+### 3.9 Tip Goal Contributions Table
+
+```sql
+-- ============================================
+-- TIP GOAL CONTRIBUTIONS TABLE
+-- Purpose: Track contributions to tip goals
+-- Priority: P0
+-- ============================================
+CREATE TABLE tip_goal_contributions (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tip_goal_id     UUID NOT NULL REFERENCES tip_goals(id) ON DELETE CASCADE,
+  user_id         UUID NOT NULL REFERENCES users(id),
+  transaction_id  UUID NOT NULL REFERENCES transactions(id),
+  amount          DECIMAL(10,2) NOT NULL CHECK (amount > 0),
+  is_anonymous    BOOLEAN DEFAULT FALSE,
+  message         TEXT,
+  created_at      TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_tip_goal_contributions_goal_id ON tip_goal_contributions(tip_goal_id);
+CREATE INDEX idx_tip_goal_contributions_user_id ON tip_goal_contributions(user_id);
+CREATE INDEX idx_tip_goal_contributions_created_at ON tip_goal_contributions(created_at DESC);
+```
+
+---
+
+## 4. Additional Table Definitions (Formerly P1 — Now Initial)
+
+### 4.1 Subscription History Table
+
+```sql
+-- ============================================
+-- SUBSCRIPTION HISTORY TABLE
+-- Purpose: Track subscription lifecycle events
+-- Priority: P1
+-- ============================================
+CREATE TABLE subscription_history (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  subscription_id UUID NOT NULL REFERENCES subscriptions(id) ON DELETE CASCADE,
+  user_id         UUID NOT NULL REFERENCES users(id),
+  creator_id      UUID NOT NULL REFERENCES creator_profiles(id),
+  event_type      VARCHAR(30) NOT NULL 
+                    CHECK (event_type IN ('created', 'renewed', 'cancelled', 
+                                          'expired', 'paused', 'resumed', 
+                                          'upgraded', 'downgraded')),
+  plan_type       VARCHAR(20),
+  price_paid      DECIMAL(6,2),
+  previous_plan   VARCHAR(20),
+  metadata        JSONB DEFAULT '{}',
+  created_at      TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_subscription_history_subscription_id ON subscription_history(subscription_id);
+CREATE INDEX idx_subscription_history_user_id ON subscription_history(user_id);
+CREATE INDEX idx_subscription_history_creator_id ON subscription_history(creator_id);
+CREATE INDEX idx_subscription_history_event_type ON subscription_history(event_type);
+CREATE INDEX idx_subscription_history_created_at ON subscription_history(created_at DESC);
+```
+
+---
+
+### 4.2 User Activity Table (Partitioned)
+
+```sql
+-- ============================================
+-- USER ACTIVITY TABLE
+-- Purpose: Track user engagement events
+-- Priority: P1
+-- IMPORTANT: This table MUST be partitioned from day one
+-- ============================================
+CREATE TABLE user_activity (
+  id              UUID DEFAULT gen_random_uuid(),
+  user_id         UUID NOT NULL,
+  activity_type   VARCHAR(50) NOT NULL 
+                    CHECK (activity_type IN ('page_view', 'post_view', 'profile_view', 
+                                             'search', 'login', 'logout', 
+                                             'video_watch', 'live_join')),
+  entity_type     VARCHAR(50),
+  entity_id       UUID,
+  duration_ms     INTEGER,
+  metadata        JSONB DEFAULT '{}',
+  ip_address      INET,
+  user_agent      TEXT,
+  created_at      TIMESTAMP DEFAULT NOW(),
+  PRIMARY KEY (id, created_at)
+) PARTITION BY RANGE (created_at);
+
+-- Note: Foreign key constraints cannot be applied to partitioned tables in PostgreSQL
+-- Referential integrity must be maintained at application level
+
+-- Indexes (will be created on each partition)
+CREATE INDEX idx_user_activity_user_id ON user_activity(user_id);
+CREATE INDEX idx_user_activity_type ON user_activity(activity_type);
+CREATE INDEX idx_user_activity_entity ON user_activity(entity_type, entity_id);
+
+-- Initial partitions (create 3 months ahead)
+CREATE TABLE user_activity_2025_01 PARTITION OF user_activity
+  FOR VALUES FROM ('2025-01-01') TO ('2025-02-01');
+CREATE TABLE user_activity_2025_02 PARTITION OF user_activity
+  FOR VALUES FROM ('2025-02-01') TO ('2025-03-01');
+CREATE TABLE user_activity_2025_03 PARTITION OF user_activity
+  FOR VALUES FROM ('2025-03-01') TO ('2025-04-01');
+```
+
+**Design Notes:**
+- **HIGH VOLUME TABLE** — Will grow to billions of rows
+- Partitioned by week initially, can switch to daily if needed
+- No FK constraints due to PostgreSQL partitioning limitations
+- Consider 30-day retention policy for hot data
+
+---
+
+### 4.3 Bundles Table
+
+```sql
+-- ============================================
+-- BUNDLES TABLE
+-- Purpose: Content bundles for purchase
+-- Priority: P1
+-- ============================================
+CREATE TABLE bundles (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  creator_id      UUID NOT NULL REFERENCES creator_profiles(id) ON DELETE CASCADE,
+  title           VARCHAR(255) NOT NULL,
+  description     TEXT,
+  price           DECIMAL(8,2) NOT NULL CHECK (price > 0),
+  original_price  DECIMAL(8,2),
+  cover_image_url TEXT,
+  item_count      INTEGER DEFAULT 0,
+  purchase_count  INTEGER DEFAULT 0,
+  status          VARCHAR(20) DEFAULT 'draft' 
+                    CHECK (status IN ('draft', 'active', 'archived')),
+  created_at      TIMESTAMP DEFAULT NOW(),
+  updated_at      TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_bundles_creator_id ON bundles(creator_id);
+CREATE INDEX idx_bundles_status ON bundles(status);
+
+-- Active bundles for a creator
+CREATE INDEX idx_bundles_creator_active ON bundles(creator_id, created_at DESC) 
+  WHERE status = 'active';
+```
+
+---
+
+### 4.4 Bundle Items Table
+
+```sql
+-- ============================================
+-- BUNDLE ITEMS TABLE
+-- Purpose: Posts included in a bundle
+-- Priority: P1
+-- ============================================
+CREATE TABLE bundle_items (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  bundle_id   UUID NOT NULL REFERENCES bundles(id) ON DELETE CASCADE,
+  post_id     UUID NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+  sort_order  INTEGER DEFAULT 0,
+  created_at  TIMESTAMP DEFAULT NOW(),
+  UNIQUE(bundle_id, post_id)
+);
+
+CREATE INDEX idx_bundle_items_bundle_id ON bundle_items(bundle_id);
+CREATE INDEX idx_bundle_items_post_id ON bundle_items(post_id);
+```
+
+---
+
+### 4.5 Bundle Purchases Table
+
+```sql
+-- ============================================
+-- BUNDLE PURCHASES TABLE
+-- Purpose: Track bundle purchases
+-- Priority: P1
+-- ============================================
+CREATE TABLE bundle_purchases (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  bundle_id       UUID NOT NULL REFERENCES bundles(id),
+  user_id         UUID NOT NULL REFERENCES users(id),
+  transaction_id  UUID NOT NULL REFERENCES transactions(id),
+  price_paid      DECIMAL(8,2) NOT NULL,
+  created_at      TIMESTAMP DEFAULT NOW(),
+  UNIQUE(bundle_id, user_id)
+);
+
+CREATE INDEX idx_bundle_purchases_bundle_id ON bundle_purchases(bundle_id);
+CREATE INDEX idx_bundle_purchases_user_id ON bundle_purchases(user_id);
+
+-- For access control checks
+CREATE INDEX idx_bundle_purchases_user_bundle ON bundle_purchases(user_id, bundle_id);
+```
+
+---
+
+## 5. Partitioning Strategy
+
+### 5.1 Tables to Partition
+
+| Table | Partition Strategy | Partition Key | Interval | Retention |
+|-------|-------------------|---------------|----------|-----------|
+| `transactions` | Range | `created_at` | Monthly | Indefinite |
+| `messages` | Range | `created_at` | Monthly | Indefinite |
+| `notifications` | Range | `created_at` | Monthly | 90 days active |
+| `audit_logs` | Range | `created_at` | Monthly | 2 years |
+| `post_analytics` | Range | `date` | Monthly | Indefinite |
+| `creator_analytics` | Range | `date` | Monthly | Indefinite |
+| `user_activity` | Range | `created_at` | Monthly | 30 days hot |
+
+### 5.2 Partition DDL for Existing Tables
+
+```sql
+-- ============================================
+-- TRANSACTIONS TABLE (Convert to Partitioned)
+-- ============================================
+-- NOTE: This requires recreating the table. Plan migration carefully.
+
+CREATE TABLE transactions_new (
+  id                  UUID DEFAULT gen_random_uuid(),
+  user_id             UUID NOT NULL,
+  creator_id          UUID,
+  transaction_type    VARCHAR(30) NOT NULL,
+  amount              DECIMAL(10,2) NOT NULL,
+  currency            VARCHAR(3) DEFAULT 'USD',
+  platform_fee        DECIMAL(10,2),
+  creator_earnings    DECIMAL(10,2),
+  status              VARCHAR(20) DEFAULT 'pending',
+  stripe_payment_id   VARCHAR(255),
+  stripe_transfer_id  VARCHAR(255),
+  related_id          UUID,
+  related_type        VARCHAR(50),
+  description         TEXT,
+  metadata            JSONB DEFAULT '{}',
+  created_at          TIMESTAMP DEFAULT NOW(),
+  PRIMARY KEY (id, created_at)
+) PARTITION BY RANGE (created_at);
+
+-- Create initial partitions
+CREATE TABLE transactions_2025_01 PARTITION OF transactions_new
+  FOR VALUES FROM ('2025-01-01') TO ('2025-02-01');
+CREATE TABLE transactions_2025_02 PARTITION OF transactions_new
+  FOR VALUES FROM ('2025-02-01') TO ('2025-03-01');
+-- ... continue for each month
+```
+
+### 5.3 Partition Automation
+
+```sql
+-- ============================================
+-- PARTITION AUTOMATION (pg_partman)
+-- ============================================
+
+-- Install pg_partman extension (requires superuser on Neon)
+-- CREATE EXTENSION pg_partman;
+
+-- Configure automatic partition creation
+-- SELECT partman.create_parent(
+--   p_parent_table := 'public.transactions',
+--   p_control := 'created_at',
+--   p_type := 'native',
+--   p_interval := '1 month',
+--   p_premake := 3
+-- );
+
+-- Note: Neon may require alternative approach using scheduled functions
+```
+
+---
+
+## 6. Composite Indexes to Add
+
+### 6.1 Posts Table
+
+```sql
+-- Feed queries: posts by creator, ordered by publish date
+CREATE INDEX idx_posts_creator_published 
+  ON posts(creator_id, published_at DESC);
+
+-- Creator dashboard: all posts by status
+CREATE INDEX idx_posts_creator_status 
+  ON posts(creator_id, status, published_at DESC);
+```
+
+### 6.2 Messages Table
+
+```sql
+-- Unread message count
+CREATE INDEX idx_messages_conversation_unread 
+  ON messages(conversation_id, is_read) 
+  WHERE is_read = FALSE;
+
+-- Message history
+CREATE INDEX idx_messages_conversation_history 
+  ON messages(conversation_id, created_at DESC);
+```
+
+### 6.3 Subscriptions Table
+
+```sql
+-- Expiration processing jobs
+CREATE INDEX idx_subscriptions_expiration 
+  ON subscriptions(status, expires_at);
+
+-- Subscriber lists for creators
+CREATE INDEX idx_subscriptions_creator_status 
+  ON subscriptions(creator_id, status);
+```
+
+### 6.4 Notifications Table
+
+```sql
+-- Notification feed
+CREATE INDEX idx_notifications_user_feed 
+  ON notifications(user_id, is_read, created_at DESC);
+```
+
+### 6.5 Likes Table
+
+```sql
+-- Recent likes on a post
+CREATE INDEX idx_likes_post_recent 
+  ON likes(post_id, created_at DESC);
+```
+
+### 6.6 Transactions Table
+
+```sql
+-- Earnings history for creator
+CREATE INDEX idx_transactions_creator_history 
+  ON transactions(creator_id, created_at DESC);
+```
+
+---
+
+## 7. Partial Indexes to Add
+
+```sql
+-- Active subscriptions only (most common query)
+CREATE INDEX idx_subscriptions_active 
+  ON subscriptions(user_id, creator_id) 
+  WHERE status = 'active';
+
+-- Unread notifications only
+CREATE INDEX idx_notifications_unread 
+  ON notifications(user_id, created_at DESC) 
+  WHERE is_read = FALSE;
+
+-- Published posts only
+CREATE INDEX idx_posts_published 
+  ON posts(creator_id, published_at DESC) 
+  WHERE status = 'published';
+```
+
+---
+
+## 8. Schema Summary
+
+### 8.1 Complete Table List (After Updates)
+
+| # | Table | Category | Status |
+|---|-------|----------|--------|
+| 1 | users | Core | Existing |
+| 2 | accounts | Core | Existing |
+| 3 | sessions | Core | Existing |
+| 4 | creator_profiles | Core | Existing |
+| 5 | categories | Core | Existing |
+| 6 | posts | Content | Existing |
+| 7 | media | Content | Existing |
+| 8 | **comments** | Content | **NEW** |
+| 9 | **comment_likes** | Content | **NEW** |
+| 10 | **tags** | Content | **NEW** |
+| 11 | **post_tags** | Content | **NEW** |
+| 12 | likes | Social | Existing |
+| 13 | bookmarks | Social | Existing |
+| 14 | follows | Social | Existing |
+| 15 | blocks | Social | Existing |
+| 16 | conversations | Messaging | Existing |
+| 17 | messages | Messaging | Existing → **PARTITION** |
+| 18 | subscriptions | Monetization | Existing |
+| 19 | **subscription_history** | Monetization | **NEW** |
+| 20 | transactions | Monetization | Existing → **PARTITION** |
+| 21 | payouts | Monetization | Existing |
+| 22 | ppv_purchases | Monetization | Existing |
+| 23 | **tip_goals** | Monetization | **NEW** |
+| 24 | **tip_goal_contributions** | Monetization | **NEW** |
+| 25 | **bundles** | Monetization | **NEW** |
+| 26 | **bundle_items** | Monetization | **NEW** |
+| 27 | **bundle_purchases** | Monetization | **NEW** |
+| 28 | notifications | Engagement | Existing → **PARTITION** |
+| 29 | reports | Moderation | Existing |
+| 30 | live_streams | Live | Existing |
+| 31 | **admin_roles** | Admin | **NEW** |
+| 32 | **admin_permissions** | Admin | **NEW** |
+| 33 | **user_admin_roles** | Admin | **NEW** |
+| 34 | post_analytics | Analytics | Existing → **PARTITION** |
+| 35 | creator_analytics | Analytics | Existing → **PARTITION** |
+| 36 | **user_activity** | Analytics | **NEW (PARTITIONED)** |
+| 37 | audit_logs | Compliance | Existing → **PARTITION** |
+| 38 | dmca_requests | Compliance | Existing |
+
+**Total: 38 tables** (14 new, 7 partitioned from day one)
+
+---
+
+## 9. Migration Strategy
+
+### 9.1 Implementation Order
+
+> **APPROVED APPROACH:** All tables created in single initial migration to avoid future migration complexity.
+
+**Single Migration — All Tables (Dependency Order):**
+
+| Order | Table | Dependencies |
+|-------|-------|--------------|
+| 1 | `admin_roles` | None |
+| 2 | `admin_permissions` | `admin_roles` |
+| 3 | `user_admin_roles` | `admin_roles`, `users` |
+| 4 | `tags` | None |
+| 5 | `post_tags` | `tags`, `posts` |
+| 6 | `comments` | `posts`, `users` |
+| 7 | `comment_likes` | `comments`, `users` |
+| 8 | `tip_goals` | `creator_profiles` |
+| 9 | `tip_goal_contributions` | `tip_goals`, `transactions` |
+| 10 | `subscription_history` | `subscriptions` |
+| 11 | `user_activity` | None (partitioned) |
+| 12 | `bundles` | `creator_profiles` |
+| 13 | `bundle_items` | `bundles`, `posts` |
+| 14 | `bundle_purchases` | `bundles`, `transactions` |
+
+**Partitioning — Applied at Creation:**
+
+| Table | Notes |
+|-------|-------|
+| `user_activity` | Born partitioned |
+| `notifications` | Create as partitioned from start |
+| `transactions` | Create as partitioned from start |
+| `messages` | Create as partitioned from start |
+| `post_analytics` | Create as partitioned from start |
+| `creator_analytics` | Create as partitioned from start |
+| `audit_logs` | Create as partitioned from start |
+
+### 9.2 Rollback Strategy
+
+For each migration:
+1. Create backup of affected tables
+2. Run migration in transaction where possible
+3. Verify constraints and indexes
+4. Test critical queries
+5. Keep rollback script ready for 24 hours
+
+---
+
+## 10. Risks & Mitigations
+
+| Risk | Probability | Impact | Mitigation |
+|------|-------------|--------|------------|
+| Partition migration complexity | Medium | High | Start with new tables; convert existing gradually |
+| High-volume table performance | Medium | High | Partition `user_activity` from day one |
+| Foreign key limitations on partitions | Certain | Medium | Document; enforce at application level |
+| Index bloat on high-write tables | Medium | Medium | Regular REINDEX; monitor |
+| Admin permission complexity | Low | Low | Start with predefined roles only |
+
+---
+
+## 11. Verification Criteria
+
+### 11.1 Design Verification
+
+| Criteria | Verification |
+|----------|--------------|
+| All P0 tables defined | ✅ 9 tables with complete DDL |
+| All P1 tables defined | ✅ 5 tables with complete DDL |
+| Partitioning strategy documented | ✅ 7 tables identified |
+| Composite indexes defined | ✅ 9 new indexes |
+| Partial indexes defined | ✅ 3 new indexes |
+| Migration order documented | ✅ 3 phases |
+
+### 11.2 Pre-Implementation Checklist
+
+- [ ] Update `docs/04-DATABASE-SCHEMA.md` with all new tables
+- [ ] Human approval of complete schema
+- [ ] Create Prisma schema file
+- [ ] Generate initial migration
+- [ ] Test migration on fresh database
+- [ ] Document seed data requirements
+
+---
+
+## 12. Recommendations
+
+### 12.1 Immediate (Before Implementation)
+
+1. **Update `docs/04-DATABASE-SCHEMA.md`** with all 14 new tables from this document
+2. **Add seed data definitions** for `admin_roles` and `admin_permissions`
+3. **Create Prisma schema** with all 38 tables
+
+### 12.2 During Implementation
+
+1. Create all tables in single migration (dependency order)
+2. Apply partitioning to 7 tables from day one
+3. Test all foreign key constraints
+4. Verify index usage with EXPLAIN ANALYZE
+5. Seed admin roles and permissions
+
+### 12.3 Post-Launch
+
+1. Set up partition automation (pg_partman or cron)
+2. Monitor high-volume tables
+3. Tune indexes based on actual query patterns
+
+---
+
+## 13. Next Phase
+
+**Ready for:** Human Approval → Schema Document Update → Migration Implementation
+
+---
+
+## Document Metadata
+
+| Field | Value |
+|-------|-------|
+| Created | 2025-12-14 |
+| Author | Tech Lead Agent |
+| Status | ✅ **APPROVED** |
+| Human Approval | ✅ Approved (2025-12-14) |
+| New Tables | 14 (all initial, no deferral) |
+| New Indexes | 12+ |
+| Partitioned Tables | 7 (all from day one) |
+
+---
+
+## ✅ APPROVED
+
+This architecture review has been **approved and locked**.
+
+- **Approval Date:** 2025-12-14
+- **Approved By:** Human Owner
+
+**Key Decisions Confirmed:**
+1. ✅ Add `comment_likes` table
+2. ✅ Add `is_pending` field to tags for moderation
+3. ✅ All 14 new tables created in initial schema (no P1 deferral)
+4. ✅ All partitioned tables created with partitioning from day one
+
+Per TASK_EXECUTION_CONTRACT §Phase 2, architecture is now frozen. Engineering phase may begin.
