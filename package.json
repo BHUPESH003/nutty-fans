@@ -5,8 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "prepare": "husky install || true",
-    "postinstall": "prisma generate",
-    "build": "prisma generate && next build",
+    "postinstall": "npx prisma generate",
+    "build": "npx prisma generate && next build",
     "start": "next start",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --fix",
