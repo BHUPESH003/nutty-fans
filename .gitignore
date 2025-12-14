@@ -39,6 +39,9 @@ coverage/
 # TypeScript
 *.tsbuildinfo
 
+# Prisma
+prisma/generated/
+
 # Misc
 *.pem
 .vercel
