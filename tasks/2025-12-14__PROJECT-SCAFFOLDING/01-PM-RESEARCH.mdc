@@ -3,7 +3,7 @@
 **Task:** PROJECT-SCAFFOLDING  
 **Date:** 2025-12-14  
 **PM Agent Version:** 1.0  
-**Status:** DRAFT — Pending Human Review
+**Status:** APPROVED — Ready for Architecture Review
 
 ---
 
@@ -29,92 +29,77 @@ Per `docs/01-BRD.md`:
 
 | In Scope | Out of Scope |
 |----------|--------------|
-| Next.js project initialization | Authentication |
-| Folder structure per PROJECT RULES | Database integration |
-| TypeScript configuration | API implementation |
-| Linting setup (ESLint) | UI features |
-| Formatting setup (Prettier) | Business logic |
-| Package manager setup (pnpm) | State management implementation |
-| Tailwind CSS configuration | ShadCN/ui initialization |
-| Base configuration files | Testing framework config (folder only) |
-| Git hooks (Husky + lint-staged) | CI/CD pipeline |
+| Next.js 15.x project initialization | Authentication |
+| App Router (NOT Pages Router) | Database integration |
+| Folder structure per PROJECT RULES | API implementation |
+| TypeScript 5.7.x configuration | UI features |
+| ESLint 9.x setup (flat config) | Business logic |
+| Prettier 3.x setup | State management implementation |
+| pnpm 9.x package manager setup | **UI components (ShadCN/ui)** |
+| **Tailwind CSS 3.4.x installation** | Testing framework configuration |
+| Base configuration files | CI/CD pipeline |
+| Git hooks (Husky 9.x + lint-staged) | |
+| **Testing folder structure (no config)** | |
 | Editor config | |
 
 ---
 
-## 2. Technology Version Research
+## 2. Technology Stack Specification
 
-### 2.1 Recommended Technology Versions (Latest Stable)
+### 2.1 Approved Technology Versions
 
-| Technology | Version | Release Date | Notes |
-|------------|---------|--------------|-------|
-| **Next.js** | 15.x | Dec 2024 | Latest stable with App Router improvements |
-| **React** | 19.x | Dec 2024 | Required by Next.js 15 |
-| **TypeScript** | 5.7.x | Nov 2024 | Latest stable |
-| **Node.js** | 20.x LTS | Current LTS | Or 22.x for latest features |
-| **pnpm** | 9.x | 2024 | Latest stable |
-| **Tailwind CSS** | 3.4.x | 2024 | Stable, production-ready |
-| **ESLint** | 9.x | 2024 | Flat config support |
-| **Prettier** | 3.x | 2024 | Latest stable |
-| **Husky** | 9.x | 2024 | Latest stable |
+| Technology | Version | Purpose |
+|------------|---------|---------|
+| **Next.js** | 15.x | React framework with App Router |
+| **React** | 19.x | UI library (required by Next.js 15) |
+| **TypeScript** | 5.7.x | Type safety |
+| **Node.js** | 20.x LTS | Runtime (minimum requirement) |
+| **pnpm** | 9.x | Package manager |
+| **Tailwind CSS** | 3.4.x | Utility-first CSS framework |
+| **ESLint** | 9.x | Code linting (flat config format) |
+| **Prettier** | 3.x | Code formatting |
+| **Husky** | 9.x | Git hooks |
+| **lint-staged** | Latest | Staged files linting |
 
 ### 2.2 Version Pinning Strategy
 
-| Approach | Recommendation |
-|----------|----------------|
-| Major versions | Pin to specific major (e.g., `^15.0.0`) |
+| Approach | Specification |
+|----------|---------------|
+| Major versions | Pin with caret (e.g., `^15.0.0`) |
 | Lockfile | `pnpm-lock.yaml` MUST be committed |
-| Node.js | Specify in `engines` field |
+| Node.js | Specify `>=20.0.0` in `engines` field |
 
 ---
 
-## 3. App Router vs Pages Router Analysis
+## 3. Routing Decision
 
-### 3.1 Recommendation: **App Router (Definitive)**
+### 3.1 Decision: **App Router (Mandatory)**
 
-**App Router is the correct choice for NuttyFans** for the following reasons:
+**App Router is the required routing approach for NuttyFans.**
 
-### 3.2 Comparison Matrix
+### 3.2 Justification
 
-| Factor | App Router | Pages Router | Winner |
-|--------|------------|--------------|--------|
-| **Future Direction** | Active development by Vercel | Maintenance mode | App Router ✓ |
-| **Server Components** | Native support (default) | Not supported | App Router ✓ |
-| **Performance** | Better (streaming, partial rendering) | Good | App Router ✓ |
+| Factor | App Router | Pages Router | Decision |
+|--------|------------|--------------|----------|
+| **Future Direction** | Active Vercel development | Maintenance mode | App Router ✓ |
+| **Server Components** | Native (default) | Not supported | App Router ✓ |
+| **Performance** | Superior (streaming, partial rendering) | Good | App Router ✓ |
 | **SEO** | Excellent (metadata API) | Good | App Router ✓ |
-| **Layouts** | Nested layouts (native) | Manual implementation | App Router ✓ |
-| **Data Fetching** | Simpler (async components) | getServerSideProps/getStaticProps | App Router ✓ |
-| **Bundle Size** | Smaller (server components) | Larger (all client) | App Router ✓ |
-| **Learning Curve** | Steeper initially | Gentler | Pages Router |
-| **Ecosystem Maturity** | Growing rapidly | Mature | Pages Router |
+| **Nested Layouts** | Native support | Manual | App Router ✓ |
+| **Data Fetching** | Simpler (async components) | getServerSideProps | App Router ✓ |
+| **Bundle Size** | Smaller (server components) | Larger | App Router ✓ |
 | **Long-term Viability** | 5+ years | Likely deprecated | App Router ✓ |
+| **React 19 Alignment** | Full support | Limited | App Router ✓ |
 
-### 3.3 Long-term Justification
+### 3.3 Long-term Rationale
 
-| Consideration | Analysis |
-|---------------|----------|
-| **Vercel Investment** | Vercel is investing heavily in App Router; it is the strategic direction |
-| **React 19 Alignment** | App Router leverages React 19 Server Components natively |
-| **Performance at Scale** | Server Components reduce JS bundle sent to client — critical for NuttyFans media-heavy pages |
-| **SEO Requirements** | NuttyFans needs strong SEO for creator discovery; App Router's metadata API is superior |
-| **Streaming Support** | Live streaming features will benefit from React Suspense/streaming |
-| **Deprecation Risk** | Pages Router will likely enter deprecation within 2-3 years |
+- **Vercel Investment**: App Router is the strategic direction
+- **React 19 Server Components**: Native support reduces client-side JavaScript
+- **Media-heavy Platform**: Server Components critical for NuttyFans performance
+- **SEO Requirements**: Creator discovery requires superior metadata handling
+- **Deprecation Risk**: Pages Router likely deprecated within 2-3 years
 
-### 3.4 Risk Mitigation
-
-| Risk | Mitigation |
-|------|------------|
-| Some libraries not yet App Router compatible | Check compatibility before adding dependencies |
-| Team learning curve | App Router patterns documented in codebase rules |
-| Edge cases in routing | Follow Vercel's official patterns |
-
-### 3.5 Decision
-
-> **Use App Router exclusively. Do not mix with Pages Router.**
-
-This aligns with:
-- `docs/03-TECHNICAL-ARCHITECTURE.md` (already specifies App Router)
-- `rules/PROJECT_RULES.md` P6 (Next.js App Router)
+> **Do NOT use Pages Router. Do NOT mix routing approaches.**
 
 ---
 
@@ -122,59 +107,57 @@ This aligns with:
 
 ### 4.1 Project Initialization
 
-| ID | Requirement | Priority | Source |
-|----|-------------|----------|--------|
-| FR-001 | Project MUST be initialized with **Next.js 15.x** using App Router | P0 | Tech Stack Decision |
-| FR-002 | Project MUST use **TypeScript 5.7.x** with strict mode enabled | P0 | PROJECT_RULES P7 |
-| FR-003 | Project MUST use **pnpm 9.x** as the only package manager | P0 | CODEBASE_GOVERNANCE_RULES §13 |
-| FR-004 | Project MUST include `pnpm-lock.yaml` as lockfile | P0 | CODEBASE_GOVERNANCE_RULES §13.2 |
-| FR-005 | Project MUST require **Node.js 20.x LTS** minimum | P0 | Stability requirement |
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| FR-001 | Initialize with **Next.js 15.x** using **App Router** | P0 |
+| FR-002 | Use **TypeScript 5.7.x** with strict mode | P0 |
+| FR-003 | Use **pnpm 9.x** as only package manager | P0 |
+| FR-004 | Commit `pnpm-lock.yaml` as lockfile | P0 |
+| FR-005 | Require **Node.js 20.x LTS** minimum | P0 |
 
 ### 4.2 Folder Structure
 
-| ID | Requirement | Priority | Source |
-|----|-------------|----------|--------|
-| FR-010 | Folder structure MUST match PROJECT_RULES P1 | P0 | PROJECT_RULES |
-| FR-011 | `src/app/` MUST exist for Next.js App Router | P0 | PROJECT_RULES P1 |
-| FR-012 | `src/components/` MUST exist for React components | P0 | PROJECT_RULES P1 |
-| FR-013 | `src/lib/` MUST exist for utilities and shared logic | P0 | PROJECT_RULES P1 |
-| FR-014 | `src/hooks/` MUST exist for custom React hooks | P0 | PROJECT_RULES P1 |
-| FR-015 | `src/services/` MUST exist for service layer | P0 | PROJECT_RULES P1 |
-| FR-016 | `src/styles/` MUST exist for global styles | P0 | PROJECT_RULES P1 |
-| FR-017 | `src/types/` MUST exist for TypeScript type definitions | P0 | PROJECT_RULES P1 |
-| FR-018 | `tests/` MUST exist at root level | P0 | PROJECT_RULES P1 |
-| FR-019 | `scripts/` MUST exist at root level | P0 | PROJECT_RULES P1 |
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| FR-010 | Create `src/app/` for Next.js App Router | P0 |
+| FR-011 | Create `src/components/` for React components | P0 |
+| FR-012 | Create `src/lib/` for utilities and shared logic | P0 |
+| FR-013 | Create `src/hooks/` for custom React hooks | P0 |
+| FR-014 | Create `src/services/` for service layer | P0 |
+| FR-015 | Create `src/styles/` for global styles | P0 |
+| FR-016 | Create `src/types/` for TypeScript definitions | P0 |
+| FR-017 | Create `tests/` at root level (folder only, no config) | P0 |
+| FR-018 | Create `scripts/` at root level | P0 |
 
-### 4.3 Tooling Configuration
+### 4.3 Tailwind CSS Setup
 
-| ID | Requirement | Priority | Source |
-|----|-------------|----------|--------|
-| FR-020 | **ESLint 9.x** MUST be configured with flat config format | P0 | Latest standard |
-| FR-021 | **Prettier 3.x** MUST be configured for code formatting | P0 | CODEBASE_GOVERNANCE_RULES §2 |
-| FR-022 | `.editorconfig` MUST be present | P0 | CODEBASE_GOVERNANCE_RULES §2.1 |
-| FR-023 | TypeScript `strict: true` MUST be enabled | P0 | CODEBASE_GOVERNANCE_RULES §3.1 |
-| FR-024 | **Husky 9.x** + **lint-staged** MUST enforce linting on commit | P0 | CODEBASE_GOVERNANCE_RULES §2.2 |
-| FR-025 | `.env.example` MUST exist with documented variables | P0 | CODEBASE_GOVERNANCE_RULES §5.1 |
-| FR-026 | `.env.local.example` MUST exist for local development | P0 | Developer experience |
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| FR-020 | Install **Tailwind CSS 3.4.x** | P0 |
+| FR-021 | Create `tailwind.config.ts` (TypeScript) | P0 |
+| FR-022 | Create `postcss.config.js` | P0 |
+| FR-023 | Add Tailwind directives to global CSS | P0 |
 
-### 4.4 Tailwind CSS Configuration
+### 4.4 Code Quality Tooling
 
-| ID | Requirement | Priority | Source |
-|----|-------------|----------|--------|
-| FR-030 | **Tailwind CSS 3.4.x** MUST be installed and configured | P0 | Tech Stack Decision |
-| FR-031 | `tailwind.config.ts` MUST exist with TypeScript | P0 | Type safety |
-| FR-032 | `postcss.config.js` MUST be configured for Tailwind | P0 | Required |
-| FR-033 | Global CSS file MUST include Tailwind directives | P0 | Required |
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| FR-030 | Configure **ESLint 9.x** with flat config (`eslint.config.js`) | P0 |
+| FR-031 | Configure **Prettier 3.x** for formatting | P0 |
+| FR-032 | Configure **Husky 9.x** for git hooks | P0 |
+| FR-033 | Configure **lint-staged** for pre-commit checks | P0 |
+| FR-034 | Create `.editorconfig` | P0 |
 
 ### 4.5 Configuration Files
 
-| ID | Requirement | Priority | Source |
-|----|-------------|----------|--------|
-| FR-040 | `package.json` MUST include standard scripts (dev, build, lint, format) | P0 | Standard |
-| FR-041 | `tsconfig.json` MUST be configured for strict mode + path aliases | P0 | PROJECT_RULES P7 |
-| FR-042 | `next.config.ts` MUST exist (TypeScript config) | P0 | Next.js 15 standard |
-| FR-043 | `.gitignore` MUST exclude node_modules, .next, .env, .env.local | P0 | Standard |
-| FR-044 | `README.md` MUST exist with setup instructions | P0 | Standard |
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| FR-040 | Create `package.json` with scripts: dev, build, start, lint, format | P0 |
+| FR-041 | Create `tsconfig.json` with strict mode + path aliases | P0 |
+| FR-042 | Create `next.config.ts` (TypeScript config) | P0 |
+| FR-043 | Create `.gitignore` (node_modules, .next, .env, .env.local) | P0 |
+| FR-044 | Create `.env.example` with documented variables | P0 |
+| FR-045 | Create `README.md` with setup instructions | P0 |
 
 ---
 
@@ -182,137 +165,156 @@ This aligns with:
 
 ### 5.1 Quality Attributes
 
-| ID | Requirement | Priority | Source |
-|----|-------------|----------|--------|
-| NFR-001 | Project MUST build successfully with zero errors | P0 | Success Criteria |
-| NFR-002 | Linting MUST pass with zero warnings | P0 | Success Criteria |
-| NFR-003 | Formatting MUST be consistent across all files | P0 | CODEBASE_GOVERNANCE_RULES |
-| NFR-004 | TypeScript MUST compile with no `any` types | P0 | PROJECT_RULES P7 |
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| NFR-001 | Project MUST build with zero errors | P0 |
+| NFR-002 | Linting MUST pass with zero warnings | P0 |
+| NFR-003 | Formatting MUST be consistent across all files | P0 |
+| NFR-004 | TypeScript MUST compile with no `any` types | P0 |
 
 ### 5.2 Maintainability
 
-| ID | Requirement | Priority | Source |
-|----|-------------|----------|--------|
-| NFR-010 | Folder structure MUST be self-documenting | P0 | CODEBASE_ARCHITECTURE_RULES |
-| NFR-011 | Configuration files MUST be minimal and focused | P0 | Task scope |
-| NFR-012 | No unused dependencies MUST be present | P0 | CODEBASE_GOVERNANCE_RULES §8.1 |
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| NFR-010 | Folder structure MUST be self-documenting | P0 |
+| NFR-011 | Configuration files MUST be minimal | P0 |
+| NFR-012 | No unused dependencies | P0 |
 
 ### 5.3 Scalability Readiness
 
-| ID | Requirement | Priority | Source |
-|----|-------------|----------|--------|
-| NFR-020 | Structure MUST support future module extraction | P1 | 03-TECHNICAL-ARCHITECTURE.md |
-| NFR-021 | Configuration MUST support future workspace setup | P1 | CODEBASE_GOVERNANCE_RULES §13.3 |
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| NFR-020 | Support future module extraction | P1 |
+| NFR-021 | Support future pnpm workspace setup | P1 |
 
 ---
 
-## 6. Confirmed Assumptions
+## 6. Human Inputs (Confirmed)
+
+| Decision | Response | Impact |
+|----------|----------|--------|
+| Install Tailwind CSS? | **YES** | FR-020 to FR-023 in scope |
+| Configure UI components (ShadCN)? | **NO** | Out of scope for this task |
+| Add testing folder? | **YES (folder only)** | FR-017 — no framework config |
+
+---
+
+## 7. Confirmed Assumptions
 
 | ID | Assumption | Status |
 |----|------------|--------|
-| A-001 | Next.js 15.x (latest) is the target version | ✅ Confirmed |
-| A-002 | App Router (not Pages Router) is required | ✅ Confirmed |
-| A-003 | Tailwind CSS setup is in scope | ✅ Confirmed |
-| A-004 | ShadCN/ui setup is OUT of scope for this task | ✅ Confirmed |
-| A-005 | Husky + lint-staged is the preferred git hooks setup | ✅ Confirmed |
-| A-006 | No database/Prisma setup in this task | ✅ Confirmed |
-| A-007 | No authentication setup in this task | ✅ Confirmed |
-| A-008 | Testing framework config is out of scope (folder only) | ✅ Confirmed |
-| A-009 | Node.js 20.x LTS is the minimum version | ✅ Confirmed |
+| A-001 | Next.js 15.x is the target version | ✅ Confirmed |
+| A-002 | App Router required (not Pages Router) | ✅ Confirmed |
+| A-003 | Tailwind CSS 3.4.x in scope | ✅ Confirmed |
+| A-004 | ShadCN/ui out of scope | ✅ Confirmed |
+| A-005 | Husky 9.x + lint-staged for git hooks | ✅ Confirmed |
+| A-006 | No database/Prisma in this task | ✅ Confirmed |
+| A-007 | No authentication in this task | ✅ Confirmed |
+| A-008 | Testing folder only (no framework config) | ✅ Confirmed |
+| A-009 | Node.js 20.x LTS minimum | ✅ Confirmed |
+| A-010 | ESLint 9.x flat config format | ✅ Confirmed |
 
 ---
 
-## 7. Open Questions
-
-### 7.1 Decisions Deferred to Tech Lead
+## 8. Decisions Deferred to Tech Lead
 
 | Topic | Reason |
 |-------|--------|
-| Path alias configuration specifics (e.g., `@/` prefix) | Architecture decision |
-| ESLint rule specifics beyond Next.js defaults | Architecture decision |
+| Path alias configuration (e.g., `@/` prefix) | Architecture decision |
+| ESLint rules beyond Next.js defaults | Architecture decision |
 | TypeScript compiler options beyond strict | Architecture decision |
-| `next.config.ts` specifics (images, rewrites, etc.) | Architecture decision |
+| `next.config.ts` specifics | Architecture decision |
 | Tailwind theme customization | Architecture/Design decision |
 
 ---
 
-## 8. Success Criteria Mapping
+## 9. Success Criteria
 
-| Success Criteria (from 00-TASK-OVERVIEW) | Requirement Coverage |
-|------------------------------------------|---------------------|
-| Project builds successfully | NFR-001 |
-| Linting and formatting pass | FR-020, FR-021, NFR-002, NFR-003 |
-| Folder structure matches PROJECT RULES | FR-010 through FR-019 |
-| No architectural or business logic present | Scope constraints (out of scope items) |
-
----
-
-## 9. Dependencies
-
-| Dependency | Status | Notes |
-|------------|--------|-------|
-| `/rules/*` locked | ✅ Confirmed | Required for governance enforcement |
-| Architecture contracts approved | ✅ Confirmed | 03-TECHNICAL-ARCHITECTURE.md exists |
-| Governance rules approved | ✅ Confirmed | CODEBASE_GOVERNANCE_RULES.md exists |
+| Criteria | Verification |
+|----------|--------------|
+| Project builds successfully | `pnpm build` exits with code 0 |
+| Linting passes | `pnpm lint` exits with code 0, no warnings |
+| Formatting passes | `pnpm format:check` exits with code 0 |
+| Folder structure matches PROJECT_RULES | Manual verification |
+| No business logic present | Code review |
 
 ---
 
-## 10. Risks
+## 10. Dependencies
+
+| Dependency | Status |
+|------------|--------|
+| `/rules/*` locked | ✅ Confirmed |
+| Architecture contracts approved | ✅ Confirmed |
+| Governance rules approved | ✅ Confirmed |
+
+---
+
+## 11. Risks
 
 | Risk | Probability | Impact | Mitigation |
 |------|-------------|--------|------------|
-| Scope creep into features | Medium | High | Strict adherence to out-of-scope items |
+| Scope creep into features | Medium | High | Strict out-of-scope adherence |
 | Tooling version conflicts | Low | Medium | Pin versions in package.json |
-| Missing folder for future needs | Low | Low | Follow PROJECT_RULES P1 exactly |
-| Next.js 15 breaking changes | Low | Medium | Follow official migration guide |
+| Next.js 15 breaking changes | Low | Medium | Follow official patterns |
 
 ---
 
-## 11. Technology Stack Summary
-
-### 11.1 Final Stack for Scaffolding
+## 12. Final Technology Summary
 
 ```
-Runtime:
-├── Node.js 20.x LTS
+Runtime
+├── Node.js 20.x LTS (minimum)
 └── pnpm 9.x
 
-Framework:
-├── Next.js 15.x (App Router)
+Framework
+├── Next.js 15.x (App Router ONLY)
 ├── React 19.x
-└── TypeScript 5.7.x
+└── TypeScript 5.7.x (strict mode)
 
-Styling:
+Styling
 └── Tailwind CSS 3.4.x
 
-Code Quality:
+Code Quality
 ├── ESLint 9.x (flat config)
 ├── Prettier 3.x
 ├── Husky 9.x
 └── lint-staged
 
-Configuration:
+Folder Structure
+├── src/
+│   ├── app/          # Next.js App Router
+│   ├── components/   # React components
+│   ├── lib/          # Utilities
+│   ├── hooks/        # Custom hooks
+│   ├── services/     # Service layer
+│   ├── styles/       # Global styles
+│   └── types/        # TypeScript types
+├── tests/            # Test files (folder only)
+└── scripts/          # Build/utility scripts
+
+Configuration Files
 ├── next.config.ts
 ├── tsconfig.json
 ├── tailwind.config.ts
 ├── postcss.config.js
-├── eslint.config.js (flat config)
+├── eslint.config.js
 ├── .prettierrc
 ├── .editorconfig
-└── .env.example
+├── .gitignore
+├── .env.example
+└── README.md
 ```
 
 ---
 
-## 12. Recommendation
+## 13. Recommendation
 
-**✅ Ready to proceed to Architecture Review (02-ARCHITECTURE-REVIEW.mdc)**
+**✅ PM Research Complete — Ready for Architecture Review**
 
-The PM research phase is complete with:
-- All assumptions confirmed
-- Latest technology versions specified
-- App Router definitively recommended for long-term viability
-- Clear scope boundaries defined
+All requirements defined. All assumptions confirmed. Proceed to:
+
+> **02-ARCHITECTURE-REVIEW.mdc** (Tech Lead Agent)
 
 ---
 
@@ -322,6 +324,6 @@ The PM research phase is complete with:
 |-------|-------|
 | Created | 2025-12-14 |
 | Author | PM Agent |
-| Status | DRAFT — Awaiting Human Approval |
-| Next Phase | 02-ARCHITECTURE-REVIEW.mdc (Tech Lead Agent) |
-| Blocking | Human approval required before proceeding |
+| Status | **COMPLETE** |
+| Human Approval | Pending |
+| Next Phase | 02-ARCHITECTURE-REVIEW.mdc |
