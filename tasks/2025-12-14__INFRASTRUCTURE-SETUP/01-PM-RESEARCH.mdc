@@ -32,8 +32,13 @@ The Prisma schema design is complete, but:
 |----------|--------|--------|
 | CI/CD Approach | **GitHub Actions + Vercel** | Actions for quality gates (lint, type-check, tests), Vercel for deployment |
 | Docker | **No** | No Dockerfile needed; Vercel handles serverless deployment |
-| Environments | **QA + Production** | QA on `qa` branch, Production on `main` branch |
+| Environments | **Dev + QA + Production** | 3 environments: `dev`, `qa`, `main` branches |
 | Cloud Access | **Confirmed** | AWS and Neon accounts available |
+| GitHub Repo | **Private** | Limited GitHub Actions minutes (2,000/month free) |
+| Vercel Plan | **Free** | Limited to 100GB bandwidth, 1 concurrent build |
+| S3 Buckets | **Separate per environment** | 3 buckets for isolation |
+| S3 Access | **CDN only (no direct access)** | CloudFront CDN for serving media |
+| Custom Domain | **No (for now)** | Use Vercel default URLs |
 
 ---
 
@@ -66,11 +71,13 @@ The Prisma schema design is complete, but:
 
 ### 2.3 Neon Branching Strategy
 
-| Branch | Git Branch | Purpose | Auto-suspend |
-|--------|------------|---------|--------------|
+| Neon Branch | Git Branch | Purpose | Auto-suspend |
+|-------------|------------|---------|--------------|
 | `main` | `main` | Production database | No |
 | `qa` | `qa` | QA/staging database | Yes (5 min idle) |
-| `dev/*` | Feature branches | Development (future) | Yes (5 min idle) |
+| `dev` | `dev` | Development database | Yes (5 min idle) |
+
+**3 Environments = 3 Database Branches**
 
 ### 2.4 Connection String Requirements
 
@@ -101,12 +108,34 @@ The Prisma schema design is complete, but:
 
 | Requirement | Value | Reason |
 |-------------|-------|--------|
-| **Bucket Name** | `nuttyfans-media-{env}` | Unique per environment |
-| **Region** | `us-east-1` (or nearest) | Low latency |
+| **Bucket Names** | `nuttyfans-media-dev`, `nuttyfans-media-qa`, `nuttyfans-media-prod` | Separate per environment |
+| **Region** | `us-east-1` (or nearest) | Low latency, CloudFront integration |
 | **Versioning** | Optional (disabled initially) | Cost optimization |
 | **Encryption** | SSE-S3 (default) | Data at rest protection |
-| **Public Access** | **BLOCKED** | Security - use signed URLs |
+| **Public Access** | **BLOCKED** | Security - CDN only access |
 | **CORS** | Enabled for uploads | Allow browser uploads |
+
+**3 Environments = 3 S3 Buckets**
+
+### 3.2.1 CloudFront CDN (Required)
+
+| Requirement | Value | Reason |
+|-------------|-------|--------|
+| **Distribution per bucket** | 3 distributions | One per environment |
+| **Origin Access Control (OAC)** | Enabled | S3 bucket only accessible via CloudFront |
+| **Signed URLs/Cookies** | Optional (for private content) | Restrict access to subscribers |
+| **Cache Policy** | CachingOptimized | Standard caching |
+| **Price Class** | PriceClass_100 | US/EU only (cost saving) |
+| **Custom Domain** | Future | Use CloudFront default URLs initially |
+
+**Flow:**
+```
+User Request → CloudFront CDN → S3 Bucket (private)
+                    ↓
+              Cached at Edge
+```
+
+**No direct S3 access** — All media served via CloudFront URLs.
 
 ### 3.3 S3 Folder Structure (Recommended)
 
@@ -183,9 +212,23 @@ Developer pushes code
 
 | Trigger | Jobs | Environment |
 |---------|------|-------------|
+| Push to `dev` | Lint, Type-check, Test, Build | Development |
 | Push to `qa` | Lint, Type-check, Test, Build | QA |
 | Push to `main` | Lint, Type-check, Test, Build | Production |
 | Pull Request | Lint, Type-check, Test | Preview |
+
+### 4.3.1 Private Repo — GitHub Actions Limitations
+
+| Limit | Value | Impact |
+|-------|-------|--------|
+| Free minutes/month | 2,000 | ~6-7 min per run = ~300 runs/month |
+| Storage | 500MB | Artifacts, caches |
+| Concurrent jobs | 20 | Not a concern |
+
+**Optimization strategies:**
+- Cache `node_modules` and `.next/cache`
+- Run jobs in parallel where possible
+- Skip redundant builds
 
 ### 4.4 Quality Gates (Blocking Deployment)
 
@@ -200,12 +243,31 @@ Developer pushes code
 
 | Vercel Feature | Configuration |
 |----------------|---------------|
-| **Production Branch** | `main` |
-| **Preview Branches** | All PRs |
-| **QA Branch** | `qa` (custom domain) |
+| **Production Branch** | `main` → Production deployment |
+| **QA Branch** | `qa` → QA deployment |
+| **Dev Branch** | `dev` → Development deployment |
+| **Preview Branches** | All PRs → Preview deployments |
 | **Build Command** | `pnpm build` |
 | **Output Directory** | `.next` |
 | **Node Version** | 20.x |
+
+**3 Environments = 3 Vercel Deployments**
+
+| Environment | Git Branch | Vercel URL (default) | Database | S3 Bucket |
+|-------------|------------|----------------------|----------|-----------|
+| Development | `dev` | `nuttyfans-dev.vercel.app` | Neon `dev` | `nuttyfans-media-dev` |
+| QA | `qa` | `nuttyfans-qa.vercel.app` | Neon `qa` | `nuttyfans-media-qa` |
+| Production | `main` | `nuttyfans.vercel.app` | Neon `main` | `nuttyfans-media-prod` |
+
+### 4.6 Vercel Free Plan Limitations
+
+| Limit | Value | Mitigation |
+|-------|-------|------------|
+| Bandwidth | 100GB/month | Monitor usage |
+| Build minutes | 6,000/month | Should be sufficient |
+| Concurrent builds | 1 | Queue builds |
+| Serverless execution | 100GB-hours | Monitor usage |
+| Team members | 1 (Hobby) | Upgrade to Pro for team |
 
 ---
 
@@ -218,24 +280,38 @@ Developer pushes code
 | **FR-NEO-001** | Create Neon project for NuttyFans | P0 |
 | **FR-NEO-002** | Create `main` database branch for production | P0 |
 | **FR-NEO-003** | Create `qa` database branch for QA | P0 |
-| **FR-NEO-004** | Enable connection pooling on both branches | P0 |
-| **FR-NEO-005** | Configure auto-suspend for QA branch (cost saving) | P0 |
-| **FR-NEO-006** | Generate connection strings for both environments | P0 |
-| **FR-NEO-007** | Verify Prisma can connect to both branches | P0 |
-| **FR-NEO-008** | Run initial Prisma migration on both branches | P0 |
+| **FR-NEO-004** | Create `dev` database branch for development | P0 |
+| **FR-NEO-005** | Enable connection pooling on all 3 branches | P0 |
+| **FR-NEO-006** | Configure auto-suspend for `dev` and `qa` branches (cost saving) | P0 |
+| **FR-NEO-007** | Generate connection strings for all 3 environments | P0 |
+| **FR-NEO-008** | Verify Prisma can connect to all branches | P0 |
+| **FR-NEO-009** | Run initial Prisma migration on all branches | P0 |
 
 ### 5.2 AWS S3
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| **FR-S3-001** | Create S3 bucket for production media | P0 |
-| **FR-S3-002** | Create S3 bucket for QA media (or use same with prefix) | P0 |
-| **FR-S3-003** | Block all public access to bucket | P0 |
-| **FR-S3-004** | Enable server-side encryption (SSE-S3) | P0 |
-| **FR-S3-005** | Configure CORS policy for uploads | P0 |
-| **FR-S3-006** | Create IAM user with minimal S3 permissions | P0 |
-| **FR-S3-007** | Generate access key and secret for IAM user | P0 |
-| **FR-S3-008** | Verify upload/download works via signed URLs | P0 |
+| **FR-S3-001** | Create S3 bucket `nuttyfans-media-dev` for development | P0 |
+| **FR-S3-002** | Create S3 bucket `nuttyfans-media-qa` for QA | P0 |
+| **FR-S3-003** | Create S3 bucket `nuttyfans-media-prod` for production | P0 |
+| **FR-S3-004** | Block all public access on all 3 buckets | P0 |
+| **FR-S3-005** | Enable server-side encryption (SSE-S3) on all buckets | P0 |
+| **FR-S3-006** | Configure CORS policy for uploads on all buckets | P0 |
+| **FR-S3-007** | Create IAM user with minimal S3 permissions | P0 |
+| **FR-S3-008** | Generate access key and secret for IAM user | P0 |
+
+### 5.2.1 AWS CloudFront CDN
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| **FR-CDN-001** | Create CloudFront distribution for `nuttyfans-media-dev` | P0 |
+| **FR-CDN-002** | Create CloudFront distribution for `nuttyfans-media-qa` | P0 |
+| **FR-CDN-003** | Create CloudFront distribution for `nuttyfans-media-prod` | P0 |
+| **FR-CDN-004** | Configure Origin Access Control (OAC) for each distribution | P0 |
+| **FR-CDN-005** | Update S3 bucket policies to allow CloudFront only | P0 |
+| **FR-CDN-006** | Configure caching policy (CachingOptimized) | P0 |
+| **FR-CDN-007** | Verify media is accessible via CloudFront URLs | P0 |
+| **FR-CDN-008** | Verify direct S3 access is blocked | P0 |
 
 ### 5.3 CI/CD Pipeline
 
@@ -246,10 +322,14 @@ Developer pushes code
 | **FR-CI-003** | Run TypeScript type-check on all PRs and pushes | P0 |
 | **FR-CI-004** | Run `next build` to validate build | P0 |
 | **FR-CI-005** | Fail workflow if any check fails | P0 |
-| **FR-CI-006** | Connect Vercel project to GitHub repository | P0 |
-| **FR-CI-007** | Configure Vercel production domain on `main` branch | P0 |
-| **FR-CI-008** | Configure Vercel QA deployment on `qa` branch | P0 |
-| **FR-CI-009** | Set environment variables in Vercel dashboard | P0 |
+| **FR-CI-006** | Cache `node_modules` and `.next/cache` (save Actions minutes) | P0 |
+| **FR-CI-007** | Connect Vercel project to GitHub repository | P0 |
+| **FR-CI-008** | Configure Vercel **production** deployment on `main` branch | P0 |
+| **FR-CI-009** | Configure Vercel **QA** deployment on `qa` branch | P0 |
+| **FR-CI-010** | Configure Vercel **dev** deployment on `dev` branch | P0 |
+| **FR-CI-011** | Set environment variables in Vercel for all 3 environments | P0 |
+| **FR-CI-012** | Create `qa` branch in Git repository | P0 |
+| **FR-CI-013** | Create `dev` branch in Git repository | P0 |
 
 ---
 
@@ -295,26 +375,32 @@ Developer pushes code
 
 ### 7.1 Database (Neon)
 
-| Variable | Environment | Description |
-|----------|-------------|-------------|
-| `DATABASE_URL` | All | Pooled connection string |
-| `DATABASE_URL_UNPOOLED` | All | Direct connection (for migrations) |
+| Variable | Dev | QA | Prod | Description |
+|----------|-----|-----|------|-------------|
+| `DATABASE_URL` | ✅ | ✅ | ✅ | Pooled connection string |
+| `DATABASE_URL_UNPOOLED` | ✅ | ✅ | ✅ | Direct connection (for migrations) |
 
 ### 7.2 S3 Storage
 
-| Variable | Environment | Description |
-|----------|-------------|-------------|
-| `AWS_ACCESS_KEY_ID` | All | IAM access key |
-| `AWS_SECRET_ACCESS_KEY` | All | IAM secret key |
-| `AWS_REGION` | All | S3 bucket region |
-| `AWS_S3_BUCKET` | All | Bucket name |
+| Variable | Dev | QA | Prod | Description |
+|----------|-----|-----|------|-------------|
+| `AWS_ACCESS_KEY_ID` | ✅ | ✅ | ✅ | IAM access key |
+| `AWS_SECRET_ACCESS_KEY` | ✅ | ✅ | ✅ | IAM secret key |
+| `AWS_REGION` | ✅ | ✅ | ✅ | S3 bucket region |
+| `AWS_S3_BUCKET` | `nuttyfans-media-dev` | `nuttyfans-media-qa` | `nuttyfans-media-prod` | Bucket name |
 
-### 7.3 Vercel/App
+### 7.3 CloudFront CDN
 
-| Variable | Environment | Description |
-|----------|-------------|-------------|
-| `NEXT_PUBLIC_APP_URL` | All | Application URL |
-| `NODE_ENV` | All | `development`, `qa`, `production` |
+| Variable | Dev | QA | Prod | Description |
+|----------|-----|-----|------|-------------|
+| `CLOUDFRONT_URL` | ✅ | ✅ | ✅ | CDN distribution URL |
+
+### 7.4 Vercel/App
+
+| Variable | Dev | QA | Prod | Description |
+|----------|-----|-----|------|-------------|
+| `NEXT_PUBLIC_APP_URL` | `*.vercel.app` | `*.vercel.app` | `*.vercel.app` | Application URL |
+| `NODE_ENV` | `development` | `qa` | `production` | Environment name |
 
 ---
 
@@ -333,12 +419,16 @@ Developer pushes code
 
 ## 9. Open Questions
 
-| # | Question | Impact | Status |
+| # | Question | Answer | Status |
 |---|----------|--------|--------|
-| Q1 | Is the GitHub repository public or private? | GitHub Actions billing | **REQUIRES HUMAN INPUT** |
-| Q2 | What Vercel plan is available (hobby/pro/enterprise)? | Feature availability | **REQUIRES HUMAN INPUT** |
-| Q3 | Should QA and Production use separate S3 buckets or prefixes? | Cost vs isolation | **REQUIRES HUMAN INPUT** |
-| Q4 | Is a custom domain needed for QA (e.g., `qa.nuttyfans.com`)? | DNS configuration | **REQUIRES HUMAN INPUT** |
+| Q1 | Is the GitHub repository public or private? | **Private** | ✅ Answered |
+| Q2 | What Vercel plan is available? | **Free (Hobby)** | ✅ Answered |
+| Q3 | Separate S3 buckets or prefixes? | **Separate buckets per env** | ✅ Answered |
+| Q4 | Custom domain for QA? | **No (use Vercel defaults)** | ✅ Answered |
+| Q5 | How many environments? | **3: Dev, QA, Prod** | ✅ Answered |
+| Q6 | S3 direct access or CDN? | **CDN only (CloudFront)** | ✅ Answered |
+
+**All questions answered — PM research complete.**
 
 ---
 
@@ -346,12 +436,13 @@ Developer pushes code
 
 | Item | Reason |
 |------|--------|
-| CloudFront CDN setup | Future optimization task |
 | Custom domain configuration | Separate task |
 | Database read replicas | Future scaling task |
 | Advanced monitoring (Datadog/Sentry) | Separate task |
 | Redis/caching layer | Separate task |
 | Email service (SendGrid) | Separate task |
+| Signed URLs for private content | Future feature task |
+| Video transcoding pipeline | Separate task |
 
 ---
 
@@ -371,12 +462,20 @@ Developer pushes code
 
 | Criteria | Verification |
 |----------|--------------|
-| Neon database accessible | `prisma db push` succeeds |
-| S3 bucket functional | Upload/download test passes |
+| Neon `dev` branch accessible | `prisma db push` succeeds |
+| Neon `qa` branch accessible | `prisma db push` succeeds |
+| Neon `main` branch accessible | `prisma db push` succeeds |
+| S3 `dev` bucket created | AWS console verification |
+| S3 `qa` bucket created | AWS console verification |
+| S3 `prod` bucket created | AWS console verification |
+| CloudFront `dev` distribution | Media accessible via CDN URL |
+| CloudFront `qa` distribution | Media accessible via CDN URL |
+| CloudFront `prod` distribution | Media accessible via CDN URL |
+| Direct S3 access blocked | Returns 403 Forbidden |
 | CI pipeline runs | GitHub Actions shows green |
-| Vercel deploys | Preview URL accessible |
-| QA environment works | `qa` branch deploys to QA |
-| Production ready | `main` branch deploys to production |
+| Dev deployment works | `dev` branch deploys to Vercel |
+| QA deployment works | `qa` branch deploys to Vercel |
+| Production deployment works | `main` branch deploys to Vercel |
 
 ---
 
@@ -395,14 +494,28 @@ Developer pushes code
 
 **✅ PM Research COMPLETE**
 
-### Open Questions Requiring Human Input:
+### All Questions Answered:
 
-1. **Q1:** Is the GitHub repository public or private?
-2. **Q2:** What Vercel plan is available?
-3. **Q3:** Separate S3 buckets for QA/Production or prefixes?
-4. **Q4:** Custom domain for QA environment?
+| Question | Answer |
+|----------|--------|
+| GitHub repo visibility | Private |
+| Vercel plan | Free (Hobby) |
+| S3 buckets | Separate per environment (3 buckets) |
+| Custom domain | No (use Vercel defaults) |
+| Environments | 3 (Dev, QA, Prod) |
+| S3 access | CDN only (CloudFront) |
 
-Once answered, ready for: **02-ARCHITECTURE-REVIEW.mdc** (Tech Lead Agent)
+### Infrastructure Summary:
+
+| Component | Dev | QA | Prod |
+|-----------|-----|-----|------|
+| **Git Branch** | `dev` | `qa` | `main` |
+| **Neon Branch** | `dev` | `qa` | `main` |
+| **S3 Bucket** | `nuttyfans-media-dev` | `nuttyfans-media-qa` | `nuttyfans-media-prod` |
+| **CloudFront** | Distribution 1 | Distribution 2 | Distribution 3 |
+| **Vercel** | Dev deployment | QA deployment | Prod deployment |
+
+**Ready for: 02-ARCHITECTURE-REVIEW.mdc (Tech Lead Agent)**
 
 ---
 
@@ -411,3 +524,4 @@ Once answered, ready for: **02-ARCHITECTURE-REVIEW.mdc** (Tech Lead Agent)
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
 | 1.0 | Dec 14, 2025 | PM Agent | Initial research |
+| 1.1 | Dec 14, 2025 | PM Agent | Updated with 3 environments, CloudFront CDN, all questions answered |
