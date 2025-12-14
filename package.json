@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "postinstall": "prisma generate",
     "build": "next build",
     "start": "next start",
     "lint": "eslint . --max-warnings 0",
@@ -19,8 +20,7 @@
     "db:studio": "prisma studio",
     "db:seed": "prisma db seed",
     "db:validate": "prisma validate",
-    "db:format": "prisma format",
-    "postinstall": "prisma generate"
+    "db:format": "prisma format"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.1.0",
