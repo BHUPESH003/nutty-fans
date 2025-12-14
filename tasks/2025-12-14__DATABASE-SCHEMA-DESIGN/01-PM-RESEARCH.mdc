@@ -3,7 +3,7 @@
 **Task:** DATABASE-SCHEMA-DESIGN  
 **Date:** 2025-12-14  
 **PM Agent Version:** 1.0  
-**Status:** DRAFT — Pending Human Review
+**Status:** ✅ COMPLETE — Human Decisions Incorporated
 
 ---
 
@@ -63,7 +63,7 @@ The existing schema contains **24 tables**:
 | Business Entity | Schema Coverage | Status |
 |-----------------|-----------------|--------|
 | Users (basic) | ✅ `users` table | Complete |
-| User roles | ⚠️ Single `role` field | Limited |
+| User roles | ⚠️ Single `role` field | **NEEDS EXPANSION** |
 | Creators | ✅ `creator_profiles` table | Complete |
 | Posts | ✅ `posts` table | Complete |
 | Media | ✅ `media` table | Complete |
@@ -76,46 +76,401 @@ The existing schema contains **24 tables**:
 | Analytics | ✅ Dedicated tables | Complete |
 | Audit | ✅ `audit_logs` table | Complete |
 | Reports/Moderation | ✅ `reports` table | Complete |
-| Comments | ❌ Missing | **GAP** |
-| Admin permissions | ⚠️ Basic role field only | **GAP** |
-| Content tags | ❌ Missing | **GAP** |
-| Promotional codes | ❌ Missing | Future |
-| Referrals | ❌ Missing | Future |
+| **Comments** | ❌ Missing | **GAP - ADD** |
+| **Admin permissions** | ❌ Missing | **GAP - ADD** |
+| **Content tags** | ❌ Missing | **GAP - ADD** |
+| **Tip goals** | ❌ Missing | **GAP - ADD** |
+| Promotional codes | ❌ Missing | Future (P2) |
+| Referrals | ❌ Missing | Future (P2) |
 
 ---
 
-## 3. Gap Analysis
+## 3. Complete Gap Analysis
 
-### 3.1 Critical Gaps (P0)
+### 3.1 Critical Gaps — MUST ADD (P0)
 
-| ID | Gap | Impact | Business Need |
-|----|-----|--------|---------------|
-| GAP-001 | **No comments table** | Users cannot comment on posts | PRD U-031: "As a user, I want to comment on posts" |
-| GAP-002 | **No admin permissions system** | Cannot implement granular admin roles | Task: "Roles & permissions" |
-| GAP-003 | **No content tags/hashtags** | Limited content discovery | PRD: "Explore/Discover" features |
+#### GAP-001: Comments Table
 
-### 3.2 Medium Gaps (P1)
+| Attribute | Details |
+|-----------|---------|
+| **Gap** | No table for post comments |
+| **Business Impact** | Users cannot comment on posts |
+| **PRD Reference** | U-031: "As a user, I want to comment on posts" |
+| **Recommendation** | Add `comments` table with nested reply support |
 
-| ID | Gap | Impact | Business Need |
-|----|-----|--------|---------------|
-| GAP-004 | **No tips table** | Tips only tracked in transactions | No dedicated tip tracking/goals |
-| GAP-005 | **No subscription history** | Only current subscription tracked | Cannot analyze subscription patterns |
-| GAP-006 | **No user activity tracking** | Limited engagement analytics | PRD: "Audience insights" |
-| GAP-007 | **No content bundles table** | Cannot implement bundle purchases | PRD P1 feature |
-
-### 3.3 Future Gaps (P2)
-
-| ID | Gap | Impact | Business Need |
-|----|-----|--------|---------------|
-| GAP-008 | No referral system | Cannot track creator/user referrals | BRD: Referral program |
-| GAP-009 | No promotional codes | Cannot offer discounts | Future marketing |
-| GAP-010 | No creator verification badges | Limited trust signals | PRD: Creator badges |
+**Proposed Table Structure:**
+```
+comments
+├── id (UUID, PK)
+├── post_id (UUID, FK → posts)
+├── user_id (UUID, FK → users)
+├── parent_id (UUID, FK → comments, nullable for replies)
+├── content (TEXT)
+├── like_count (INTEGER)
+├── is_hidden (BOOLEAN) — for moderation
+├── created_at (TIMESTAMP)
+├── updated_at (TIMESTAMP)
+```
 
 ---
 
-## 4. Functional Requirements Validation
+#### GAP-002: Admin Roles & Permissions System
 
-### 4.1 User Lifecycle
+| Attribute | Details |
+|-----------|---------|
+| **Gap** | Only single `role` field on users table |
+| **Business Impact** | Cannot implement granular admin access control |
+| **Task Requirement** | "Roles & permissions" entity |
+| **Human Decision** | Three roles: super-admin, moderator, support |
+| **Recommendation** | Add `admin_roles` and `admin_permissions` tables |
+
+**Proposed Tables:**
+
+**admin_roles:**
+```
+admin_roles
+├── id (UUID, PK)
+├── name (VARCHAR) — 'super_admin', 'moderator', 'support'
+├── description (TEXT)
+├── created_at (TIMESTAMP)
+```
+
+**admin_permissions:**
+```
+admin_permissions
+├── id (UUID, PK)
+├── role_id (UUID, FK → admin_roles)
+├── permission (VARCHAR) — e.g., 'manage_users', 'moderate_content', 'view_reports', 'manage_payouts'
+├── created_at (TIMESTAMP)
+```
+
+**user_admin_roles (junction):**
+```
+user_admin_roles
+├── id (UUID, PK)
+├── user_id (UUID, FK → users)
+├── role_id (UUID, FK → admin_roles)
+├── assigned_by (UUID, FK → users)
+├── created_at (TIMESTAMP)
+```
+
+**Permission Matrix (Recommended):**
+
+| Permission | Super Admin | Moderator | Support |
+|------------|-------------|-----------|---------|
+| `manage_users` | ✅ | ❌ | ❌ |
+| `manage_creators` | ✅ | ❌ | ❌ |
+| `moderate_content` | ✅ | ✅ | ❌ |
+| `review_reports` | ✅ | ✅ | ✅ |
+| `resolve_reports` | ✅ | ✅ | ❌ |
+| `manage_payouts` | ✅ | ❌ | ❌ |
+| `view_analytics` | ✅ | ✅ | ✅ |
+| `manage_categories` | ✅ | ❌ | ❌ |
+| `manage_dmca` | ✅ | ✅ | ❌ |
+| `ban_users` | ✅ | ✅ | ❌ |
+| `suspend_users` | ✅ | ✅ | ✅ |
+| `view_transactions` | ✅ | ❌ | ✅ |
+| `issue_refunds` | ✅ | ❌ | ❌ |
+| `manage_admins` | ✅ | ❌ | ❌ |
+
+---
+
+#### GAP-003: Content Tags/Hashtags
+
+| Attribute | Details |
+|-----------|---------|
+| **Gap** | No way to tag or categorize individual posts |
+| **Business Impact** | Limited content discovery |
+| **PRD Reference** | Explore/Discover features |
+| **Recommendation** | Add `tags` and `post_tags` tables |
+
+**Proposed Tables:**
+
+**tags:**
+```
+tags
+├── id (UUID, PK)
+├── name (VARCHAR, UNIQUE)
+├── slug (VARCHAR, UNIQUE)
+├── usage_count (INTEGER) — denormalized for performance
+├── is_nsfw (BOOLEAN)
+├── is_banned (BOOLEAN) — for prohibited tags
+├── created_at (TIMESTAMP)
+```
+
+**post_tags (junction):**
+```
+post_tags
+├── id (UUID, PK)
+├── post_id (UUID, FK → posts)
+├── tag_id (UUID, FK → tags)
+├── created_at (TIMESTAMP)
+├── UNIQUE(post_id, tag_id)
+```
+
+---
+
+#### GAP-004: Tip Goals
+
+| Attribute | Details |
+|-----------|---------|
+| **Gap** | Tips only tracked in transactions, no goal tracking |
+| **Business Impact** | Creators cannot set tip goals for engagement |
+| **Human Decision** | YES — track tip goals separately |
+| **Recommendation** | Add `tip_goals` table |
+
+**Proposed Table:**
+```
+tip_goals
+├── id (UUID, PK)
+├── creator_id (UUID, FK → creator_profiles)
+├── title (VARCHAR) — e.g., "New Camera Fund"
+├── description (TEXT)
+├── target_amount (DECIMAL)
+├── current_amount (DECIMAL) — denormalized for performance
+├── status (VARCHAR) — 'active', 'completed', 'cancelled'
+├── started_at (TIMESTAMP)
+├── deadline_at (TIMESTAMP, nullable)
+├── completed_at (TIMESTAMP, nullable)
+├── created_at (TIMESTAMP)
+├── updated_at (TIMESTAMP)
+```
+
+**tip_goal_contributions:**
+```
+tip_goal_contributions
+├── id (UUID, PK)
+├── tip_goal_id (UUID, FK → tip_goals)
+├── user_id (UUID, FK → users)
+├── transaction_id (UUID, FK → transactions)
+├── amount (DECIMAL)
+├── created_at (TIMESTAMP)
+```
+
+---
+
+### 3.2 Medium Priority Gaps — SHOULD ADD (P1)
+
+#### GAP-005: Subscription History
+
+| Attribute | Details |
+|-----------|---------|
+| **Gap** | Only current subscription tracked via UNIQUE constraint |
+| **Business Impact** | Cannot analyze subscription patterns, churn, resubscriptions |
+| **Recommendation** | Add `subscription_history` table |
+
+**Proposed Table:**
+```
+subscription_history
+├── id (UUID, PK)
+├── subscription_id (UUID, FK → subscriptions)
+├── user_id (UUID, FK → users)
+├── creator_id (UUID, FK → creator_profiles)
+├── event_type (VARCHAR) — 'created', 'renewed', 'cancelled', 'expired', 'paused', 'resumed'
+├── plan_type (VARCHAR)
+├── price_paid (DECIMAL)
+├── metadata (JSONB)
+├── created_at (TIMESTAMP)
+```
+
+---
+
+#### GAP-006: User Activity/Engagement Tracking
+
+| Attribute | Details |
+|-----------|---------|
+| **Gap** | No user-level activity tracking |
+| **Business Impact** | Limited audience insights for creators |
+| **PRD Reference** | "Audience insights" feature |
+| **Recommendation** | Add `user_activity` table |
+
+**Proposed Table:**
+```
+user_activity
+├── id (UUID, PK)
+├── user_id (UUID, FK → users)
+├── activity_type (VARCHAR) — 'page_view', 'post_view', 'profile_view', 'search', 'login'
+├── entity_type (VARCHAR, nullable) — 'post', 'creator', 'live_stream'
+├── entity_id (UUID, nullable)
+├── metadata (JSONB)
+├── ip_address (INET)
+├── user_agent (TEXT)
+├── created_at (TIMESTAMP)
+```
+
+**Note:** This table will be HIGH VOLUME — must be partitioned.
+
+---
+
+#### GAP-007: Content Bundles
+
+| Attribute | Details |
+|-----------|---------|
+| **Gap** | Cannot bundle content for purchase |
+| **Business Impact** | Limited monetization options |
+| **PRD Reference** | P1 feature - Content Bundles |
+| **Recommendation** | Add `bundles` and `bundle_items` tables |
+
+**Proposed Tables:**
+
+**bundles:**
+```
+bundles
+├── id (UUID, PK)
+├── creator_id (UUID, FK → creator_profiles)
+├── title (VARCHAR)
+├── description (TEXT)
+├── price (DECIMAL)
+├── original_price (DECIMAL) — for showing discount
+├── cover_image_url (TEXT)
+├── status (VARCHAR) — 'draft', 'active', 'archived'
+├── purchase_count (INTEGER)
+├── created_at (TIMESTAMP)
+├── updated_at (TIMESTAMP)
+```
+
+**bundle_items:**
+```
+bundle_items
+├── id (UUID, PK)
+├── bundle_id (UUID, FK → bundles)
+├── post_id (UUID, FK → posts)
+├── sort_order (INTEGER)
+├── created_at (TIMESTAMP)
+```
+
+**bundle_purchases:**
+```
+bundle_purchases
+├── id (UUID, PK)
+├── bundle_id (UUID, FK → bundles)
+├── user_id (UUID, FK → users)
+├── transaction_id (UUID, FK → transactions)
+├── price_paid (DECIMAL)
+├── created_at (TIMESTAMP)
+├── UNIQUE(bundle_id, user_id)
+```
+
+---
+
+### 3.3 Future Gaps — DEFER (P2)
+
+| Gap | Description | Deferral Reason |
+|-----|-------------|-----------------|
+| **Referral System** | Track creator/user referrals | P2 feature per BRD |
+| **Promotional Codes** | Discount codes for subscriptions | Marketing feature, not MVP |
+| **Multi-currency** | Support beyond USD | International expansion phase |
+| **Verification Badges** | Multiple badge types | `is_verified` sufficient for now |
+
+---
+
+## 4. Scalability Analysis & Partitioning Strategy
+
+### 4.1 Table Volume Projections
+
+| Table | Year 1 | Year 2 | Year 3 | Growth Pattern |
+|-------|--------|--------|--------|----------------|
+| `users` | 500K | 5M | 25M | Linear |
+| `creator_profiles` | 10K | 100K | 500K | Linear |
+| `posts` | 5M | 50M | 200M | Linear |
+| `media` | 20M | 200M | 800M | Linear |
+| `transactions` | 50M | 500M | 2B | Exponential |
+| `messages` | 100M | 1B | 5B | Exponential |
+| `notifications` | 500M | 5B | 20B | Exponential |
+| `likes` | 50M | 500M | 2B | Exponential |
+| `comments` (new) | 10M | 100M | 400M | Exponential |
+| `post_analytics` | 50M | 500M | 2B | Linear (daily) |
+| `creator_analytics` | 5M | 50M | 200M | Linear (daily) |
+| `audit_logs` | 100M | 1B | 5B | Unbounded |
+| `user_activity` (new) | 1B | 10B | 50B | Exponential |
+
+### 4.2 Read/Write Pattern Analysis
+
+| Table | Read Pattern | Write Pattern | Hot Path |
+|-------|--------------|---------------|----------|
+| `users` | Very High | Low | ✅ Auth, profiles |
+| `posts` | Very High | Medium | ✅ Feed, discovery |
+| `media` | Very High | Low | ✅ Content delivery |
+| `subscriptions` | High | Medium | ✅ Access checks |
+| `transactions` | Medium | High | Financial reporting |
+| `messages` | High | High | ✅ Chat |
+| `notifications` | High | Very High | ✅ Real-time |
+| `likes` | Medium | High | Engagement |
+| `post_analytics` | Low | Very High | Background jobs |
+| `audit_logs` | Low | Very High | Compliance |
+
+### 4.3 Partitioning Strategy (Human Decision: Best Practice)
+
+**Tables to Partition FROM DAY ONE:**
+
+| Table | Partition Strategy | Partition Key | Retention |
+|-------|-------------------|---------------|-----------|
+| `transactions` | Range by month | `created_at` | Indefinite |
+| `messages` | Range by month | `created_at` | Indefinite |
+| `notifications` | Range by month | `created_at` | 90 days active, archive older |
+| `audit_logs` | Range by month | `created_at` | 2 years, then archive |
+| `post_analytics` | Range by month | `date` | Indefinite |
+| `creator_analytics` | Range by month | `date` | Indefinite |
+| `user_activity` (new) | Range by week | `created_at` | 30 days hot, archive older |
+
+**Partition Implementation Notes:**
+- Use PostgreSQL native partitioning (PARTITION BY RANGE)
+- Create partitions ahead of time (3 months in advance)
+- Automate partition creation via cron job
+- Consider pg_partman extension for automation
+
+**Example Partition DDL:**
+```sql
+-- transactions table with partitioning
+CREATE TABLE transactions (
+  ...
+) PARTITION BY RANGE (created_at);
+
+-- Monthly partitions
+CREATE TABLE transactions_2025_01 PARTITION OF transactions
+  FOR VALUES FROM ('2025-01-01') TO ('2025-02-01');
+```
+
+### 4.4 Indexing Improvements
+
+**Missing Composite Indexes (Add):**
+
+| Table | Index | Purpose |
+|-------|-------|---------|
+| `posts` | `(creator_id, published_at DESC)` | Feed queries |
+| `posts` | `(creator_id, status, published_at DESC)` | Creator dashboard |
+| `messages` | `(conversation_id, is_read)` | Unread count |
+| `messages` | `(conversation_id, created_at DESC)` | Message history |
+| `subscriptions` | `(status, expires_at)` | Expiration jobs |
+| `subscriptions` | `(creator_id, status)` | Subscriber lists |
+| `notifications` | `(user_id, is_read, created_at DESC)` | Notification feed |
+| `likes` | `(post_id, created_at DESC)` | Recent likes |
+| `transactions` | `(creator_id, created_at DESC)` | Earnings history |
+
+**Partial Indexes (Add for Performance):**
+
+```sql
+-- Only index active subscriptions for access checks
+CREATE INDEX idx_subscriptions_active 
+  ON subscriptions(user_id, creator_id) 
+  WHERE status = 'active';
+
+-- Only index unread notifications
+CREATE INDEX idx_notifications_unread 
+  ON notifications(user_id, created_at DESC) 
+  WHERE is_read = FALSE;
+
+-- Only index published posts for feed
+CREATE INDEX idx_posts_published 
+  ON posts(creator_id, published_at DESC) 
+  WHERE status = 'published';
+```
+
+---
+
+## 5. Functional Requirements Validation
+
+### 5.1 User Lifecycle — ✅ COMPLETE
 
 | Requirement | Schema Support | Status |
 |-------------|----------------|--------|
@@ -123,265 +478,180 @@ The existing schema contains **24 tables**:
 | Email verification | `email_verified` field | ✅ |
 | Social login | `accounts` table | ✅ |
 | 2FA | `two_factor_enabled`, `two_factor_secret` | ✅ |
-| User status (active/banned/deleted) | `status` field | ✅ |
+| User status | `status` field | ✅ |
 | Wallet balance | `wallet_balance` field | ✅ |
 | Age verification | `date_of_birth` field | ✅ |
 | Account deletion | Soft delete via status | ✅ |
 
-**Assessment:** User lifecycle well-covered.
-
-### 4.2 Creator Lifecycle
+### 5.2 Creator Lifecycle — ✅ COMPLETE
 
 | Requirement | Schema Support | Status |
 |-------------|----------------|--------|
-| Creator application | Role change + profile creation | ✅ |
-| KYC verification | `kyc_status`, `kyc_submitted_at`, etc. | ✅ |
+| Creator application | Role change + profile | ✅ |
+| KYC verification | `kyc_status` fields | ✅ |
 | Subscription pricing | Multiple price fields | ✅ |
-| Free trial | `free_trial_days` field | ✅ |
+| Free trial | `free_trial_days` | ✅ |
 | Stripe integration | `stripe_account_id` | ✅ |
 | Payout tracking | `payouts` table | ✅ |
-| Earnings tracking | `total_earnings` field | ✅ |
-| Blocked countries | `blocked_countries` array | ✅ |
-| Creator verification | `is_verified` field | ✅ |
+| Earnings tracking | `total_earnings` | ✅ |
+| Blocked countries | `blocked_countries` | ✅ |
+| Creator verification | `is_verified` | ✅ |
+| **Tip goals** | `tip_goals` table (NEW) | ✅ ADD |
 
-**Assessment:** Creator lifecycle well-covered.
-
-### 4.3 Content Publishing
+### 5.3 Content Publishing — ✅ COMPLETE (with additions)
 
 | Requirement | Schema Support | Status |
 |-------------|----------------|--------|
 | Post creation | `posts` table | ✅ |
-| Multiple media per post | `media` table with `post_id` FK | ✅ |
-| Post types (post/story/reel) | `post_type` field | ✅ |
-| Access levels (free/sub/ppv) | `access_level` field | ✅ |
-| Post scheduling | `scheduled_at` field | ✅ |
-| Post expiration | `expires_at` field | ✅ |
-| Content moderation | `moderation_status` field | ✅ |
-| NSFW flagging | `is_nsfw` field | ✅ |
-| Comments on posts | ❌ **Missing** | **GAP** |
-| Content tagging | ❌ **Missing** | **GAP** |
+| Multiple media | `media` table | ✅ |
+| Post types | `post_type` field | ✅ |
+| Access levels | `access_level` field | ✅ |
+| Post scheduling | `scheduled_at` | ✅ |
+| Post expiration | `expires_at` | ✅ |
+| Content moderation | `moderation_status` | ✅ |
+| NSFW flagging | `is_nsfw` | ✅ |
+| **Comments** | `comments` table (NEW) | ✅ ADD |
+| **Content tags** | `tags`, `post_tags` (NEW) | ✅ ADD |
 
-**Assessment:** Mostly complete. **Comments and tags missing.**
-
-### 4.4 Monetization Flows
+### 5.4 Monetization Flows — ✅ COMPLETE (with additions)
 
 | Requirement | Schema Support | Status |
 |-------------|----------------|--------|
 | Subscriptions | `subscriptions` table | ✅ |
-| Subscription bundles (3/6/12 month) | `plan_type` field | ✅ |
-| PPV posts | `ppv_price` on posts + `ppv_purchases` | ✅ |
-| PPV messages | `ppv_price` on messages + `ppv_purchases` | ✅ |
-| Tips | `transactions` with type='tip' | ⚠️ Basic |
-| Paid DMs | `dm_price` on creator + message pricing | ✅ |
-| Live stream tips | `transactions` with type='live_tip' | ✅ |
-| Transaction history | `transactions` table | ✅ |
-| Platform fee tracking | `platform_fee` field | ✅ |
+| Subscription bundles | `plan_type` field | ✅ |
+| PPV posts | `ppv_purchases` table | ✅ |
+| PPV messages | `ppv_purchases` table | ✅ |
+| Tips | `transactions` table | ✅ |
+| **Tip goals** | `tip_goals` table (NEW) | ✅ ADD |
+| Paid DMs | `dm_price` field | ✅ |
+| Live stream tips | `transactions` table | ✅ |
+| **Content bundles** | `bundles` tables (NEW) | ✅ ADD |
 
-**Assessment:** Monetization well-modeled.
-
-### 4.5 Admin & Moderation
+### 5.5 Admin & Moderation — ✅ COMPLETE (with additions)
 
 | Requirement | Schema Support | Status |
 |-------------|----------------|--------|
 | User reports | `reports` table | ✅ |
-| Content moderation | `moderation_status` on posts | ✅ |
+| Content moderation | `moderation_status` | ✅ |
 | DMCA handling | `dmca_requests` table | ✅ |
 | Audit logging | `audit_logs` table | ✅ |
-| Admin roles | Single `role` field only | ⚠️ Limited |
-| Granular permissions | ❌ **Missing** | **GAP** |
-| Admin action logging | `audit_logs` table | ✅ |
-
-**Assessment:** Basic support exists. **Granular permissions missing.**
+| **Admin roles** | `admin_roles` table (NEW) | ✅ ADD |
+| **Permissions** | `admin_permissions` table (NEW) | ✅ ADD |
 
 ---
 
-## 5. Non-Functional Requirements Validation
+## 6. Human Decisions (Confirmed)
 
-### 5.1 Scalability Assessment
-
-| Table | Expected Volume (Y2) | Read/Write Pattern | Scalability Risk |
-|-------|----------------------|-------------------|------------------|
-| `users` | 5M+ | Read-heavy | Low |
-| `posts` | 50M+ | Read-heavy | Medium |
-| `media` | 200M+ | Read-heavy | Medium |
-| `transactions` | 500M+ | Write-heavy | **HIGH** |
-| `messages` | 1B+ | Both | **HIGH** |
-| `notifications` | 5B+ | Write-heavy | **HIGH** |
-| `likes` | 500M+ | Both | Medium |
-| `post_analytics` | 500M+ | Write-heavy | **HIGH** |
-| `audit_logs` | Unbounded | Write-only | **HIGH** |
-
-**High-Risk Tables Requiring Partitioning:**
-- `transactions` — partition by date
-- `messages` — partition by date or conversation
-- `notifications` — partition by date
-- `audit_logs` — partition by date
-- `post_analytics` / `creator_analytics` — partition by date
-
-### 5.2 Indexing Review
-
-| Table | Current Indexes | Assessment |
-|-------|-----------------|------------|
-| `users` | email, username, role, status | ✅ Good |
-| `posts` | creator_id, status, published_at, access_level, is_nsfw | ✅ Good |
-| `subscriptions` | user_id, creator_id, status, expires_at | ✅ Good |
-| `transactions` | user_id, creator_id, type, status, created_at | ✅ Good |
-| `messages` | conversation_id, sender_id, created_at | ⚠️ Missing `is_read` |
-| `notifications` | user_id, is_read, created_at | ✅ Good |
-
-**Missing Indexes (Recommend for Tech Lead):**
-- `messages(conversation_id, is_read)` — unread message queries
-- `posts(creator_id, published_at)` — composite for feed queries
-- `subscriptions(expires_at, status)` — composite for expiration jobs
-
-### 5.3 Data Integrity Assessment
-
-| Check | Status | Notes |
-|-------|--------|-------|
-| Primary keys | ✅ All UUID | Consistent |
-| Foreign keys | ✅ Present | Good relationships |
-| Cascading deletes | ✅ Configured | On user/creator deletes |
-| CHECK constraints | ✅ Present | On enum-like fields |
-| Unique constraints | ✅ Present | On email, username, etc. |
-| Nullability | ⚠️ Mostly explicit | Some fields could be stricter |
+| Question | Decision | Impact |
+|----------|----------|--------|
+| Should tip goals be tracked separately? | **YES** | Add `tip_goals` + `tip_goal_contributions` tables |
+| What admin roles are needed? | **super-admin, moderator, support** | Add 3-tier admin role system |
+| Feature-level permissions? | **YES (best practice)** | Add granular permission matrix |
+| Which tables to partition? | **Best practice** | 7 tables partitioned from day one |
 
 ---
 
-## 6. Open Questions for Human
+## 7. Complete Schema Additions Summary
 
-### 6.1 User & Creator States
+### 7.1 New Tables Required (9 tables)
 
-| ID | Question | Default Assumption |
-|----|----------|-------------------|
-| Q-001 | Is a separate "deactivated" state needed (vs deleted)? | NO |
-| Q-002 | Should creators have multiple tiers (basic/premium/verified)? | `is_verified` sufficient |
-| Q-003 | Do users need a "restricted" state (limited features)? | NO |
+| Table | Priority | Purpose |
+|-------|----------|---------|
+| `comments` | P0 | Post comments with replies |
+| `admin_roles` | P0 | Admin role definitions |
+| `admin_permissions` | P0 | Role-permission mapping |
+| `user_admin_roles` | P0 | User-role assignments |
+| `tags` | P0 | Content tags/hashtags |
+| `post_tags` | P0 | Post-tag junction |
+| `tip_goals` | P0 | Creator tip goals |
+| `tip_goal_contributions` | P0 | Tip goal tracking |
+| `subscription_history` | P1 | Subscription event log |
+| `user_activity` | P1 | User engagement tracking |
+| `bundles` | P1 | Content bundles |
+| `bundle_items` | P1 | Bundle contents |
+| `bundle_purchases` | P1 | Bundle purchase records |
 
-### 6.2 Monetization Flows
+### 7.2 New Indexes Required
 
-| ID | Question | Default Assumption |
-|----|----------|-------------------|
-| Q-004 | Do we need subscription pause/resume functionality? | YES (status='paused' exists) |
-| Q-005 | Should tip goals be tracked separately? | **REQUIRES INPUT** |
-| Q-006 | Do we need partial refund tracking? | Full refunds only |
+| Table | Index |
+|-------|-------|
+| `posts` | `(creator_id, published_at DESC)` |
+| `posts` | `(creator_id, status, published_at DESC)` |
+| `messages` | `(conversation_id, is_read)` |
+| `subscriptions` | `(status, expires_at)` |
+| `notifications` | `(user_id, is_read, created_at DESC)` |
+| `comments` | `(post_id, created_at DESC)` |
+| `tags` | `(slug)` |
+| `post_tags` | `(post_id)`, `(tag_id)` |
 
-### 6.3 Admin & Reporting
+### 7.3 Tables Requiring Partitioning
 
-| ID | Question | Default Assumption |
-|----|----------|-------------------|
-| Q-007 | What admin roles are needed? | **REQUIRES INPUT** |
-| Q-008 | Do admin roles need granular permissions? | **REQUIRES INPUT** |
-| Q-009 | Real-time dashboard or batch analytics? | Batch sufficient |
-
-### 6.4 Scalability
-
-| ID | Question | Default Assumption |
-|----|----------|-------------------|
-| Q-010 | Which tables should be partitioned from day one? | **REQUIRES INPUT** |
-| Q-011 | Should read replicas be assumed for analytics? | YES |
+| Table | Strategy |
+|-------|----------|
+| `transactions` | Monthly |
+| `messages` | Monthly |
+| `notifications` | Monthly |
+| `audit_logs` | Monthly |
+| `post_analytics` | Monthly |
+| `creator_analytics` | Monthly |
+| `user_activity` | Weekly |
 
 ---
 
-## 7. Confirmed Assumptions
-
-| ID | Assumption | Risk if Wrong |
-|----|------------|---------------|
-| A-001 | PostgreSQL (Neon) is the database | Low — documented |
-| A-002 | UUID for all primary keys | Low — standard |
-| A-003 | JSONB acceptable for flexible metadata | Medium |
-| A-004 | Soft deletes preferred over hard deletes | Low |
-| A-005 | Analytics can be derived (no real-time) | Medium |
-| A-006 | Single-region deployment initially | Medium |
-
----
-
-## 8. Risks
+## 8. Risks & Mitigations
 
 | Risk | Probability | Impact | Mitigation |
 |------|-------------|--------|------------|
-| Missing comments blocks launch | High | High | Add comments table |
-| Admin permissions insufficient | Medium | Medium | Design permissions system |
-| Transaction table scaling | Medium | High | Plan partitioning |
-| Message table scaling | High | High | Plan partitioning |
-| JSONB fields unmanageable | Low | Medium | Document structure |
+| Schema additions delay launch | Medium | Medium | Prioritize P0 only for MVP |
+| Partition management overhead | Low | Medium | Use pg_partman automation |
+| Permission system complexity | Low | Low | Start with predefined roles |
+| High-volume table performance | Medium | High | Implement partitioning from day one |
+| JSONB fields becoming unstructured | Low | Medium | Document expected schemas |
 
 ---
 
-## 9. Recommendations for Tech Lead
+## 9. Success Criteria Mapping
 
-### 9.1 Critical Additions (P0)
-
-| Recommendation | Reason |
-|----------------|--------|
-| Add `comments` table | PRD requirement for post comments |
-| Add admin permissions system | Required for operational readiness |
-| Add `tags` + `post_tags` tables | Content discovery requirement |
-
-### 9.2 Improvements (P1)
-
-| Recommendation | Reason |
-|----------------|--------|
-| Add composite indexes for hot-path queries | Performance |
-| Document partitioning strategy | Scalability |
-| Add `subscription_history` table | Analytics |
-| Consider `tip_goals` table | Creator feature |
-
-### 9.3 Deferred (P2)
-
-| Item | Reason |
-|------|--------|
-| Referral system tables | P2 feature |
-| Promotional codes tables | P2 feature |
-| Multi-currency support | International expansion |
+| Criteria | Status |
+|----------|--------|
+| PM produces clear DB analysis | ✅ Complete |
+| All gaps identified | ✅ 7 P0/P1 gaps documented |
+| Scalability concerns addressed | ✅ Partitioning strategy defined |
+| Human decisions incorporated | ✅ All 4 questions answered |
+| Ready for Tech Lead | ✅ Yes |
 
 ---
 
-## 10. Success Criteria Mapping
+## 10. Recommendations for Tech Lead
 
-| Success Criteria | Status |
-|------------------|--------|
-| PM produces clear DB analysis | ✅ This document |
-| Gaps and risks documented | ✅ Sections 3, 8 |
-| Scalability concerns identified | ✅ Section 5.1 |
-| Open questions documented | ✅ Section 6 |
+### P0 — Must Have (Block MVP)
+1. Add `comments` table with nested reply support
+2. Add admin roles & permissions system (3 roles, 14 permissions)
+3. Add `tags` and `post_tags` for content discovery
+4. Add `tip_goals` and `tip_goal_contributions`
+5. Implement partitioning for 7 high-volume tables
 
----
+### P1 — Should Have (Post-MVP)
+1. Add `subscription_history` for analytics
+2. Add `user_activity` for engagement tracking
+3. Add `bundles` system for content bundles
+4. Add composite indexes for hot-path queries
+5. Add partial indexes for filtered queries
 
-## 11. Schema Strengths Summary
-
-- ✅ Comprehensive coverage of core entities (24 tables)
-- ✅ Good indexing strategy on most tables
-- ✅ Strong FK relationships and constraints
-- ✅ Analytics tables separated from operational
-- ✅ Audit logging present
-- ✅ DMCA/compliance support
-- ✅ Flexible JSONB fields for extensibility
-
----
-
-## 12. Schema Gaps Summary
-
-| Priority | Gap |
-|----------|-----|
-| **P0** | No comments table |
-| **P0** | No content tags/hashtags |
-| **P0** | No granular admin permissions |
-| **P1** | High-volume tables need partitioning plan |
-| **P1** | Missing composite indexes |
-| **P2** | No referral/promo systems |
+### P2 — Defer
+1. Referral system tables
+2. Promotional code tables
+3. Multi-currency support
 
 ---
 
-## 13. Next Phase
+## 11. Next Phase
 
-**Ready for:** 02-ARCHITECTURE-REVIEW.mdc (Tech Lead Agent)
+**✅ PM Research COMPLETE**
 
-**Blocking Questions Requiring Human Input:**
+Ready for: **02-ARCHITECTURE-REVIEW.mdc** (Tech Lead Agent)
 
-1. **Q-005:** Should tip goals be tracked separately?
-2. **Q-007:** What admin roles are needed (super-admin, moderator, support)?
-3. **Q-008:** Do admin roles need feature-level permissions?
-4. **Q-010:** Which tables should be time-partitioned from day one?
+No blocking questions remain. All human decisions incorporated.
 
 ---
 
@@ -391,6 +661,9 @@ The existing schema contains **24 tables**:
 |-------|-------|
 | Created | 2025-12-14 |
 | Author | PM Agent |
-| Status | **DRAFT** |
-| Human Approval | Pending |
+| Status | ✅ **COMPLETE** |
+| Human Approval | ✅ Decisions Incorporated |
 | Next Phase | 02-ARCHITECTURE-REVIEW.mdc |
+| New Tables | 13 |
+| New Indexes | 8+ |
+| Partitioned Tables | 7 |
