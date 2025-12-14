@@ -68,7 +68,7 @@
     "seed": "npx tsx prisma/seed.ts"
   },
   "engines": {
-    "node": ">=20.0.0"
+    "node": "^20.19 || ^22.12 || >=24.0"
   },
   "packageManager": "pnpm@9.0.0"
 }

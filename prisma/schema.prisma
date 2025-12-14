@@ -637,6 +637,9 @@ model Block {
 // =============================================================================
 
 /// Conversations - DM conversations between users
+/// IMPORTANT: Application must normalize participant order (smaller UUID first)
+/// to prevent duplicate conversations with swapped participants.
+/// A database constraint enforces participant1 < participant2.
 model Conversation {
   id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   participant1  String    @map("participant_1") @db.Uuid
