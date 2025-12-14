@@ -1,0 +1,282 @@
+# 04-ENGINEERING/FRONTEND.mdc
+
+**Task:** PROJECT-SCAFFOLDING  
+**Date:** 2025-12-14  
+**Frontend Agent Version:** 1.0  
+**Status:** ✅ COMPLETE
+
+---
+
+## 1. Implementation Summary
+
+The frontend scaffold has been implemented according to the specifications in `02-ARCHITECTURE-REVIEW.mdc`.
+
+### 1.1 Scope Delivered
+
+| Deliverable | Status |
+|-------------|--------|
+| Next.js 15.x initialization | ✅ Complete |
+| App Router folder structure | ✅ Complete |
+| TypeScript 5.7.x configuration | ✅ Complete |
+| ESLint 9.x flat config | ✅ Complete |
+| Prettier 3.x configuration | ✅ Complete |
+| Tailwind CSS 3.4.x setup | ✅ Complete |
+| Husky 9.x + lint-staged | ✅ Complete |
+| Base source files | ✅ Complete |
+
+---
+
+## 2. Folder Structure Created
+
+```
+nuttyfans/
+├── .husky/
+│   └── pre-commit
+├── src/
+│   ├── app/
+│   │   ├── api/
+│   │   │   └── .gitkeep
+│   │   ├── globals.css
+│   │   ├── layout.tsx
+│   │   └── page.tsx
+│   ├── components/
+│   │   ├── ui/
+│   │   │   └── .gitkeep
+│   │   └── containers/
+│   │       └── .gitkeep
+│   ├── lib/
+│   │   ├── middleware/
+│   │   │   └── .gitkeep
+│   │   └── utils.ts
+│   ├── hooks/
+│   │   └── .gitkeep
+│   ├── services/
+│   │   └── apiClient.ts
+│   ├── styles/
+│   │   └── .gitkeep
+│   └── types/
+│       └── index.ts
+├── tests/
+│   └── .gitkeep
+├── scripts/
+│   └── .gitkeep
+├── .editorconfig
+├── .gitignore
+├── .prettierrc
+├── .prettierignore
+├── eslint.config.mjs
+├── next.config.ts
+├── next-env.d.ts
+├── package.json
+├── pnpm-lock.yaml
+├── postcss.config.js
+├── tailwind.config.ts
+└── tsconfig.json
+```
+
+---
+
+## 3. Configuration Files Implemented
+
+### 3.1 TypeScript (`tsconfig.json`)
+
+| Setting | Value | Rationale |
+|---------|-------|-----------|
+| `strict` | `true` | Per CODEBASE_GOVERNANCE_RULES §3.1 |
+| `noUncheckedIndexedAccess` | `true` | Prevents runtime undefined errors |
+| `noImplicitOverride` | `true` | Explicit override keyword |
+| `noPropertyAccessFromIndexSignature` | `true` | Forces bracket notation |
+| `target` | `ES2022` | Modern runtime support |
+| `moduleResolution` | `bundler` | Next.js 15 recommended |
+| `paths.@/*` | `./src/*` | Path alias configuration |
+
+### 3.2 ESLint (`eslint.config.mjs`)
+
+| Rule Category | Implementation |
+|---------------|----------------|
+| Base | ESLint recommended + Next.js core-web-vitals |
+| TypeScript | `@typescript-eslint/no-explicit-any: error` |
+| Imports | Ordered imports with `@/` prefix grouping |
+| General | `no-console: warn` (allows warn/error) |
+
+### 3.3 Prettier (`.prettierrc`)
+
+| Setting | Value |
+|---------|-------|
+| `semi` | `true` |
+| `singleQuote` | `true` |
+| `tabWidth` | `2` |
+| `trailingComma` | `es5` |
+| `printWidth` | `100` |
+| `plugins` | `prettier-plugin-tailwindcss` |
+
+### 3.4 Tailwind CSS (`tailwind.config.ts`)
+
+| Feature | Implementation |
+|---------|----------------|
+| Dark mode | `class` strategy |
+| Content paths | `./src/**/*.{js,ts,jsx,tsx,mdx}` |
+| CSS variables | ShadCN-ready color tokens |
+| Border radius | CSS variable-based (`--radius`) |
+
+### 3.5 Next.js (`next.config.ts`)
+
+| Setting | Value | Purpose |
+|---------|-------|---------|
+| `reactStrictMode` | `true` | Development error detection |
+| `poweredByHeader` | `false` | Security: hide tech stack |
+| `typedRoutes` | `true` | Type-safe Link components |
+| Security headers | Configured | X-Frame-Options, CSP, etc. |
+
+---
+
+## 4. Source Files Implemented
+
+### 4.1 `src/app/layout.tsx`
+
+- Root layout with metadata
+- Imports `globals.css`
+- Minimal, no business logic
+
+### 4.2 `src/app/page.tsx`
+
+- Placeholder home page
+- Uses Tailwind classes
+- No business logic
+
+### 4.3 `src/app/globals.css`
+
+- Tailwind directives (`@tailwind base/components/utilities`)
+- CSS custom properties for theming (ShadCN-ready)
+- Light and dark mode variables
+
+### 4.4 `src/lib/utils.ts`
+
+- `cn()` utility function for Tailwind class merging
+- Uses `clsx` + `tailwind-merge`
+
+### 4.5 `src/services/apiClient.ts`
+
+- Placeholder file
+- Documents that all API calls must go through this client
+- Per CODEBASE_ARCHITECTURE_RULES §6.1
+
+### 4.6 `src/types/index.ts`
+
+- Placeholder for global type definitions
+- Empty export to prevent module errors
+
+---
+
+## 5. Git Hooks Configured
+
+### 5.1 Pre-commit (`.husky/pre-commit`)
+
+```bash
+pnpm lint-staged
+```
+
+### 5.2 Lint-Staged Configuration
+
+| File Pattern | Actions |
+|--------------|---------|
+| `*.{ts,tsx}` | ESLint fix + Prettier write |
+| `*.{json,md,css}` | Prettier write |
+
+---
+
+## 6. Verification Results
+
+### 6.1 Build Verification
+
+| Command | Result |
+|---------|--------|
+| `pnpm build` | ✅ Exit code 0 |
+| `pnpm lint` | ✅ Exit code 0, no warnings |
+| `pnpm format:check` | ✅ Exit code 0 |
+| `pnpm typecheck` | ✅ Exit code 0 |
+
+### 6.2 Build Output
+
+```
+Route (app)                                 Size  First Load JS
+┌ ○ /                                      123 B         102 kB
+└ ○ /_not-found                            997 B         103 kB
++ First Load JS shared by all             102 kB
+```
+
+---
+
+## 7. Dependencies Installed
+
+### 7.1 Production Dependencies
+
+| Package | Version | Purpose |
+|---------|---------|---------|
+| `next` | ^15.0.0 | React framework |
+| `react` | ^19.0.0 | UI library |
+| `react-dom` | ^19.0.0 | React DOM |
+| `clsx` | ^2.1.0 | Class name utility |
+| `tailwind-merge` | ^2.2.0 | Tailwind class merging |
+
+### 7.2 Development Dependencies
+
+| Package | Version | Purpose |
+|---------|---------|---------|
+| `typescript` | ^5.7.0 | Type checking |
+| `eslint` | ^9.0.0 | Linting |
+| `eslint-config-next` | ^15.0.0 | Next.js ESLint rules |
+| `@typescript-eslint/*` | ^8.0.0 | TypeScript ESLint |
+| `prettier` | ^3.0.0 | Formatting |
+| `prettier-plugin-tailwindcss` | ^0.6.0 | Tailwind class sorting |
+| `tailwindcss` | ^3.4.0 | CSS framework |
+| `husky` | ^9.0.0 | Git hooks |
+| `lint-staged` | ^15.0.0 | Staged file linting |
+
+---
+
+## 8. Deviations from Specification
+
+### 8.1 tsconfig.json
+
+Next.js build process automatically added `"allowJs": true` to `tsconfig.json`. This is acceptable and does not affect type safety.
+
+### 8.2 Workspace Warning
+
+Next.js detects a parent `package-lock.json` and shows a warning about workspace root. This is a development environment issue and does not affect the build.
+
+---
+
+## 9. Compliance Verification
+
+| Rule | Requirement | Status |
+|------|-------------|--------|
+| CODEBASE_ARCHITECTURE_RULES §3 | App Router only | ✅ |
+| CODEBASE_ARCHITECTURE_RULES §5 | UI/Container separation | ✅ Folders created |
+| CODEBASE_ARCHITECTURE_RULES §6 | Single API client | ✅ Placeholder created |
+| CODEBASE_GOVERNANCE_RULES §2 | Formatting/linting | ✅ |
+| CODEBASE_GOVERNANCE_RULES §3 | TypeScript strict | ✅ |
+| CODEBASE_GOVERNANCE_RULES §13 | pnpm mandatory | ✅ |
+| PROJECT_RULES §P6 | Next.js + TS + Tailwind | ✅ |
+
+---
+
+## 10. Next Steps
+
+This scaffold is ready for:
+
+1. **Backend Agent**: API route handlers in `src/app/api/`
+2. **Frontend Agent**: UI components in `src/components/ui/`
+3. **DevOps Agent**: CI/CD configuration
+
+---
+
+## Document Metadata
+
+| Field | Value |
+|-------|-------|
+| Created | 2025-12-14 |
+| Author | Frontend Agent |
+| Status | ✅ **COMPLETE** |
+| Verification | All commands pass |
+| Ready for | Human review |

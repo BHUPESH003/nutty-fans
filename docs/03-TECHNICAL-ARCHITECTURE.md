@@ -338,43 +338,43 @@ Token Structure:
 
 ### 3.1 Complete Tech Stack
 
-| Layer | Technology | Purpose |
-|-------|------------|---------|
-| **Frontend** | Next.js 14+ (App Router) | React framework with SSR |
-| **UI Components** | Tailwind CSS + shadcn/ui | Styling and components |
-| **State Management** | Zustand + TanStack Query | Client state + server state |
-| **Forms** | React Hook Form + Zod | Form handling + validation |
-| **Backend** | Next.js API Routes + Server Actions | API layer |
-| **Database** | PostgreSQL (Neon) | Primary data store |
-| **ORM** | Prisma | Database access |
-| **Cache** | Redis (Upstash) | Caching + sessions |
-| **Auth** | NextAuth.js v5 | Authentication |
-| **Storage** | AWS S3 | Media storage |
-| **CDN** | CloudFront | Content delivery |
-| **Search** | Meilisearch | Full-text search |
-| **Payments** | Stripe Connect | Payment processing |
-| **KYC** | Jumio / Onfido | Identity verification |
-| **Email** | SendGrid | Transactional email |
-| **Push** | OneSignal | Push notifications |
-| **Realtime** | Pusher | WebSocket connections |
-| **Video** | Mux | Video processing + streaming |
-| **Moderation** | Sightengine | AI content moderation |
-| **Monitoring** | Sentry + Datadog | Error tracking + APM |
-| **Analytics** | PostHog | Product analytics |
-| **Hosting** | Vercel | Application hosting |
+| Layer                | Technology                          | Purpose                      |
+| -------------------- | ----------------------------------- | ---------------------------- |
+| **Frontend**         | Next.js 14+ (App Router)            | React framework with SSR     |
+| **UI Components**    | Tailwind CSS + shadcn/ui            | Styling and components       |
+| **State Management** | Zustand + TanStack Query            | Client state + server state  |
+| **Forms**            | React Hook Form + Zod               | Form handling + validation   |
+| **Backend**          | Next.js API Routes + Server Actions | API layer                    |
+| **Database**         | PostgreSQL (Neon)                   | Primary data store           |
+| **ORM**              | Prisma                              | Database access              |
+| **Cache**            | Redis (Upstash)                     | Caching + sessions           |
+| **Auth**             | NextAuth.js v5                      | Authentication               |
+| **Storage**          | AWS S3                              | Media storage                |
+| **CDN**              | CloudFront                          | Content delivery             |
+| **Search**           | Meilisearch                         | Full-text search             |
+| **Payments**         | Stripe Connect                      | Payment processing           |
+| **KYC**              | Jumio / Onfido                      | Identity verification        |
+| **Email**            | SendGrid                            | Transactional email          |
+| **Push**             | OneSignal                           | Push notifications           |
+| **Realtime**         | Pusher                              | WebSocket connections        |
+| **Video**            | Mux                                 | Video processing + streaming |
+| **Moderation**       | Sightengine                         | AI content moderation        |
+| **Monitoring**       | Sentry + Datadog                    | Error tracking + APM         |
+| **Analytics**        | PostHog                             | Product analytics            |
+| **Hosting**          | Vercel                              | Application hosting          |
 
 ### 3.2 Development Tools
 
-| Tool | Purpose |
-|------|---------|
-| TypeScript | Type safety |
-| ESLint | Code linting |
-| Prettier | Code formatting |
-| Husky | Git hooks |
-| Vitest | Unit testing |
-| Playwright | E2E testing |
-| Docker | Local development |
-| GitHub Actions | CI/CD |
+| Tool           | Purpose           |
+| -------------- | ----------------- |
+| TypeScript     | Type safety       |
+| ESLint         | Code linting      |
+| Prettier       | Code formatting   |
+| Husky          | Git hooks         |
+| Vitest         | Unit testing      |
+| Playwright     | E2E testing       |
+| Docker         | Local development |
+| GitHub Actions | CI/CD             |
 
 ---
 
@@ -382,11 +382,11 @@ Token Structure:
 
 ### 4.1 Environment Setup
 
-| Environment | Purpose | URL |
-|-------------|---------|-----|
-| Development | Local development | localhost:3000 |
-| Staging | Pre-production testing | staging.nuttyfans.com |
-| Production | Live application | nuttyfans.com |
+| Environment | Purpose                | URL                   |
+| ----------- | ---------------------- | --------------------- |
+| Development | Local development      | localhost:3000        |
+| Staging     | Pre-production testing | staging.nuttyfans.com |
+| Production  | Live application       | nuttyfans.com         |
 
 ### 4.2 CI/CD Pipeline
 
@@ -417,14 +417,14 @@ Token Structure:
 
 ### 4.3 Monitoring & Observability
 
-| Component | Tool | Purpose |
-|-----------|------|---------|
-| Error Tracking | Sentry | Exception monitoring |
-| APM | Datadog | Performance monitoring |
-| Logs | Datadog Logs | Centralized logging |
-| Uptime | Better Uptime | Availability monitoring |
-| Analytics | PostHog | User behavior |
-| Alerts | PagerDuty | Incident management |
+| Component      | Tool          | Purpose                 |
+| -------------- | ------------- | ----------------------- |
+| Error Tracking | Sentry        | Exception monitoring    |
+| APM            | Datadog       | Performance monitoring  |
+| Logs           | Datadog Logs  | Centralized logging     |
+| Uptime         | Better Uptime | Availability monitoring |
+| Analytics      | PostHog       | User behavior           |
+| Alerts         | PagerDuty     | Incident management     |
 
 ---
 
@@ -477,23 +477,23 @@ Token Structure:
 
 ### 5.2 Rate Limiting Configuration
 
-| Endpoint | Limit | Window |
-|----------|-------|--------|
-| Auth endpoints | 5 requests | 1 minute |
-| API (authenticated) | 100 requests | 1 minute |
-| API (unauthenticated) | 20 requests | 1 minute |
-| Upload endpoints | 10 requests | 1 minute |
-| Search | 30 requests | 1 minute |
+| Endpoint              | Limit        | Window   |
+| --------------------- | ------------ | -------- |
+| Auth endpoints        | 5 requests   | 1 minute |
+| API (authenticated)   | 100 requests | 1 minute |
+| API (unauthenticated) | 20 requests  | 1 minute |
+| Upload endpoints      | 10 requests  | 1 minute |
+| Search                | 30 requests  | 1 minute |
 
 ### 5.3 Content Security
 
-| Feature | Implementation |
-|---------|----------------|
+| Feature              | Implementation                          |
+| -------------------- | --------------------------------------- |
 | Dynamic Watermarking | Viewer ID + timestamp burned into media |
-| Signed URLs | Time-limited access to media files |
-| Download Prevention | No right-click, disabled save |
-| Screenshot Deterrent | CSS overlay patterns |
-| DRM (Future) | Widevine/FairPlay for premium content |
+| Signed URLs          | Time-limited access to media files      |
+| Download Prevention  | No right-click, disabled save           |
+| Screenshot Deterrent | CSS overlay patterns                    |
+| DRM (Future)         | Widevine/FairPlay for premium content   |
 
 ---
 
@@ -501,36 +501,35 @@ Token Structure:
 
 ### 6.1 Horizontal Scaling Strategy
 
-| Component | Scale Strategy |
-|-----------|----------------|
-| Web Application | Vercel auto-scaling |
-| Database | Neon auto-scaling + read replicas |
-| Cache | Upstash serverless scaling |
-| Storage | S3 unlimited scaling |
-| CDN | CloudFront global edge |
-| Workers | Serverless auto-scaling |
+| Component       | Scale Strategy                    |
+| --------------- | --------------------------------- |
+| Web Application | Vercel auto-scaling               |
+| Database        | Neon auto-scaling + read replicas |
+| Cache           | Upstash serverless scaling        |
+| Storage         | S3 unlimited scaling              |
+| CDN             | CloudFront global edge            |
+| Workers         | Serverless auto-scaling           |
 
 ### 6.2 Performance Optimization
 
-| Optimization | Implementation |
-|--------------|----------------|
-| Database | Connection pooling, query optimization, indexes |
-| Caching | Redis for hot data, CDN for static assets |
-| Images | WebP format, responsive sizes, lazy loading |
-| Videos | Adaptive bitrate streaming, edge caching |
-| API | Response compression, pagination, field selection |
-| Frontend | Code splitting, tree shaking, ISR |
+| Optimization | Implementation                                    |
+| ------------ | ------------------------------------------------- |
+| Database     | Connection pooling, query optimization, indexes   |
+| Caching      | Redis for hot data, CDN for static assets         |
+| Images       | WebP format, responsive sizes, lazy loading       |
+| Videos       | Adaptive bitrate streaming, edge caching          |
+| API          | Response compression, pagination, field selection |
+| Frontend     | Code splitting, tree shaking, ISR                 |
 
 ### 6.3 Capacity Planning
 
-| Milestone | Users | Creators | Infrastructure |
-|-----------|-------|----------|----------------|
-| Launch | 10K | 500 | Single region |
-| 6 months | 100K | 2K | + Read replicas |
-| 12 months | 500K | 10K | Multi-region |
-| 24 months | 5M | 100K | Global CDN + sharding |
+| Milestone | Users | Creators | Infrastructure        |
+| --------- | ----- | -------- | --------------------- |
+| Launch    | 10K   | 500      | Single region         |
+| 6 months  | 100K  | 2K       | + Read replicas       |
+| 12 months | 500K  | 10K      | Multi-region          |
+| 24 months | 5M    | 100K     | Global CDN + sharding |
 
 ---
 
-*This document is confidential and intended for internal use only.*
-
+_This document is confidential and intended for internal use only._

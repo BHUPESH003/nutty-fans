@@ -82,7 +82,6 @@ Route handlers must:
 
 - Call **exactly one controller**
 - Contain no logic beyond:
-
   - Parsing request
   - Returning response
   - Calling middleware
@@ -183,7 +182,6 @@ This client:
 
 - Wraps `fetch` or `axios`
 - Defines interceptors for:
-
   - Auth
   - Errors
   - Logging
