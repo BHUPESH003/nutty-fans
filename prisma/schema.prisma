@@ -1127,10 +1127,11 @@ model CreatorAnalytics {
 }
 
 /// UserActivity - Track user engagement events
-/// NOTE: This table MUST be partitioned by created_at in production
+/// NOTE: This table is partitioned by created_at
+/// PostgreSQL requires partition key in primary key, hence composite @@id
 /// Foreign key constraints cannot be applied to partitioned tables
 model UserActivity {
-  id           String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id           String           @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId       String           @map("user_id") @db.Uuid
   activityType UserActivityType @map("activity_type")
   entityType   String?          @map("entity_type") @db.VarChar(50)
@@ -1144,6 +1145,8 @@ model UserActivity {
   // Note: No FK relation due to partitioning requirements
   // Referential integrity must be maintained at application level
 
+  // Composite primary key required for PostgreSQL partitioning
+  @@id([id, createdAt])
   @@index([userId])
   @@index([activityType])
   @@index([entityType, entityId])
