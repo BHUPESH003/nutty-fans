@@ -21,9 +21,8 @@
 // Prisma 7.x: Import from the generated output location specified in schema.prisma
 // Prisma 7.x: PostgreSQL adapter for database connections
 import { PrismaPg } from '@prisma/adapter-pg';
+import { PrismaClient } from '@prisma/client';
 import { Pool } from 'pg';
-
-import { PrismaClient } from '../../../prisma/generated/prisma/client';
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;

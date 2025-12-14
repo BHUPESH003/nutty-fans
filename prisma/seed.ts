@@ -11,9 +11,8 @@
 
 import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
+import { PrismaClient } from '@prisma/client';
 import { Pool } from 'pg';
-
-import { PrismaClient } from './generated/prisma/client';
 
 // Create connection pool with Neon-compatible SSL settings
 const connectionString = process.env['DATABASE_URL'];
