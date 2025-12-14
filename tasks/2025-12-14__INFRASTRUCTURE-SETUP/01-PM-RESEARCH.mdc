@@ -1,0 +1,413 @@
+# 01-PM-RESEARCH.mdc
+
+## Task Information
+
+| Field | Value |
+|-------|-------|
+| Task ID | `2025-12-14__INFRASTRUCTURE-SETUP` |
+| Task Name | Infrastructure Setup (Neon + S3 + CI/CD) |
+| PM Agent | PM Agent |
+| Date | December 14, 2025 |
+| Status | ✅ COMPLETE |
+
+---
+
+## 1. Task Intent Interpretation
+
+### 1.1 Problem Summary
+
+NuttyFans requires production-ready cloud infrastructure to support:
+- **Database hosting** (PostgreSQL via Neon)
+- **Media storage** (AWS S3 for images, videos)
+- **Automated quality gates** (GitHub Actions) + deployment (Vercel)
+
+The Prisma schema design is complete, but:
+- No database has been provisioned
+- No media storage is configured
+- No CI/CD pipeline exists
+
+### 1.2 Confirmed Decisions
+
+| Decision | Choice | Impact |
+|----------|--------|--------|
+| CI/CD Approach | **GitHub Actions + Vercel** | Actions for quality gates (lint, type-check, tests), Vercel for deployment |
+| Docker | **No** | No Dockerfile needed; Vercel handles serverless deployment |
+| Environments | **QA + Production** | QA on `qa` branch, Production on `main` branch |
+| Cloud Access | **Confirmed** | AWS and Neon accounts available |
+
+---
+
+## 2. Research: Neon Database
+
+### 2.1 Why Neon?
+
+| Factor | Neon | Supabase | PlanetScale | AWS RDS |
+|--------|------|----------|-------------|---------|
+| PostgreSQL | ✅ Native | ✅ Native | ❌ MySQL only | ✅ Native |
+| Serverless | ✅ Auto-scale | Partial | ✅ | ❌ Provisioned |
+| Branching | ✅ Built-in | ❌ | ✅ | ❌ |
+| Cost (free tier) | Generous | Generous | Generous | None |
+| Vercel Integration | ✅ Excellent | ✅ Good | ✅ Good | ❌ Manual |
+| Connection Pooling | ✅ Built-in | ✅ PgBouncer | N/A | ❌ Manual |
+
+**Decision: Neon is the approved choice** (per `docs/03-TECHNICAL-ARCHITECTURE.md`)
+
+### 2.2 Neon Features Required
+
+| Feature | Purpose | Priority |
+|---------|---------|----------|
+| **Project Creation** | Container for all databases | P0 |
+| **Database Branches** | Separate QA and Production | P0 |
+| **Connection Pooling** | Serverless-compatible connections | P0 |
+| **Compute Auto-scaling** | Handle traffic spikes | P0 |
+| **SSL/TLS** | Secure connections | P0 |
+| **Backups** | Point-in-time recovery | P1 |
+| **Read Replicas** | Scale reads (future) | P2 |
+
+### 2.3 Neon Branching Strategy
+
+| Branch | Git Branch | Purpose | Auto-suspend |
+|--------|------------|---------|--------------|
+| `main` | `main` | Production database | No |
+| `qa` | `qa` | QA/staging database | Yes (5 min idle) |
+| `dev/*` | Feature branches | Development (future) | Yes (5 min idle) |
+
+### 2.4 Connection String Requirements
+
+| Environment | Variable | Format |
+|-------------|----------|--------|
+| Production | `DATABASE_URL` | `postgres://user:pass@host/db?sslmode=require` |
+| Production (pooled) | `DATABASE_URL_UNPOOLED` | For migrations only |
+| QA | `DATABASE_URL` | Same format, different branch |
+
+---
+
+## 3. Research: AWS S3 Media Storage
+
+### 3.1 S3 vs Alternatives
+
+| Factor | AWS S3 | Cloudinary | Vercel Blob | R2 (Cloudflare) |
+|--------|--------|------------|-------------|-----------------|
+| Cost | $$ | $$$ | $ | $ |
+| Video Support | ✅ | ✅ | ❌ Limited | ✅ |
+| Transformations | ❌ Manual | ✅ Built-in | ❌ | ❌ |
+| Signed URLs | ✅ | ✅ | ✅ | ✅ |
+| CDN Integration | ✅ CloudFront | ✅ Built-in | ✅ Built-in | ✅ Built-in |
+| Egress Cost | $$$ | Included | Included | Free |
+
+**Decision: AWS S3 is the approved choice** (per `docs/03-TECHNICAL-ARCHITECTURE.md`)
+
+### 3.2 S3 Bucket Requirements
+
+| Requirement | Value | Reason |
+|-------------|-------|--------|
+| **Bucket Name** | `nuttyfans-media-{env}` | Unique per environment |
+| **Region** | `us-east-1` (or nearest) | Low latency |
+| **Versioning** | Optional (disabled initially) | Cost optimization |
+| **Encryption** | SSE-S3 (default) | Data at rest protection |
+| **Public Access** | **BLOCKED** | Security - use signed URLs |
+| **CORS** | Enabled for uploads | Allow browser uploads |
+
+### 3.3 S3 Folder Structure (Recommended)
+
+```
+nuttyfans-media-{env}/
+├── uploads/           # Temporary uploads (pre-processing)
+├── media/
+│   ├── images/        # Processed images
+│   ├── videos/        # Processed videos
+│   └── thumbnails/    # Generated thumbnails
+├── avatars/           # User/creator profile images
+└── documents/         # KYC documents (encrypted)
+```
+
+### 3.4 IAM Permissions Required
+
+| Action | Purpose |
+|--------|---------|
+| `s3:PutObject` | Upload files |
+| `s3:GetObject` | Download files |
+| `s3:DeleteObject` | Remove files |
+| `s3:ListBucket` | List files (admin) |
+
+**Principle:** Minimal permissions per IAM user/role.
+
+### 3.5 CORS Configuration Requirements
+
+| Origin | Methods | Headers |
+|--------|---------|---------|
+| `https://nuttyfans.com` | GET, PUT, POST | Content-Type, Authorization |
+| `https://qa.nuttyfans.com` | GET, PUT, POST | Content-Type, Authorization |
+| `http://localhost:3000` | GET, PUT, POST | (Development only) |
+
+---
+
+## 4. Research: CI/CD Pipeline
+
+### 4.1 GitHub Actions vs Alternatives
+
+| Factor | GitHub Actions | CircleCI | GitLab CI | Vercel CI |
+|--------|----------------|----------|-----------|-----------|
+| Cost | Free (public) | Limited | Free | Free |
+| GitHub Integration | ✅ Native | ✅ Good | ❌ | ✅ |
+| Vercel Integration | ✅ | ❌ | ❌ | ✅ Native |
+| Custom Steps | ✅ | ✅ | ✅ | ❌ Limited |
+| Matrix Builds | ✅ | ✅ | ✅ | ❌ |
+
+**Decision: GitHub Actions + Vercel** (per user confirmation)
+
+### 4.2 CI/CD Flow
+
+```
+Developer pushes code
+         │
+         ▼
+┌─────────────────────────────────┐
+│    GitHub Actions (Quality)     │
+│  • ESLint check                 │
+│  • TypeScript type-check        │
+│  • Unit tests (when added)      │
+│  • Build validation             │
+└─────────────────────────────────┘
+         │
+         ▼ (if checks pass)
+┌─────────────────────────────────┐
+│    Vercel (Deployment)          │
+│  • Build Next.js app            │
+│  • Deploy to environment        │
+│  • Generate preview URL (PR)    │
+└─────────────────────────────────┘
+```
+
+### 4.3 GitHub Actions Workflow Requirements
+
+| Trigger | Jobs | Environment |
+|---------|------|-------------|
+| Push to `qa` | Lint, Type-check, Test, Build | QA |
+| Push to `main` | Lint, Type-check, Test, Build | Production |
+| Pull Request | Lint, Type-check, Test | Preview |
+
+### 4.4 Quality Gates (Blocking Deployment)
+
+| Check | Tool | Failure Action |
+|-------|------|----------------|
+| **Linting** | ESLint | Block merge |
+| **Type Check** | `tsc --noEmit` | Block merge |
+| **Unit Tests** | Vitest (when configured) | Block merge |
+| **Build** | `next build` | Block merge |
+
+### 4.5 Vercel Integration
+
+| Vercel Feature | Configuration |
+|----------------|---------------|
+| **Production Branch** | `main` |
+| **Preview Branches** | All PRs |
+| **QA Branch** | `qa` (custom domain) |
+| **Build Command** | `pnpm build` |
+| **Output Directory** | `.next` |
+| **Node Version** | 20.x |
+
+---
+
+## 5. Functional Requirements
+
+### 5.1 Neon Database
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| **FR-NEO-001** | Create Neon project for NuttyFans | P0 |
+| **FR-NEO-002** | Create `main` database branch for production | P0 |
+| **FR-NEO-003** | Create `qa` database branch for QA | P0 |
+| **FR-NEO-004** | Enable connection pooling on both branches | P0 |
+| **FR-NEO-005** | Configure auto-suspend for QA branch (cost saving) | P0 |
+| **FR-NEO-006** | Generate connection strings for both environments | P0 |
+| **FR-NEO-007** | Verify Prisma can connect to both branches | P0 |
+| **FR-NEO-008** | Run initial Prisma migration on both branches | P0 |
+
+### 5.2 AWS S3
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| **FR-S3-001** | Create S3 bucket for production media | P0 |
+| **FR-S3-002** | Create S3 bucket for QA media (or use same with prefix) | P0 |
+| **FR-S3-003** | Block all public access to bucket | P0 |
+| **FR-S3-004** | Enable server-side encryption (SSE-S3) | P0 |
+| **FR-S3-005** | Configure CORS policy for uploads | P0 |
+| **FR-S3-006** | Create IAM user with minimal S3 permissions | P0 |
+| **FR-S3-007** | Generate access key and secret for IAM user | P0 |
+| **FR-S3-008** | Verify upload/download works via signed URLs | P0 |
+
+### 5.3 CI/CD Pipeline
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| **FR-CI-001** | Create GitHub Actions workflow file | P0 |
+| **FR-CI-002** | Run ESLint on all PRs and pushes | P0 |
+| **FR-CI-003** | Run TypeScript type-check on all PRs and pushes | P0 |
+| **FR-CI-004** | Run `next build` to validate build | P0 |
+| **FR-CI-005** | Fail workflow if any check fails | P0 |
+| **FR-CI-006** | Connect Vercel project to GitHub repository | P0 |
+| **FR-CI-007** | Configure Vercel production domain on `main` branch | P0 |
+| **FR-CI-008** | Configure Vercel QA deployment on `qa` branch | P0 |
+| **FR-CI-009** | Set environment variables in Vercel dashboard | P0 |
+
+---
+
+## 6. Non-Functional Requirements
+
+### 6.1 Security
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| **NFR-SEC-001** | All database connections must use SSL/TLS | P0 |
+| **NFR-SEC-002** | No secrets in code repository | P0 |
+| **NFR-SEC-003** | S3 bucket must block public access | P0 |
+| **NFR-SEC-004** | IAM user must have minimal permissions | P0 |
+| **NFR-SEC-005** | Environment variables stored in Vercel dashboard | P0 |
+
+### 6.2 Reliability
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| **NFR-REL-001** | Neon auto-scaling enabled for production | P0 |
+| **NFR-REL-002** | CI/CD pipeline must not block on non-critical warnings | P1 |
+| **NFR-REL-003** | Vercel auto-rollback on failed deployments | P0 |
+
+### 6.3 Cost Optimization
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| **NFR-COST-001** | Use Neon free tier initially | P0 |
+| **NFR-COST-002** | QA database branch auto-suspends after 5 min idle | P0 |
+| **NFR-COST-003** | S3 standard storage (not Glacier) | P0 |
+| **NFR-COST-004** | GitHub Actions uses free tier for public repo | P0 |
+
+### 6.4 Performance
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| **NFR-PERF-001** | Database connection pooling enabled | P0 |
+| **NFR-PERF-002** | CI/CD pipeline completes in < 5 minutes | P1 |
+
+---
+
+## 7. Environment Variables Summary
+
+### 7.1 Database (Neon)
+
+| Variable | Environment | Description |
+|----------|-------------|-------------|
+| `DATABASE_URL` | All | Pooled connection string |
+| `DATABASE_URL_UNPOOLED` | All | Direct connection (for migrations) |
+
+### 7.2 S3 Storage
+
+| Variable | Environment | Description |
+|----------|-------------|-------------|
+| `AWS_ACCESS_KEY_ID` | All | IAM access key |
+| `AWS_SECRET_ACCESS_KEY` | All | IAM secret key |
+| `AWS_REGION` | All | S3 bucket region |
+| `AWS_S3_BUCKET` | All | Bucket name |
+
+### 7.3 Vercel/App
+
+| Variable | Environment | Description |
+|----------|-------------|-------------|
+| `NEXT_PUBLIC_APP_URL` | All | Application URL |
+| `NODE_ENV` | All | `development`, `qa`, `production` |
+
+---
+
+## 8. Assumptions
+
+| # | Assumption | Risk if Wrong |
+|---|------------|---------------|
+| A1 | AWS account has S3 and IAM permissions | Cannot create bucket/user |
+| A2 | Neon free tier is sufficient for initial development | May need to upgrade |
+| A3 | GitHub repository is public (free Actions minutes) | May incur costs |
+| A4 | Vercel hobby/pro plan available | May need to upgrade |
+| A5 | Prisma schema is ready for migration | May need schema updates |
+| A6 | Domain is not configured yet (use Vercel defaults) | Need DNS setup later |
+
+---
+
+## 9. Open Questions
+
+| # | Question | Impact | Status |
+|---|----------|--------|--------|
+| Q1 | Is the GitHub repository public or private? | GitHub Actions billing | **REQUIRES HUMAN INPUT** |
+| Q2 | What Vercel plan is available (hobby/pro/enterprise)? | Feature availability | **REQUIRES HUMAN INPUT** |
+| Q3 | Should QA and Production use separate S3 buckets or prefixes? | Cost vs isolation | **REQUIRES HUMAN INPUT** |
+| Q4 | Is a custom domain needed for QA (e.g., `qa.nuttyfans.com`)? | DNS configuration | **REQUIRES HUMAN INPUT** |
+
+---
+
+## 10. Out of Scope
+
+| Item | Reason |
+|------|--------|
+| CloudFront CDN setup | Future optimization task |
+| Custom domain configuration | Separate task |
+| Database read replicas | Future scaling task |
+| Advanced monitoring (Datadog/Sentry) | Separate task |
+| Redis/caching layer | Separate task |
+| Email service (SendGrid) | Separate task |
+
+---
+
+## 11. Dependencies
+
+| Dependency | Status | Owner |
+|------------|--------|-------|
+| AWS account access | ✅ Confirmed | Human |
+| Neon account access | ✅ Confirmed | Human |
+| GitHub repository | ✅ Exists | Human |
+| Vercel account | ⬜ Needs confirmation | Human |
+| Prisma schema | ✅ Design complete | Previous task |
+
+---
+
+## 12. Success Criteria
+
+| Criteria | Verification |
+|----------|--------------|
+| Neon database accessible | `prisma db push` succeeds |
+| S3 bucket functional | Upload/download test passes |
+| CI pipeline runs | GitHub Actions shows green |
+| Vercel deploys | Preview URL accessible |
+| QA environment works | `qa` branch deploys to QA |
+| Production ready | `main` branch deploys to production |
+
+---
+
+## 13. Risk Assessment
+
+| Risk | Probability | Impact | Mitigation |
+|------|-------------|--------|------------|
+| AWS credentials leak | Low | Critical | Store in Vercel env vars only |
+| Neon free tier limits | Medium | Low | Monitor usage, upgrade if needed |
+| CI/CD flaky tests | Low | Medium | No tests initially, add incrementally |
+| S3 CORS misconfiguration | Medium | Medium | Test thoroughly before launch |
+
+---
+
+## 14. Next Phase
+
+**✅ PM Research COMPLETE**
+
+### Open Questions Requiring Human Input:
+
+1. **Q1:** Is the GitHub repository public or private?
+2. **Q2:** What Vercel plan is available?
+3. **Q3:** Separate S3 buckets for QA/Production or prefixes?
+4. **Q4:** Custom domain for QA environment?
+
+Once answered, ready for: **02-ARCHITECTURE-REVIEW.mdc** (Tech Lead Agent)
+
+---
+
+## Document History
+
+| Version | Date | Author | Changes |
+|---------|------|--------|---------|
+| 1.0 | Dec 14, 2025 | PM Agent | Initial research |
