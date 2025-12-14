@@ -3,6 +3,10 @@
 # ============================================
 # Quality gates before deployment
 # Reference: /tasks/2025-12-14__INFRASTRUCTURE-SETUP/02-ARCHITECTURE-REVIEW.mdc
+#
+# Database Strategy:
+# - If Neon GitHub Integration is enabled: uses real DATABASE_URL from secrets
+# - Fallback: uses dummy URL for type generation (no DB connection needed)
 # ============================================
 
 name: CI
@@ -17,6 +21,11 @@ on:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+
+env:
+  # Use Neon integration URL if available, otherwise use dummy for type generation
+  # Prisma generate only reads schema, doesn't connect to DB
+  DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://dummy:dummy@localhost:5432/dummy?sslmode=require' }}
 
 jobs:
   quality:
@@ -50,8 +59,6 @@ jobs:
       # ----------------------------------------
       - name: Generate Prisma Client
         run: pnpm db:generate
-        env:
-          DATABASE_URL: 'postgresql://dummy:dummy@localhost:5432/dummy?sslmode=require'
 
       # ----------------------------------------
       # Quality Gates (All must pass)
@@ -64,10 +71,6 @@ jobs:
 
       - name: Build
         run: pnpm build
-        env:
-          # Provide dummy values for build-time env vars
-          # Real values are set in Vercel for deployment
-          DATABASE_URL: 'postgresql://dummy:dummy@localhost:5432/dummy?sslmode=require'
 
       # ----------------------------------------
       # Validation Complete

@@ -87,7 +87,51 @@ Documents all required environment variables with placeholder values and descrip
 
 ### 3.1 Neon Database Setup
 
-#### Step 1: Create Neon Project
+#### Option A: Use Neon Integrations (Recommended)
+
+Neon offers native integrations with Vercel and GitHub that automate environment variable management.
+
+##### Neon + Vercel Integration
+
+1. Go to [console.neon.tech](https://console.neon.tech) → Your Project → **Integrations**
+2. Click **Add Integration** → **Vercel**
+3. Authorize Neon to access your Vercel account
+4. Select the `nuttyfans` Vercel project
+5. Map environments:
+   | Vercel Environment | Neon Branch |
+   |-------------------|-------------|
+   | Production | `main` |
+   | Preview | `dev` (or auto-create per PR) |
+   | Development | `dev` |
+6. Click **Connect**
+
+**What gets auto-configured:**
+- `DATABASE_URL` (pooled) → all Vercel environments
+- `DATABASE_URL_UNPOOLED` → all Vercel environments
+- Automatic updates when Neon credentials rotate
+
+##### Neon + GitHub Integration (Optional - Preview Branches)
+
+1. Go to Neon Console → Project → **Integrations**
+2. Click **Add Integration** → **GitHub**
+3. Authorize Neon to access your repository
+4. Enable **Preview Branches** (creates DB branch per PR)
+5. Add `DATABASE_URL` to GitHub repository secrets:
+   - Go to GitHub → Repository → **Settings** → **Secrets and variables** → **Actions**
+   - Add secret: `DATABASE_URL` = your Neon dev branch connection string
+
+**Benefits:**
+- Each PR gets an isolated database branch
+- Automatic cleanup when PR is closed
+- CI can run migrations against real database
+
+---
+
+#### Option B: Manual Setup
+
+If you prefer manual configuration, follow these steps:
+
+##### Step 1: Create Neon Project
 
 1. Go to [console.neon.tech](https://console.neon.tech)
 2. Click **New Project**
@@ -455,6 +499,27 @@ curl -I https://nuttyfans-media-dev.s3.us-east-1.amazonaws.com/test.txt
    | Preview Branches | `dev`, `qa`, and all PR branches |
 
 #### Step 3: Set Environment Variables
+
+**Option A: If using Neon + Vercel Integration (Recommended)**
+
+Database variables are auto-configured. Only set AWS/App variables:
+
+| Variable | Value | Scope |
+|----------|-------|-------|
+| `AWS_ACCESS_KEY_ID` | IAM access key | All |
+| `AWS_SECRET_ACCESS_KEY` | IAM secret key | All |
+| `AWS_REGION` | `us-east-1` | All |
+| `AWS_S3_BUCKET` | `nuttyfans-media-prod` | Production |
+| `AWS_S3_BUCKET` | `nuttyfans-media-qa` | Preview |
+| `AWS_S3_BUCKET` | `nuttyfans-media-dev` | Development |
+| `CLOUDFRONT_URL` | Prod distribution URL | Production |
+| `CLOUDFRONT_URL` | QA distribution URL | Preview |
+| `CLOUDFRONT_URL` | Dev distribution URL | Development |
+| `NEXT_PUBLIC_APP_URL` | `https://nuttyfans.vercel.app` | Production |
+| `NEXT_PUBLIC_APP_URL` | `https://nuttyfans-qa.vercel.app` | Preview |
+| `NEXT_PUBLIC_APP_URL` | `https://nuttyfans-dev.vercel.app` | Development |
+
+**Option B: Manual Configuration**
 
 Go to **Project Settings** → **Environment Variables**
 
