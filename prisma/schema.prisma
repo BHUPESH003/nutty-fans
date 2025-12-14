@@ -15,16 +15,13 @@
 // 3. Some CHECK constraints are handled via Prisma validation or application logic
 // =============================================================================
 
-
 generator client {
   provider = "prisma-client-js"
-  output   = "./generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
 }
-
 
 // =============================================================================
 // ENUMS
