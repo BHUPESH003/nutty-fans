@@ -1,0 +1,238 @@
+# 01-PM-RESEARCH.mdc
+
+**Task:** PROJECT-SCAFFOLDING  
+**Date:** 2025-12-14  
+**PM Agent Version:** 1.0  
+**Status:** DRAFT — Pending Human Review
+
+---
+
+## 1. Task Intent Interpretation
+
+### 1.1 Problem Summary
+
+The NuttyFans project requires a foundational Next.js scaffold that:
+- Enforces architectural rules from day one
+- Prevents ad-hoc patterns and tooling inconsistency
+- Enables safe AI-assisted development
+- Scales like a large engineering organization
+
+### 1.2 Business Context
+
+Per `docs/01-BRD.md`:
+- NuttyFans is a creator monetization platform
+- Target: $10M GMV in Year 1
+- Stack decision: Next.js (App Router), TypeScript, PostgreSQL, Tailwind + ShadCN
+- Architecture: Modular monolith with future microservice extraction path
+
+### 1.3 Scope Boundaries
+
+| In Scope | Out of Scope |
+|----------|--------------|
+| Next.js project initialization | Authentication |
+| Folder structure per PROJECT RULES | Database integration |
+| TypeScript configuration | API implementation |
+| Linting setup (ESLint) | UI features |
+| Formatting setup (Prettier) | Business logic |
+| Package manager setup (pnpm) | State management implementation |
+| Base configuration files | Component library setup |
+| Git hooks (Husky) | Testing infrastructure (beyond config) |
+| Editor config | CI/CD pipeline |
+
+---
+
+## 2. Research & Comparable Patterns
+
+### 2.1 Industry Standards for Next.js Scaffolding
+
+| Pattern | Source | Relevance |
+|---------|--------|-----------|
+| App Router structure | Vercel official docs | Mandatory — per tech stack decision |
+| Strict TypeScript | Google/Vercel best practices | Mandatory — per PROJECT RULES P7 |
+| ESLint + Prettier | Industry standard | Mandatory — per CODEBASE_GOVERNANCE_RULES |
+| pnpm package manager | Modern large-scale projects | Mandatory — per CODEBASE_GOVERNANCE_RULES §13 |
+| Modular folder structure | Cal.com, Vercel templates | Aligned with CODEBASE_ARCHITECTURE_RULES |
+
+### 2.2 Reference Projects
+
+| Project | Pattern Borrowed |
+|---------|------------------|
+| Cal.com | Strict repo governance, folder ownership |
+| Vercel Commerce | Next.js App Router structure |
+| T3 Stack | TypeScript strictness, config organization |
+| Turborepo starters | pnpm workspace readiness |
+
+---
+
+## 3. Functional Requirements
+
+### 3.1 Project Initialization
+
+| ID | Requirement | Priority | Source |
+|----|-------------|----------|--------|
+| FR-001 | Project MUST be initialized with Next.js 14+ using App Router | P0 | 03-TECHNICAL-ARCHITECTURE.md |
+| FR-002 | Project MUST use TypeScript with strict mode enabled | P0 | PROJECT_RULES P7 |
+| FR-003 | Project MUST use pnpm as the only package manager | P0 | CODEBASE_GOVERNANCE_RULES §13 |
+| FR-004 | Project MUST include `pnpm-lock.yaml` as lockfile | P0 | CODEBASE_GOVERNANCE_RULES §13.2 |
+
+### 3.2 Folder Structure
+
+| ID | Requirement | Priority | Source |
+|----|-------------|----------|--------|
+| FR-010 | Folder structure MUST match PROJECT_RULES P1 | P0 | PROJECT_RULES |
+| FR-011 | `src/app/` MUST exist for Next.js App Router | P0 | PROJECT_RULES P1 |
+| FR-012 | `src/components/` MUST exist for React components | P0 | PROJECT_RULES P1 |
+| FR-013 | `src/lib/` MUST exist for utilities and shared logic | P0 | PROJECT_RULES P1 |
+| FR-014 | `src/hooks/` MUST exist for custom React hooks | P0 | PROJECT_RULES P1 |
+| FR-015 | `src/services/` MUST exist for service layer | P0 | PROJECT_RULES P1 |
+| FR-016 | `src/styles/` MUST exist for global styles | P0 | PROJECT_RULES P1 |
+| FR-017 | `src/types/` MUST exist for TypeScript type definitions | P0 | PROJECT_RULES P1 |
+| FR-018 | `tests/` MUST exist at root level | P0 | PROJECT_RULES P1 |
+| FR-019 | `scripts/` MUST exist at root level | P0 | PROJECT_RULES P1 |
+
+### 3.3 Tooling Configuration
+
+| ID | Requirement | Priority | Source |
+|----|-------------|----------|--------|
+| FR-020 | ESLint MUST be configured with Next.js recommended rules | P0 | CODEBASE_GOVERNANCE_RULES §2 |
+| FR-021 | Prettier MUST be configured for code formatting | P0 | CODEBASE_GOVERNANCE_RULES §2 |
+| FR-022 | `.editorconfig` MUST be present | P0 | CODEBASE_GOVERNANCE_RULES §2.1 |
+| FR-023 | TypeScript `strict: true` MUST be enabled | P0 | CODEBASE_GOVERNANCE_RULES §3.1 |
+| FR-024 | Git hooks MUST enforce linting on commit | P0 | CODEBASE_GOVERNANCE_RULES §2.2 |
+| FR-025 | `.env.example` MUST exist with documented variables | P0 | CODEBASE_GOVERNANCE_RULES §5.1 |
+
+### 3.4 Configuration Files
+
+| ID | Requirement | Priority | Source |
+|----|-------------|----------|--------|
+| FR-030 | `package.json` MUST include standard scripts (dev, build, lint, format) | P0 | Standard |
+| FR-031 | `tsconfig.json` MUST be configured for strict mode + path aliases | P0 | PROJECT_RULES P7 |
+| FR-032 | `next.config.js` MUST exist with base configuration | P0 | Standard |
+| FR-033 | `.gitignore` MUST exclude node_modules, .next, .env | P0 | Standard |
+| FR-034 | `README.md` MUST exist with setup instructions | P0 | Standard |
+
+---
+
+## 4. Non-Functional Requirements
+
+### 4.1 Quality Attributes
+
+| ID | Requirement | Priority | Source |
+|----|-------------|----------|--------|
+| NFR-001 | Project MUST build successfully with zero errors | P0 | Success Criteria |
+| NFR-002 | Linting MUST pass with zero warnings | P0 | Success Criteria |
+| NFR-003 | Formatting MUST be consistent across all files | P0 | CODEBASE_GOVERNANCE_RULES |
+| NFR-004 | TypeScript MUST compile with no `any` types | P0 | PROJECT_RULES P7 |
+
+### 4.2 Maintainability
+
+| ID | Requirement | Priority | Source |
+|----|-------------|----------|--------|
+| NFR-010 | Folder structure MUST be self-documenting | P0 | CODEBASE_ARCHITECTURE_RULES |
+| NFR-011 | Configuration files MUST be minimal and focused | P0 | Task scope |
+| NFR-012 | No unused dependencies MUST be present | P0 | CODEBASE_GOVERNANCE_RULES §8.1 |
+
+### 4.3 Scalability Readiness
+
+| ID | Requirement | Priority | Source |
+|----|-------------|----------|--------|
+| NFR-020 | Structure MUST support future module extraction | P1 | 03-TECHNICAL-ARCHITECTURE.md |
+| NFR-021 | Configuration MUST support future workspace setup | P1 | CODEBASE_GOVERNANCE_RULES §13.3 |
+
+---
+
+## 5. Assumptions
+
+| ID | Assumption | Risk if Wrong | Clarification Needed |
+|----|------------|---------------|---------------------|
+| A-001 | Next.js 14+ is the target version | Low — documented in tech arch | No |
+| A-002 | App Router (not Pages Router) is required | Low — documented | No |
+| A-003 | Tailwind CSS setup is in scope | Medium — mentioned in stack but not explicit | **YES** |
+| A-004 | ShadCN/ui setup is in scope | Medium — mentioned in stack but not explicit | **YES** |
+| A-005 | Husky is the preferred git hooks tool | Low — industry standard | No |
+| A-006 | No database/Prisma setup in this task | Low — stated out of scope | No |
+| A-007 | No authentication setup in this task | Low — stated out of scope | No |
+| A-008 | Jest/Vitest config is out of scope (only folder) | Medium — unclear | **YES** |
+
+---
+
+## 6. Open Questions
+
+### 6.1 Clarifications Required
+
+| ID | Question | Impact | Default if No Answer |
+|----|----------|--------|---------------------|
+| Q-001 | Should Tailwind CSS be configured in this task? | Medium — affects styling setup | Assume YES (per stack decision) |
+| Q-002 | Should ShadCN/ui be initialized in this task? | Medium — affects component foundation | Assume NO (may require design decisions) |
+| Q-003 | Should testing framework (Vitest) be configured or just folder created? | Low — affects test setup | Assume folder only |
+| Q-004 | Should lint-staged be included with Husky? | Low — affects commit experience | Assume YES |
+| Q-005 | What is the minimum Node.js version to support? | Low — affects package.json engines | Assume Node.js 18+ |
+| Q-006 | Should a base `.env.local.example` be included for local dev? | Low — affects developer experience | Assume YES |
+
+### 6.2 Decisions Deferred to Tech Lead
+
+| Topic | Reason |
+|-------|--------|
+| Path alias configuration | Architecture decision |
+| ESLint rule specifics | Architecture decision |
+| TypeScript compiler options beyond strict | Architecture decision |
+| next.config.js specifics | Architecture decision |
+
+---
+
+## 7. Success Criteria Mapping
+
+| Success Criteria (from 00-TASK-OVERVIEW) | Requirement Coverage |
+|------------------------------------------|---------------------|
+| Project builds successfully | NFR-001 |
+| Linting and formatting pass | FR-020, FR-021, NFR-002, NFR-003 |
+| Folder structure matches PROJECT RULES | FR-010 through FR-019 |
+| No architectural or business logic present | Scope constraints (out of scope items) |
+
+---
+
+## 8. Dependencies
+
+| Dependency | Status | Notes |
+|------------|--------|-------|
+| `/rules/*` locked | ✅ Confirmed | Required for governance enforcement |
+| Architecture contracts approved | ✅ Confirmed | 03-TECHNICAL-ARCHITECTURE.md exists |
+| Governance rules approved | ✅ Confirmed | CODEBASE_GOVERNANCE_RULES.md exists |
+
+---
+
+## 9. Risks
+
+| Risk | Probability | Impact | Mitigation |
+|------|-------------|--------|------------|
+| Scope creep into features | Medium | High | Strict adherence to out-of-scope items |
+| Tooling version conflicts | Low | Medium | Pin versions in package.json |
+| Missing folder for future needs | Low | Low | Follow PROJECT_RULES P1 exactly |
+
+---
+
+## 10. Recommendation
+
+**Proceed to Architecture Review (02-ARCHITECTURE-REVIEW.mdc)**
+
+The task is well-defined with clear boundaries. The PM research phase is complete.
+
+### Before Proceeding:
+
+**REQUIRES HUMAN INPUT** on the following:
+
+1. **Q-001**: Confirm Tailwind CSS is in scope
+2. **Q-002**: Confirm ShadCN/ui is out of scope for this task
+3. **Q-003**: Confirm testing framework config is out of scope (folder only)
+
+---
+
+## Document Metadata
+
+| Field | Value |
+|-------|-------|
+| Created | 2025-12-14 |
+| Author | PM Agent |
+| Status | DRAFT |
+| Next Phase | 02-ARCHITECTURE-REVIEW.mdc |
+| Requires | Human approval before proceeding |
