@@ -1,0 +1,603 @@
+# 01-PM-RESEARCH.mdc
+
+**Task:** DATABASE-SCHEMA-DESIGN  
+**Date:** 2025-12-14  
+**PM Agent Version:** 1.0  
+**Status:** ✅ COMPLETE — Human Decisions Incorporated
+
+---
+
+## 1. Task Intent Interpretation
+
+### 1.1 Problem Summary
+
+NuttyFans has a database schema **DESIGN** in `docs/04-DATABASE-SCHEMA.md` that requires validation and improvement before implementation.
+
+**CRITICAL CONTEXT:**
+> The schema in `docs/04-DATABASE-SCHEMA.md` is a **design document only**.  
+> It has **NOT been implemented** in the database yet.  
+> This is the opportunity to finalize the design BEFORE any migrations are written.
+
+### 1.2 Current State
+
+| Item | Status |
+|------|--------|
+| Schema design document | ✅ Exists (`docs/04-DATABASE-SCHEMA.md`) |
+| **Database implementation** | ❌ **NOT YET CREATED** |
+| **Migrations** | ❌ **NOT YET WRITTEN** |
+| **ORM models (Prisma)** | ❌ **NOT YET CREATED** |
+
+### 1.3 Business Context
+
+Per `docs/01-BRD.md` and `docs/02-PRD.md`:
+- Target: 10,000 creators, 500,000 users (Year 1)
+- Scale: 100,000 creators, 5M users (Year 2)
+- Revenue model: 15% commission on transactions
+- Core flows: Subscriptions, PPV, Tips, Paid DMs, Live Streaming
+
+### 1.4 Scope Boundaries
+
+| In Scope | Out of Scope |
+|----------|--------------|
+| Schema design analysis | Writing migrations |
+| Gap identification | Database implementation |
+| Design improvements | ORM model creation |
+| Scalability planning | Admin panel UI |
+| Indexing strategy | Feature-specific logic |
+
+---
+
+## 2. Existing Schema Design Analysis
+
+### 2.1 Schema Design Inventory
+
+The design document contains **24 tables**:
+
+| Category | Tables | Count |
+|----------|--------|-------|
+| **Core User** | users, accounts, sessions | 3 |
+| **Creator** | creator_profiles, categories | 2 |
+| **Content** | posts, media, live_streams | 3 |
+| **Social** | likes, bookmarks, follows, blocks | 4 |
+| **Messaging** | conversations, messages | 2 |
+| **Monetization** | subscriptions, transactions, payouts, ppv_purchases | 4 |
+| **Engagement** | notifications, reports | 2 |
+| **Analytics** | post_analytics, creator_analytics | 2 |
+| **Compliance** | audit_logs, dmca_requests | 2 |
+
+### 2.2 Entity Coverage Assessment
+
+| Business Entity | Design Coverage | Status |
+|-----------------|-----------------|--------|
+| Users (basic) | ✅ `users` table | Complete |
+| User roles | ⚠️ Single `role` field | **NEEDS EXPANSION** |
+| Creators | ✅ `creator_profiles` table | Complete |
+| Posts | ✅ `posts` table | Complete |
+| Media | ✅ `media` table | Complete |
+| Subscriptions | ✅ `subscriptions` table | Complete |
+| Transactions | ✅ `transactions` table | Complete |
+| Payouts | ✅ `payouts` table | Complete |
+| Messaging | ✅ `conversations` + `messages` | Complete |
+| Notifications | ✅ `notifications` table | Complete |
+| Live Streaming | ✅ `live_streams` table | Complete |
+| Analytics | ✅ Dedicated tables | Complete |
+| Audit | ✅ `audit_logs` table | Complete |
+| Reports/Moderation | ✅ `reports` table | Complete |
+| **Comments** | ❌ Missing | **ADD TO DESIGN** |
+| **Admin permissions** | ❌ Missing | **ADD TO DESIGN** |
+| **Content tags** | ❌ Missing | **ADD TO DESIGN** |
+| **Tip goals** | ❌ Missing | **ADD TO DESIGN** |
+| Promotional codes | ❌ Missing | Future (P2) |
+| Referrals | ❌ Missing | Future (P2) |
+
+---
+
+## 3. Complete Gap Analysis
+
+### 3.1 Critical Gaps — MUST ADD TO DESIGN (P0)
+
+#### GAP-001: Comments Table
+
+| Attribute | Details |
+|-----------|---------|
+| **Gap** | No table for post comments in design |
+| **Business Impact** | Users cannot comment on posts |
+| **PRD Reference** | U-031: "As a user, I want to comment on posts" |
+| **Recommendation** | Add `comments` table with nested reply support |
+
+**Proposed Table Design:**
+```
+comments
+├── id (UUID, PK)
+├── post_id (UUID, FK → posts)
+├── user_id (UUID, FK → users)
+├── parent_id (UUID, FK → comments, nullable for replies)
+├── content (TEXT)
+├── like_count (INTEGER)
+├── is_hidden (BOOLEAN) — for moderation
+├── created_at (TIMESTAMP)
+├── updated_at (TIMESTAMP)
+```
+
+---
+
+#### GAP-002: Admin Roles & Permissions System
+
+| Attribute | Details |
+|-----------|---------|
+| **Gap** | Only single `role` field on users table |
+| **Business Impact** | Cannot implement granular admin access control |
+| **Task Requirement** | "Roles & permissions" entity |
+| **Human Decision** | Three roles: super-admin, moderator, support |
+| **Recommendation** | Add `admin_roles` and `admin_permissions` tables |
+
+**Proposed Tables:**
+
+**admin_roles:**
+```
+admin_roles
+├── id (UUID, PK)
+├── name (VARCHAR) — 'super_admin', 'moderator', 'support'
+├── description (TEXT)
+├── created_at (TIMESTAMP)
+```
+
+**admin_permissions:**
+```
+admin_permissions
+├── id (UUID, PK)
+├── role_id (UUID, FK → admin_roles)
+├── permission (VARCHAR) — e.g., 'manage_users', 'moderate_content'
+├── created_at (TIMESTAMP)
+```
+
+**user_admin_roles (junction):**
+```
+user_admin_roles
+├── id (UUID, PK)
+├── user_id (UUID, FK → users)
+├── role_id (UUID, FK → admin_roles)
+├── assigned_by (UUID, FK → users)
+├── created_at (TIMESTAMP)
+```
+
+**Permission Matrix:**
+
+| Permission | Super Admin | Moderator | Support |
+|------------|:-----------:|:---------:|:-------:|
+| `manage_users` | ✅ | ❌ | ❌ |
+| `manage_creators` | ✅ | ❌ | ❌ |
+| `moderate_content` | ✅ | ✅ | ❌ |
+| `review_reports` | ✅ | ✅ | ✅ |
+| `resolve_reports` | ✅ | ✅ | ❌ |
+| `manage_payouts` | ✅ | ❌ | ❌ |
+| `view_analytics` | ✅ | ✅ | ✅ |
+| `manage_categories` | ✅ | ❌ | ❌ |
+| `manage_dmca` | ✅ | ✅ | ❌ |
+| `ban_users` | ✅ | ✅ | ❌ |
+| `suspend_users` | ✅ | ✅ | ✅ |
+| `view_transactions` | ✅ | ❌ | ✅ |
+| `issue_refunds` | ✅ | ❌ | ❌ |
+| `manage_admins` | ✅ | ❌ | ❌ |
+
+---
+
+#### GAP-003: Content Tags/Hashtags
+
+| Attribute | Details |
+|-----------|---------|
+| **Gap** | No way to tag or categorize individual posts |
+| **Business Impact** | Limited content discovery |
+| **PRD Reference** | Explore/Discover features |
+| **Recommendation** | Add `tags` and `post_tags` tables |
+
+**Proposed Tables:**
+
+**tags:**
+```
+tags
+├── id (UUID, PK)
+├── name (VARCHAR, UNIQUE)
+├── slug (VARCHAR, UNIQUE)
+├── usage_count (INTEGER) — denormalized for performance
+├── is_nsfw (BOOLEAN)
+├── is_banned (BOOLEAN) — for prohibited tags
+├── created_at (TIMESTAMP)
+```
+
+**post_tags (junction):**
+```
+post_tags
+├── id (UUID, PK)
+├── post_id (UUID, FK → posts)
+├── tag_id (UUID, FK → tags)
+├── created_at (TIMESTAMP)
+├── UNIQUE(post_id, tag_id)
+```
+
+---
+
+#### GAP-004: Tip Goals
+
+| Attribute | Details |
+|-----------|---------|
+| **Gap** | Tips only tracked in transactions, no goal tracking |
+| **Business Impact** | Creators cannot set tip goals for engagement |
+| **Human Decision** | YES — track tip goals separately |
+| **Recommendation** | Add `tip_goals` table |
+
+**Proposed Tables:**
+
+**tip_goals:**
+```
+tip_goals
+├── id (UUID, PK)
+├── creator_id (UUID, FK → creator_profiles)
+├── title (VARCHAR) — e.g., "New Camera Fund"
+├── description (TEXT)
+├── target_amount (DECIMAL)
+├── current_amount (DECIMAL) — denormalized for performance
+├── status (VARCHAR) — 'active', 'completed', 'cancelled'
+├── started_at (TIMESTAMP)
+├── deadline_at (TIMESTAMP, nullable)
+├── completed_at (TIMESTAMP, nullable)
+├── created_at (TIMESTAMP)
+├── updated_at (TIMESTAMP)
+```
+
+**tip_goal_contributions:**
+```
+tip_goal_contributions
+├── id (UUID, PK)
+├── tip_goal_id (UUID, FK → tip_goals)
+├── user_id (UUID, FK → users)
+├── transaction_id (UUID, FK → transactions)
+├── amount (DECIMAL)
+├── created_at (TIMESTAMP)
+```
+
+---
+
+### 3.2 Medium Priority Gaps — SHOULD ADD (P1)
+
+#### GAP-005: Subscription History
+
+| Attribute | Details |
+|-----------|---------|
+| **Gap** | Only current subscription tracked |
+| **Business Impact** | Cannot analyze subscription patterns, churn |
+| **Recommendation** | Add `subscription_history` table |
+
+**Proposed Table:**
+```
+subscription_history
+├── id (UUID, PK)
+├── subscription_id (UUID, FK → subscriptions)
+├── user_id (UUID, FK → users)
+├── creator_id (UUID, FK → creator_profiles)
+├── event_type (VARCHAR) — 'created', 'renewed', 'cancelled', 'expired', 'paused', 'resumed'
+├── plan_type (VARCHAR)
+├── price_paid (DECIMAL)
+├── metadata (JSONB)
+├── created_at (TIMESTAMP)
+```
+
+---
+
+#### GAP-006: User Activity/Engagement Tracking
+
+| Attribute | Details |
+|-----------|---------|
+| **Gap** | No user-level activity tracking |
+| **Business Impact** | Limited audience insights for creators |
+| **Recommendation** | Add `user_activity` table |
+
+**Proposed Table:**
+```
+user_activity
+├── id (UUID, PK)
+├── user_id (UUID, FK → users)
+├── activity_type (VARCHAR) — 'page_view', 'post_view', 'profile_view', 'search', 'login'
+├── entity_type (VARCHAR, nullable)
+├── entity_id (UUID, nullable)
+├── metadata (JSONB)
+├── ip_address (INET)
+├── user_agent (TEXT)
+├── created_at (TIMESTAMP)
+```
+
+**Note:** HIGH VOLUME table — must be partitioned from day one.
+
+---
+
+#### GAP-007: Content Bundles
+
+| Attribute | Details |
+|-----------|---------|
+| **Gap** | Cannot bundle content for purchase |
+| **Business Impact** | Limited monetization options |
+| **PRD Reference** | P1 feature - Content Bundles |
+| **Recommendation** | Add bundle tables |
+
+**Proposed Tables:**
+
+**bundles:**
+```
+bundles
+├── id (UUID, PK)
+├── creator_id (UUID, FK → creator_profiles)
+├── title (VARCHAR)
+├── description (TEXT)
+├── price (DECIMAL)
+├── original_price (DECIMAL)
+├── cover_image_url (TEXT)
+├── status (VARCHAR) — 'draft', 'active', 'archived'
+├── purchase_count (INTEGER)
+├── created_at (TIMESTAMP)
+├── updated_at (TIMESTAMP)
+```
+
+**bundle_items:**
+```
+bundle_items
+├── id (UUID, PK)
+├── bundle_id (UUID, FK → bundles)
+├── post_id (UUID, FK → posts)
+├── sort_order (INTEGER)
+├── created_at (TIMESTAMP)
+```
+
+**bundle_purchases:**
+```
+bundle_purchases
+├── id (UUID, PK)
+├── bundle_id (UUID, FK → bundles)
+├── user_id (UUID, FK → users)
+├── transaction_id (UUID, FK → transactions)
+├── price_paid (DECIMAL)
+├── created_at (TIMESTAMP)
+├── UNIQUE(bundle_id, user_id)
+```
+
+---
+
+### 3.3 Future Gaps — DEFER (P2)
+
+| Gap | Description | Deferral Reason |
+|-----|-------------|-----------------|
+| **Referral System** | Track creator/user referrals | P2 feature per BRD |
+| **Promotional Codes** | Discount codes | Marketing feature |
+| **Multi-currency** | Support beyond USD | International expansion |
+
+---
+
+## 4. Scalability Analysis & Partitioning Strategy
+
+### 4.1 Table Volume Projections
+
+| Table | Year 1 | Year 2 | Year 3 | Growth Pattern |
+|-------|--------|--------|--------|----------------|
+| `users` | 500K | 5M | 25M | Linear |
+| `creator_profiles` | 10K | 100K | 500K | Linear |
+| `posts` | 5M | 50M | 200M | Linear |
+| `media` | 20M | 200M | 800M | Linear |
+| `transactions` | 50M | 500M | 2B | Exponential |
+| `messages` | 100M | 1B | 5B | Exponential |
+| `notifications` | 500M | 5B | 20B | Exponential |
+| `likes` | 50M | 500M | 2B | Exponential |
+| `comments` (new) | 10M | 100M | 400M | Exponential |
+| `post_analytics` | 50M | 500M | 2B | Linear (daily) |
+| `creator_analytics` | 5M | 50M | 200M | Linear (daily) |
+| `audit_logs` | 100M | 1B | 5B | Unbounded |
+| `user_activity` (new) | 1B | 10B | 50B | Exponential |
+
+### 4.2 Read/Write Pattern Analysis
+
+| Table | Read Pattern | Write Pattern | Hot Path |
+|-------|--------------|---------------|----------|
+| `users` | Very High | Low | ✅ Auth, profiles |
+| `posts` | Very High | Medium | ✅ Feed, discovery |
+| `media` | Very High | Low | ✅ Content delivery |
+| `subscriptions` | High | Medium | ✅ Access checks |
+| `transactions` | Medium | High | Financial reporting |
+| `messages` | High | High | ✅ Chat |
+| `notifications` | High | Very High | ✅ Real-time |
+| `likes` | Medium | High | Engagement |
+| `post_analytics` | Low | Very High | Background jobs |
+| `audit_logs` | Low | Very High | Compliance |
+
+### 4.3 Partitioning Strategy (Include in Design)
+
+**Tables to Partition FROM DAY ONE:**
+
+| Table | Partition Strategy | Partition Key | Retention |
+|-------|-------------------|---------------|-----------|
+| `transactions` | Range by month | `created_at` | Indefinite |
+| `messages` | Range by month | `created_at` | Indefinite |
+| `notifications` | Range by month | `created_at` | 90 days active |
+| `audit_logs` | Range by month | `created_at` | 2 years |
+| `post_analytics` | Range by month | `date` | Indefinite |
+| `creator_analytics` | Range by month | `date` | Indefinite |
+| `user_activity` (new) | Range by week | `created_at` | 30 days hot |
+
+**Implementation Notes:**
+- Use PostgreSQL native partitioning (PARTITION BY RANGE)
+- Create partitions ahead of time (3 months in advance)
+- Automate partition creation via cron/pg_partman
+- Design should include partition DDL
+
+### 4.4 Indexing Improvements (Add to Design)
+
+**Composite Indexes to Add:**
+
+| Table | Index | Purpose |
+|-------|-------|---------|
+| `posts` | `(creator_id, published_at DESC)` | Feed queries |
+| `posts` | `(creator_id, status, published_at DESC)` | Creator dashboard |
+| `messages` | `(conversation_id, is_read)` | Unread count |
+| `messages` | `(conversation_id, created_at DESC)` | Message history |
+| `subscriptions` | `(status, expires_at)` | Expiration jobs |
+| `subscriptions` | `(creator_id, status)` | Subscriber lists |
+| `notifications` | `(user_id, is_read, created_at DESC)` | Notification feed |
+| `likes` | `(post_id, created_at DESC)` | Recent likes |
+| `transactions` | `(creator_id, created_at DESC)` | Earnings history |
+
+**Partial Indexes to Add:**
+
+| Index | Purpose |
+|-------|---------|
+| `subscriptions WHERE status = 'active'` | Fast access checks |
+| `notifications WHERE is_read = FALSE` | Unread notifications |
+| `posts WHERE status = 'published'` | Published feed |
+
+---
+
+## 5. Human Decisions (Confirmed)
+
+| Question | Decision | Impact |
+|----------|----------|--------|
+| Should tip goals be tracked separately? | **YES** | Add `tip_goals` + `tip_goal_contributions` |
+| What admin roles are needed? | **super-admin, moderator, support** | Add 3-tier admin system |
+| Feature-level permissions? | **YES (best practice)** | Add 14 granular permissions |
+| Which tables to partition? | **Best practice** | 7 tables partitioned from day one |
+
+---
+
+## 6. Complete Schema Design Additions
+
+### 6.1 New Tables to Add to Design (13 total)
+
+| Table | Priority | Purpose |
+|-------|----------|---------|
+| `comments` | **P0** | Post comments with replies |
+| `admin_roles` | **P0** | Admin role definitions |
+| `admin_permissions` | **P0** | Role-permission mapping |
+| `user_admin_roles` | **P0** | User-role assignments |
+| `tags` | **P0** | Content tags/hashtags |
+| `post_tags` | **P0** | Post-tag junction |
+| `tip_goals` | **P0** | Creator tip goals |
+| `tip_goal_contributions` | **P0** | Tip goal tracking |
+| `subscription_history` | **P1** | Subscription events |
+| `user_activity` | **P1** | Engagement tracking |
+| `bundles` | **P1** | Content bundles |
+| `bundle_items` | **P1** | Bundle contents |
+| `bundle_purchases` | **P1** | Bundle purchases |
+
+### 6.2 Indexes to Add to Design
+
+| Category | Count |
+|----------|-------|
+| Composite indexes | 9 |
+| Partial indexes | 3 |
+| New table indexes | ~15 |
+
+### 6.3 Partition Definitions to Add
+
+| Tables to Partition | Count |
+|---------------------|-------|
+| From Day One | 7 |
+
+---
+
+## 7. Final Design Summary
+
+### 7.1 Total Schema After Updates
+
+| Metric | Before | After |
+|--------|--------|-------|
+| **Tables** | 24 | 37 |
+| **P0 Tables to Add** | 0 | 8 |
+| **P1 Tables to Add** | 0 | 5 |
+| **Partitioned Tables** | 0 | 7 |
+| **New Indexes** | 0 | ~27 |
+
+### 7.2 Implementation Order
+
+**Phase 1 — Before MVP (P0):**
+1. Add all P0 tables to design document
+2. Add partitioning definitions
+3. Add composite/partial indexes
+4. Get Tech Lead approval
+5. Write migrations
+
+**Phase 2 — Post-MVP (P1):**
+1. Add P1 tables
+2. Implement activity tracking
+3. Implement bundles system
+
+---
+
+## 8. Risks & Mitigations
+
+| Risk | Probability | Impact | Mitigation |
+|------|-------------|--------|------------|
+| Design changes delay implementation | Low | Low | Design is not yet implemented |
+| Partition management overhead | Low | Medium | Use pg_partman automation |
+| Permission system complexity | Low | Low | Start with predefined roles |
+| High-volume table performance | Medium | High | Partition from day one |
+
+---
+
+## 9. Success Criteria
+
+| Criteria | Status |
+|----------|--------|
+| Design analysis complete | ✅ |
+| All gaps identified | ✅ 8 P0 + 5 P1 |
+| Scalability strategy defined | ✅ |
+| Human decisions incorporated | ✅ |
+| Ready for Tech Lead | ✅ |
+
+---
+
+## 10. Recommendations for Tech Lead
+
+### Immediate (Update Design Document)
+
+1. **Add 8 P0 tables** to `docs/04-DATABASE-SCHEMA.md`
+2. **Add partitioning DDL** for 7 tables
+3. **Add composite indexes** (9 new)
+4. **Add partial indexes** (3 new)
+5. **Document admin permission matrix**
+
+### Before Migration
+
+1. Validate all FK relationships
+2. Review nullability constraints
+3. Plan partition creation automation
+4. Design rollback strategy
+
+### Post-MVP (P1)
+
+1. Add subscription history
+2. Add user activity tracking
+3. Add bundles system
+
+---
+
+## 11. Next Phase
+
+**✅ PM Research COMPLETE**
+
+**Key Context for Tech Lead:**
+> The schema in `docs/04-DATABASE-SCHEMA.md` is a **design document only**.  
+> The database has **NOT been implemented yet**.  
+> All additions can be made to the design before any migrations are written.
+
+Ready for: **02-ARCHITECTURE-REVIEW.mdc** (Tech Lead Agent)
+
+---
+
+## Document Metadata
+
+| Field | Value |
+|-------|-------|
+| Created | 2025-12-14 |
+| Author | PM Agent |
+| Status | ✅ **COMPLETE** |
+| Human Approval | ✅ Decisions Incorporated |
+| Database State | **NOT YET IMPLEMENTED** |
+| Next Phase | 02-ARCHITECTURE-REVIEW.mdc |
+| New Tables | 13 |
+| New Indexes | ~27 |
+| Partitioned Tables | 7 |
