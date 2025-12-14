@@ -1,0 +1,697 @@
+# 06-DEVOPS.mdc
+
+**Task:** INFRASTRUCTURE-SETUP (Neon + S3 + CloudFront + CI/CD)  
+**Date:** 2025-12-14  
+**DevOps Agent Version:** 1.0  
+**Status:** 🟡 Implementation In Progress
+
+---
+
+## 1. Implementation Overview
+
+This document contains the DevOps implementation plan for NuttyFans infrastructure setup, based on the **APPROVED** architecture in `02-ARCHITECTURE-REVIEW.mdc`.
+
+### 1.1 Implementation Scope
+
+| Component | Automated | Manual | Notes |
+|-----------|-----------|--------|-------|
+| GitHub Actions CI | ✅ | - | Created via this task |
+| Git branches (dev/qa) | ✅ | - | Created via this task |
+| Environment documentation | ✅ | - | Created via this task |
+| Neon Database | - | ✅ | Requires manual provisioning |
+| S3 Buckets | - | ✅ | Requires manual AWS setup |
+| CloudFront CDN | - | ✅ | Requires manual AWS setup |
+| IAM Configuration | - | ✅ | Requires manual AWS setup |
+| Vercel Configuration | - | ✅ | Requires manual dashboard setup |
+
+---
+
+## 2. Automated Implementation
+
+### 2.1 GitHub Actions CI Workflow
+
+**File:** `.github/workflows/ci.yml`
+
+**Purpose:** Quality gates before deployment — lint, type-check, build validation
+
+**Triggers:**
+- Push to `dev`, `qa`, `main` branches
+- Pull requests targeting `dev`, `qa`, `main`
+
+**Jobs:**
+| Job | Purpose | Blocking |
+|-----|---------|----------|
+| Setup | Install pnpm, Node.js, cache deps | - |
+| Lint | ESLint validation | ✅ Yes |
+| Type Check | TypeScript validation | ✅ Yes |
+| Build | Next.js build validation | ✅ Yes |
+
+**Optimizations:**
+- pnpm caching via `setup-node`
+- Concurrency control (cancel in-progress on new push)
+- 10-minute timeout (prevent stuck jobs)
+- Frozen lockfile (consistent installs)
+
+### 2.2 Git Branch Strategy
+
+**Branches to Create:**
+| Branch | Purpose | Protected |
+|--------|---------|-----------|
+| `dev` | Development environment | No |
+| `qa` | QA/Staging environment | Yes (recommended) |
+| `main` | Production environment | Yes (existing) |
+
+**Creation Commands:**
+```bash
+# Create dev branch from main
+git checkout main
+git pull origin main
+git checkout -b dev
+git push -u origin dev
+
+# Create qa branch from main
+git checkout main
+git checkout -b qa
+git push -u origin qa
+```
+
+### 2.3 Environment Variable Documentation
+
+**File:** `.env.example`
+
+Documents all required environment variables with placeholder values and descriptions.
+
+---
+
+## 3. Manual Setup Instructions
+
+### 3.1 Neon Database Setup
+
+#### Step 1: Create Neon Project
+
+1. Go to [console.neon.tech](https://console.neon.tech)
+2. Click **New Project**
+3. Configure:
+   | Setting | Value |
+   |---------|-------|
+   | Project Name | `nuttyfans` |
+   | Region | `us-east-1` (or nearest to users) |
+   | PostgreSQL Version | `16` (latest) |
+   | Compute Size | `Auto-scaling (0.25-2 CU)` |
+
+4. Click **Create Project**
+
+#### Step 2: Create Database Branches
+
+**Main branch** (created automatically as default)
+
+**QA branch:**
+1. Go to **Branches** in sidebar
+2. Click **New Branch**
+3. Configure:
+   | Setting | Value |
+   |---------|-------|
+   | Branch Name | `qa` |
+   | Parent Branch | `main` |
+   | Compute Size | `Auto-scaling` |
+   | Auto-suspend | `5 minutes` |
+4. Click **Create Branch**
+
+**Dev branch:**
+1. Click **New Branch**
+2. Configure:
+   | Setting | Value |
+   |---------|-------|
+   | Branch Name | `dev` |
+   | Parent Branch | `main` |
+   | Compute Size | `Auto-scaling` |
+   | Auto-suspend | `5 minutes` |
+3. Click **Create Branch**
+
+#### Step 3: Enable Connection Pooling
+
+For each branch (main, qa, dev):
+1. Click on the branch
+2. Go to **Connection Details**
+3. Enable **Connection Pooling** (toggle ON)
+4. Note both connection strings:
+   - **Pooled** (for application runtime)
+   - **Unpooled** (for migrations)
+
+#### Step 4: Configure Production Branch
+
+For `main` branch only:
+1. Go to branch settings
+2. Disable **Auto-suspend** (production should always be available)
+3. Enable **Point-in-time Recovery** (if available on plan)
+
+#### Step 5: Note Connection Strings
+
+Record the following for each branch:
+
+```
+# Main (Production)
+DATABASE_URL=postgresql://user:pass@ep-xxx.us-east-1.aws.neon.tech:5432/nuttyfans?sslmode=require
+DATABASE_URL_UNPOOLED=postgresql://user:pass@ep-xxx-pooler.us-east-1.aws.neon.tech:5432/nuttyfans?sslmode=require
+
+# QA
+DATABASE_URL=postgresql://user:pass@ep-yyy.us-east-1.aws.neon.tech:5432/nuttyfans?sslmode=require
+DATABASE_URL_UNPOOLED=postgresql://user:pass@ep-yyy-pooler.us-east-1.aws.neon.tech:5432/nuttyfans?sslmode=require
+
+# Dev
+DATABASE_URL=postgresql://user:pass@ep-zzz.us-east-1.aws.neon.tech:5432/nuttyfans?sslmode=require
+DATABASE_URL_UNPOOLED=postgresql://user:pass@ep-zzz-pooler.us-east-1.aws.neon.tech:5432/nuttyfans?sslmode=require
+```
+
+#### Verification Commands
+
+```bash
+# Test connection (replace with actual connection string)
+psql "postgresql://user:pass@ep-xxx.us-east-1.aws.neon.tech:5432/nuttyfans?sslmode=require" -c "SELECT version();"
+
+# Run Prisma migration
+DATABASE_URL="your-connection-string" pnpm db:migrate:deploy
+```
+
+---
+
+### 3.2 AWS S3 Setup
+
+#### Step 1: Create S3 Buckets
+
+For each environment (dev, qa, prod):
+
+1. Go to [AWS S3 Console](https://s3.console.aws.amazon.com/)
+2. Click **Create bucket**
+3. Configure:
+
+| Setting | Dev | QA | Prod |
+|---------|-----|-----|------|
+| Bucket name | `nuttyfans-media-dev` | `nuttyfans-media-qa` | `nuttyfans-media-prod` |
+| Region | `us-east-1` | `us-east-1` | `us-east-1` |
+| Object Ownership | ACLs disabled | ACLs disabled | ACLs disabled |
+| Block Public Access | **Block ALL** ✅ | **Block ALL** ✅ | **Block ALL** ✅ |
+| Bucket Versioning | Disabled | Disabled | Disabled |
+| Default Encryption | SSE-S3 (AES-256) | SSE-S3 (AES-256) | SSE-S3 (AES-256) |
+
+4. Click **Create bucket**
+
+#### Step 2: Configure CORS
+
+For each bucket:
+
+1. Go to bucket → **Permissions** → **Cross-origin resource sharing (CORS)**
+2. Click **Edit**
+3. Paste:
+
+```json
+[
+  {
+    "AllowedHeaders": ["*"],
+    "AllowedMethods": ["GET", "PUT", "POST", "DELETE"],
+    "AllowedOrigins": [
+      "https://nuttyfans.vercel.app",
+      "https://nuttyfans-qa.vercel.app",
+      "https://nuttyfans-dev.vercel.app",
+      "http://localhost:3000"
+    ],
+    "ExposeHeaders": ["ETag"],
+    "MaxAgeSeconds": 3600
+  }
+]
+```
+
+4. Click **Save changes**
+
+#### Step 3: Create Lifecycle Rule (Optional)
+
+For `uploads/` folder cleanup:
+
+1. Go to bucket → **Management** → **Lifecycle rules**
+2. Click **Create lifecycle rule**
+3. Configure:
+   | Setting | Value |
+   |---------|-------|
+   | Rule name | `cleanup-incomplete-uploads` |
+   | Filter | Prefix: `uploads/` |
+   | Action | Expire current versions after 7 days |
+4. Click **Create rule**
+
+---
+
+### 3.3 AWS IAM Setup
+
+#### Step 1: Create IAM User
+
+1. Go to [IAM Console](https://console.aws.amazon.com/iam/)
+2. Go to **Users** → **Create user**
+3. Configure:
+   | Setting | Value |
+   |---------|-------|
+   | User name | `nuttyfans-app` |
+   | Access key | Programmatic access ✅ |
+
+#### Step 2: Create IAM Policy
+
+1. Go to **Policies** → **Create policy**
+2. Select **JSON** tab
+3. Paste:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "S3ObjectAccess",
+      "Effect": "Allow",
+      "Action": [
+        "s3:PutObject",
+        "s3:GetObject",
+        "s3:DeleteObject"
+      ],
+      "Resource": [
+        "arn:aws:s3:::nuttyfans-media-dev/*",
+        "arn:aws:s3:::nuttyfans-media-qa/*",
+        "arn:aws:s3:::nuttyfans-media-prod/*"
+      ]
+    },
+    {
+      "Sid": "S3BucketList",
+      "Effect": "Allow",
+      "Action": "s3:ListBucket",
+      "Resource": [
+        "arn:aws:s3:::nuttyfans-media-dev",
+        "arn:aws:s3:::nuttyfans-media-qa",
+        "arn:aws:s3:::nuttyfans-media-prod"
+      ]
+    }
+  ]
+}
+```
+
+4. Name: `nuttyfans-s3-access`
+5. Click **Create policy**
+
+#### Step 3: Attach Policy to User
+
+1. Go to **Users** → `nuttyfans-app`
+2. Click **Add permissions** → **Attach policies directly**
+3. Search and select `nuttyfans-s3-access`
+4. Click **Add permissions**
+
+#### Step 4: Create Access Keys
+
+1. Go to **Users** → `nuttyfans-app` → **Security credentials**
+2. Click **Create access key**
+3. Select **Application running outside AWS**
+4. Click **Create access key**
+5. **IMPORTANT:** Download or copy credentials immediately (shown only once):
+   ```
+   AWS_ACCESS_KEY_ID=AKIAXXXXXXXXXXXX
+   AWS_SECRET_ACCESS_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+   ```
+
+---
+
+### 3.4 AWS CloudFront Setup
+
+#### Step 1: Create Origin Access Control (OAC)
+
+1. Go to [CloudFront Console](https://console.aws.amazon.com/cloudfront/)
+2. Go to **Origin access** → **Origin access controls**
+3. Click **Create control setting**
+4. Configure:
+   | Setting | Value |
+   |---------|-------|
+   | Name | `nuttyfans-s3-oac` |
+   | Signing behavior | Sign requests (recommended) |
+   | Origin type | S3 |
+5. Click **Create**
+
+#### Step 2: Create CloudFront Distribution (repeat for each environment)
+
+For each environment (dev, qa, prod):
+
+1. Go to **Distributions** → **Create distribution**
+2. Configure **Origin**:
+   | Setting | Value |
+   |---------|-------|
+   | Origin domain | `nuttyfans-media-{env}.s3.us-east-1.amazonaws.com` |
+   | Origin access | Origin access control settings |
+   | Origin access control | `nuttyfans-s3-oac` |
+   | Origin shield | No (cost saving) |
+
+3. Configure **Default cache behavior**:
+   | Setting | Value |
+   |---------|-------|
+   | Viewer protocol policy | HTTPS only |
+   | Allowed HTTP methods | GET, HEAD |
+   | Cache policy | CachingOptimized |
+   | Origin request policy | CORS-S3Origin |
+   | Response headers policy | SimpleCORS |
+
+4. Configure **Settings**:
+   | Setting | Value |
+   |---------|-------|
+   | Price class | Use only North America and Europe |
+   | HTTP version | HTTP/2 |
+   | Default root object | (leave empty) |
+
+5. Click **Create distribution**
+
+6. **IMPORTANT:** After creation, CloudFront will show a banner:
+   > "The S3 bucket policy needs to be updated"
+   
+   Click **Copy policy** and proceed to Step 3.
+
+#### Step 3: Update S3 Bucket Policy
+
+For each bucket:
+
+1. Go to S3 → bucket → **Permissions** → **Bucket policy**
+2. Click **Edit**
+3. Paste the policy CloudFront generated (or use this template):
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowCloudFrontServicePrincipal",
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "cloudfront.amazonaws.com"
+      },
+      "Action": "s3:GetObject",
+      "Resource": "arn:aws:s3:::nuttyfans-media-{env}/*",
+      "Condition": {
+        "StringEquals": {
+          "AWS:SourceArn": "arn:aws:cloudfront::{account-id}:distribution/{distribution-id}"
+        }
+      }
+    }
+  ]
+}
+```
+
+Replace:
+- `{env}` with `dev`, `qa`, or `prod`
+- `{account-id}` with your AWS account ID
+- `{distribution-id}` with the CloudFront distribution ID
+
+4. Click **Save changes**
+
+#### Step 4: Note CloudFront URLs
+
+Record distribution URLs:
+```
+# Dev
+CLOUDFRONT_URL=https://d1xxxxxxxxxx.cloudfront.net
+
+# QA
+CLOUDFRONT_URL=https://d2xxxxxxxxxx.cloudfront.net
+
+# Prod
+CLOUDFRONT_URL=https://d3xxxxxxxxxx.cloudfront.net
+```
+
+#### Verification Commands
+
+```bash
+# Test CloudFront access (after uploading a test file)
+curl -I https://d1xxxxxxxxxx.cloudfront.net/test.txt
+
+# Verify direct S3 access is blocked
+curl -I https://nuttyfans-media-dev.s3.us-east-1.amazonaws.com/test.txt
+# Should return 403 Forbidden
+```
+
+---
+
+### 3.5 Vercel Setup
+
+#### Step 1: Connect Repository
+
+1. Go to [vercel.com/new](https://vercel.com/new)
+2. Click **Import Git Repository**
+3. Select `nuttyfans` repository
+4. Configure:
+   | Setting | Value |
+   |---------|-------|
+   | Framework | Next.js |
+   | Root Directory | `.` |
+   | Build Command | `pnpm build` |
+   | Output Directory | `.next` |
+   | Install Command | `pnpm install --frozen-lockfile` |
+5. Click **Deploy**
+
+#### Step 2: Configure Branch Deployments
+
+1. Go to **Project Settings** → **Git**
+2. Configure:
+   | Setting | Value |
+   |---------|-------|
+   | Production Branch | `main` |
+   | Preview Branches | `dev`, `qa`, and all PR branches |
+
+#### Step 3: Set Environment Variables
+
+Go to **Project Settings** → **Environment Variables**
+
+**Production (main):**
+| Variable | Value | Scope |
+|----------|-------|-------|
+| `DATABASE_URL` | Neon main pooled string | Production |
+| `DATABASE_URL_UNPOOLED` | Neon main unpooled string | Production |
+| `AWS_ACCESS_KEY_ID` | IAM access key | Production |
+| `AWS_SECRET_ACCESS_KEY` | IAM secret key | Production |
+| `AWS_REGION` | `us-east-1` | Production |
+| `AWS_S3_BUCKET` | `nuttyfans-media-prod` | Production |
+| `CLOUDFRONT_URL` | Prod distribution URL | Production |
+| `NEXT_PUBLIC_APP_URL` | `https://nuttyfans.vercel.app` | Production |
+
+**QA (qa branch):**
+| Variable | Value | Scope |
+|----------|-------|-------|
+| `DATABASE_URL` | Neon qa pooled string | Preview |
+| `DATABASE_URL_UNPOOLED` | Neon qa unpooled string | Preview |
+| `AWS_S3_BUCKET` | `nuttyfans-media-qa` | Preview |
+| `CLOUDFRONT_URL` | QA distribution URL | Preview |
+| `NEXT_PUBLIC_APP_URL` | `https://nuttyfans-qa.vercel.app` | Preview |
+
+**Dev (dev branch):**
+| Variable | Value | Scope |
+|----------|-------|-------|
+| `DATABASE_URL` | Neon dev pooled string | Development |
+| `DATABASE_URL_UNPOOLED` | Neon dev unpooled string | Development |
+| `AWS_S3_BUCKET` | `nuttyfans-media-dev` | Development |
+| `CLOUDFRONT_URL` | Dev distribution URL | Development |
+| `NEXT_PUBLIC_APP_URL` | `https://nuttyfans-dev.vercel.app` | Development |
+
+**Shared across all environments:**
+| Variable | Value | Scope |
+|----------|-------|-------|
+| `AWS_ACCESS_KEY_ID` | IAM access key | All |
+| `AWS_SECRET_ACCESS_KEY` | IAM secret key | All |
+| `AWS_REGION` | `us-east-1` | All |
+
+#### Step 4: Configure Build Settings
+
+1. Go to **Project Settings** → **General**
+2. Verify:
+   | Setting | Value |
+   |---------|-------|
+   | Node.js Version | 20.x |
+   | Build & Development Settings → Framework | Next.js |
+
+---
+
+## 4. Rollback Plan
+
+### 4.1 CI/CD Rollback
+
+| Scenario | Action |
+|----------|--------|
+| CI workflow broken | Revert `.github/workflows/ci.yml` to previous commit |
+| Deployment broken | Use Vercel dashboard → Deployments → Redeploy previous |
+| Branch broken | `git revert` or `git reset` to last known good commit |
+
+### 4.2 Database Rollback
+
+| Scenario | Action |
+|----------|--------|
+| Bad migration | Run `pnpm db:migrate` with `--rollback` or restore from Neon point-in-time |
+| Data corruption | Restore from Neon branch (branches are instant clones) |
+
+### 4.3 Storage Rollback
+
+| Scenario | Action |
+|----------|--------|
+| Misconfigured bucket | Re-apply settings from this document |
+| CloudFront issue | Invalidate cache: `aws cloudfront create-invalidation --distribution-id XXXX --paths "/*"` |
+
+---
+
+## 5. Implementation Checklist
+
+### 5.1 Automated (This Task)
+
+- [x] Create `.github/workflows/ci.yml`
+- [x] Create `.env.example`
+- [ ] Create `dev` branch (requires human to push)
+- [ ] Create `qa` branch (requires human to push)
+
+### 5.2 Manual (Human Required)
+
+#### Neon Database
+- [ ] Create Neon project `nuttyfans`
+- [ ] Create `main` branch (default)
+- [ ] Create `qa` branch
+- [ ] Create `dev` branch
+- [ ] Enable connection pooling (all branches)
+- [ ] Disable auto-suspend on `main`
+- [ ] Record all connection strings
+
+#### AWS S3
+- [ ] Create bucket `nuttyfans-media-dev`
+- [ ] Create bucket `nuttyfans-media-qa`
+- [ ] Create bucket `nuttyfans-media-prod`
+- [ ] Block public access (all buckets)
+- [ ] Configure CORS (all buckets)
+- [ ] Enable SSE-S3 encryption (all buckets)
+
+#### AWS IAM
+- [ ] Create IAM user `nuttyfans-app`
+- [ ] Create IAM policy `nuttyfans-s3-access`
+- [ ] Attach policy to user
+- [ ] Generate and record access keys
+
+#### AWS CloudFront
+- [ ] Create OAC `nuttyfans-s3-oac`
+- [ ] Create distribution for dev bucket
+- [ ] Create distribution for qa bucket
+- [ ] Create distribution for prod bucket
+- [ ] Update S3 bucket policies
+- [ ] Record distribution URLs
+
+#### Vercel
+- [ ] Connect GitHub repository
+- [ ] Configure production branch (`main`)
+- [ ] Configure preview branches (`dev`, `qa`)
+- [ ] Set environment variables (all environments)
+- [ ] Verify Node.js version (20.x)
+
+### 5.3 Verification
+
+- [ ] CI workflow runs on PR
+- [ ] CI workflow runs on push to dev/qa/main
+- [ ] Vercel deploys on push to dev
+- [ ] Vercel deploys on push to qa
+- [ ] Vercel deploys on push to main
+- [ ] Database connection works (all environments)
+- [ ] S3 upload works (via presigned URL)
+- [ ] CloudFront serves content
+- [ ] Direct S3 access blocked (returns 403)
+
+---
+
+## 6. Security Considerations
+
+### 6.1 Secrets Management
+
+| Secret | Storage Location | Never In |
+|--------|------------------|----------|
+| Database credentials | Vercel env vars | Code, .env files in repo |
+| AWS credentials | Vercel env vars | Code, .env files in repo |
+| CloudFront URLs | Vercel env vars | Can be public (not secret) |
+
+### 6.2 Access Control
+
+| Resource | Access Level |
+|----------|--------------|
+| S3 buckets | CloudFront only (OAC) |
+| Neon database | SSL required, IP allowlist (optional) |
+| Vercel | GitHub SSO |
+
+### 6.3 Forbidden Actions
+
+- ❌ Committing secrets to repository
+- ❌ Direct S3 public access
+- ❌ Unencrypted database connections
+- ❌ Sharing IAM credentials
+
+---
+
+## 7. Cost Monitoring
+
+### 7.1 Set Billing Alerts
+
+**AWS:**
+1. Go to **Billing** → **Budgets**
+2. Create budget for $10/month initially
+3. Set alert at 80% threshold
+
+**Neon:**
+1. Go to **Project Settings** → **Billing**
+2. Monitor compute hours and storage
+
+**Vercel:**
+1. Go to **Team Settings** → **Usage**
+2. Monitor bandwidth usage (100GB free)
+
+### 7.2 Expected Costs (Initial)
+
+| Service | Expected | Free Tier |
+|---------|----------|-----------|
+| Neon | $0 | 3GB storage, 1 project |
+| S3 | $0-1 | 5GB storage |
+| CloudFront | $0-1 | 1TB transfer |
+| Vercel | $0 | 100GB bandwidth |
+| GitHub Actions | $0 | 2000 min/month |
+
+---
+
+## 8. Troubleshooting
+
+### 8.1 Common Issues
+
+| Issue | Cause | Solution |
+|-------|-------|----------|
+| CI fails on lint | ESLint errors | Fix errors locally, push again |
+| CI fails on types | TypeScript errors | Fix errors locally, push again |
+| CI fails on build | Missing env vars | Add dummy `DATABASE_URL` in workflow |
+| Vercel deploy fails | Missing env vars | Set all required vars in Vercel dashboard |
+| S3 403 error | Bucket policy wrong | Re-apply policy from Section 3.4 |
+| CloudFront 403 | OAC not configured | Check distribution origin settings |
+| Database connection fails | Wrong connection string | Verify pooled vs unpooled usage |
+
+### 8.2 Support Resources
+
+- Neon docs: https://neon.tech/docs
+- Vercel docs: https://vercel.com/docs
+- AWS S3 docs: https://docs.aws.amazon.com/s3/
+- CloudFront docs: https://docs.aws.amazon.com/cloudfront/
+
+---
+
+## 9. Document Metadata
+
+| Field | Value |
+|-------|-------|
+| Created | 2025-12-14 |
+| Author | DevOps Agent |
+| Status | 🟡 Implementation In Progress |
+| Architecture Reference | `02-ARCHITECTURE-REVIEW.mdc` (APPROVED) |
+| Human Approval Required | ✅ For cloud resource provisioning |
+
+---
+
+## 10. Next Steps
+
+1. **Human:** Review this document
+2. **Human:** Provision Neon database (Section 3.1)
+3. **Human:** Provision S3 + CloudFront (Sections 3.2-3.4)
+4. **Human:** Configure Vercel (Section 3.5)
+5. **Human:** Create and push `dev` and `qa` branches
+6. **Human:** Run verification checklist (Section 5.3)
+7. **Human:** Mark task as COMPLETE in `08-STATUS.md`
