@@ -9,10 +9,12 @@ NuttyFans requires a robust, scalable, and extensible database schema that suppo
 - Monetization flows
 - Future admin and operational needs
 
-An initial database schema already exists in:
-docs/04-DATABASE-SCHEMA.md
+An initial database schema **design** already exists in:
+`docs/04-DATABASE-SCHEMA.md`
 
-However, this schema must be critically analyzed and validated for:
+**IMPORTANT:** This schema is a **design document only** — it has NOT been implemented in the database yet. This task is to validate and improve the design BEFORE implementation.
+
+The schema design must be critically analyzed and validated for:
 
 - Scalability (1M+ users / high read-write traffic)
 - Long-term evolution
@@ -20,7 +22,7 @@ However, this schema must be critically analyzed and validated for:
 - Clean separation of concerns
 - Safe future migrations
 
-This task is focused on **analysis and validation**, not blind redesign.
+This task is focused on **analysis, validation, and improvement** of the design before any implementation begins.
 
 ---
 
@@ -42,9 +44,9 @@ The database must be suitable for a long-lived platform, not a prototype.
 
 ### IN SCOPE
 
-- Analyze the existing database schema in `docs/04-DATABASE-SCHEMA.md`
+- Analyze the existing database schema DESIGN in `docs/04-DATABASE-SCHEMA.md`
 - Identify gaps, risks, and improvement areas
-- Validate schema against:
+- Validate schema design against:
   - User lifecycle
   - Creator lifecycle
   - Content publishing & monetization
@@ -56,12 +58,13 @@ The database must be suitable for a long-lived platform, not a prototype.
   - Foreign key relationships
   - Nullability & constraints
   - Scalability and performance
-- Ensure schema supports future feature growth
+- Ensure schema design supports future feature growth
+- Finalize schema design BEFORE implementation
 
 ### OUT OF SCOPE
 
-- Writing database migrations
-- Choosing database vendor (already decided)
+- Writing database migrations (separate task after approval)
+- Choosing database vendor (already decided: PostgreSQL/Neon)
 - Implementing queries or ORM models
 - Admin panel UI or workflows
 - Feature-specific logic
@@ -118,27 +121,30 @@ The schema must correctly model (at minimum):
 
 ## Dependencies
 
-- Existing schema in `docs/04-DATABASE-SCHEMA.md`
+- Existing schema DESIGN in `docs/04-DATABASE-SCHEMA.md`
 - Locked CODEBASE_ARCHITECTURE_RULES
 - Locked CODEBASE_GOVERNANCE_RULES
 
 ---
 
-## Open Questions (To Be Answered by PM / Tech Lead)
+## Current State
 
-- Are all user and creator states fully represented?
-- Are monetization flows flexible enough?
-- Are admin/reporting needs first-class or afterthought?
-- Which entities are read-heavy vs write-heavy?
-- Which tables will require sharding or partitioning later?
+| Item | Status |
+|------|--------|
+| Schema design document | ✅ Exists in `docs/04-DATABASE-SCHEMA.md` |
+| Database implementation | ❌ NOT YET CREATED |
+| Migrations | ❌ NOT YET WRITTEN |
+| ORM models (Prisma) | ❌ NOT YET CREATED |
 
 ---
 
 ## Success Criteria
 
-- PM produces a clear DB analysis summary
+- PM produces a clear DB design analysis summary
 - Tech Lead produces a validated, scalable DB design proposal
+- All gaps and improvements documented
 - Risks and future migration concerns are documented
+- Final schema design approved BEFORE implementation begins
 - No implementation begins without explicit approval
 
 ---
@@ -153,4 +159,4 @@ A well-designed database here will reduce:
 - Migration risk
 - Operational complexity
 
-Mistakes here are expensive later.
+Mistakes here are expensive later. Since the schema is NOT yet implemented, now is the time to get it right.
