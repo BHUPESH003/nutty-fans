@@ -16,3 +16,8 @@ yarn.lock
 # Coverage
 coverage/
 
+# Task MDC files (machine-drafted content)
+*.mdc
+
+# Environment example files
+.env.example

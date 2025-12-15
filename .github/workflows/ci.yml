@@ -1,0 +1,77 @@
+# ============================================
+# NuttyFans CI Pipeline
+# ============================================
+# Quality gates before deployment
+# Reference: /tasks/2025-12-14__INFRASTRUCTURE-SETUP/02-ARCHITECTURE-REVIEW.mdc
+#
+# Database Strategy:
+# - If Neon GitHub Integration is enabled: uses real DATABASE_URL from secrets
+# - Fallback: uses dummy URL for type generation (no DB connection needed)
+# ============================================
+
+name: CI
+
+on:
+  push:
+    branches: [dev, qa, main]
+  pull_request:
+    branches: [dev, qa, main]
+
+# Cancel in-progress runs when a new run is triggered
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Use Neon integration URL if available, otherwise use dummy for type generation
+  # Prisma generate only reads schema, doesn't connect to DB
+  DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://dummy:dummy@localhost:5432/dummy?sslmode=require' }}
+
+jobs:
+  quality:
+    name: Quality Checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      # ----------------------------------------
+      # Setup
+      # ----------------------------------------
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # ----------------------------------------
+      # Prisma Client Generation
+      # ----------------------------------------
+      - name: Generate Prisma Client
+        run: pnpm db:generate
+
+      # ----------------------------------------
+      # Quality Gates (All must pass)
+      # ----------------------------------------
+      - name: Lint
+        run: pnpm lint
+
+      - name: Type check
+        run: pnpm typecheck
+
+      - name: Build
+        run: pnpm build
+
+      # ----------------------------------------
+      # Validation Complete
+      # ----------------------------------------
+      # If all checks pass, Vercel will handle deployment
+      # via its GitHub integration (configured separately)
