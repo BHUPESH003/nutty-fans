@@ -1,0 +1,401 @@
+# 01-PM-RESEARCH.mdc
+
+## Task Information
+
+| Field | Value |
+|-------|-------|
+| Task ID | `2025-12-14__DESIGN-SYSTEM-SETUP` |
+| Task Name | Design System Setup & Component Library Init |
+| PM Agent | PM Agent |
+| Date | December 14, 2025 |
+| Status | ✅ COMPLETE |
+
+---
+
+## 1. Task Intent Interpretation
+
+### 1.1 Problem Summary
+
+NuttyFans has a comprehensive UI/UX Blueprint but the design system is not implemented in code:
+
+| What Exists | What's Missing |
+|-------------|----------------|
+| Color palette in docs | CSS variables in code |
+| Typography scale in docs | Tailwind theme extension |
+| Spacing system in docs | Design tokens as code |
+| Component specs in docs | Actual React components |
+| Tailwind CSS installed | Custom theme configuration |
+| Empty `src/components/ui/` | Reusable UI components |
+
+### 1.2 Business Value
+
+| Benefit | Impact |
+|---------|--------|
+| **Development Speed** | Reusable components reduce dev time by 40-60% |
+| **Consistency** | Single source of truth for UI |
+| **Maintainability** | Change once, update everywhere |
+| **Accessibility** | shadcn/ui components are WCAG compliant |
+| **Designer-Dev Alignment** | Same tokens = same language |
+
+---
+
+## 2. Research: Design System Patterns
+
+### 2.1 Industry Best Practices
+
+| Practice | Description | NuttyFans Approach |
+|----------|-------------|-------------------|
+| **Design Tokens** | Abstract values (colors, spacing) as variables | CSS variables + Tailwind |
+| **Component Composition** | Small components compose into larger ones | shadcn/ui pattern |
+| **Accessibility First** | WCAG 2.1 AA compliance | shadcn/ui + Radix UI |
+| **Dark Mode Ready** | CSS variables enable theme switching | Prepare variables |
+| **Type Safety** | Props typed with TypeScript | All components typed |
+
+### 2.2 shadcn/ui vs Alternatives
+
+| Factor | shadcn/ui | Radix UI | Chakra UI | Material UI |
+|--------|-----------|----------|-----------|-------------|
+| Customization | ✅ Full control | ✅ Unstyled | 🟡 Theme-based | 🟡 Theme-based |
+| Bundle Size | ✅ Only what you use | ✅ Minimal | ❌ Large | ❌ Large |
+| Copy-paste model | ✅ Own the code | ❌ Install pkg | ❌ Install pkg | ❌ Install pkg |
+| Tailwind Native | ✅ Yes | ❌ Manual | ❌ No | ❌ No |
+| Accessibility | ✅ Radix-based | ✅ Native | ✅ Good | ✅ Good |
+| Next.js 15 | ✅ Compatible | ✅ Compatible | 🟡 Some issues | 🟡 Some issues |
+
+**Decision: shadcn/ui** — Already specified in tech architecture, best fit for Tailwind + Next.js.
+
+---
+
+## 3. Design Token Mapping
+
+### 3.1 Color Tokens (from UI/UX Blueprint)
+
+| Token Category | CSS Variable | Value | Use Case |
+|----------------|--------------|-------|----------|
+| **Background** | `--bg-primary` | `#ffffff` | Main background |
+| | `--bg-secondary` | `#f5f5f5` | Cards, sections |
+| | `--bg-tertiary` | `#e5e5e5` | Subtle backgrounds |
+| | `--bg-dark` | `#0a0a0a` | Dark mode / inverted |
+| **Text** | `--text-primary` | `#0a0a0a` | Main text |
+| | `--text-secondary` | `#737373` | Secondary text |
+| | `--text-muted` | `#a3a3a3` | Muted/placeholder |
+| | `--text-inverse` | `#ffffff` | Text on dark bg |
+| **Accent** | `--accent-primary` | `#ff3366` | Primary actions (NuttyFans pink) |
+| | `--accent-primary-hover` | `#e6295c` | Hover state |
+| | `--accent-success` | `#10b981` | Success states |
+| | `--accent-warning` | `#f59e0b` | Warning states |
+| | `--accent-error` | `#ef4444` | Error states |
+| **Border** | `--border-light` | `#e5e5e5` | Light borders |
+| | `--border-medium` | `#d4d4d4` | Medium borders |
+
+### 3.2 Typography Tokens (from UI/UX Blueprint)
+
+| Token | Size | Line Height | Weight | Use Case |
+|-------|------|-------------|--------|----------|
+| `display` | 48px | 56px | 600 | Hero headings |
+| `h1` | 36px | 44px | 600 | Page titles |
+| `h2` | 28px | 36px | 600 | Section titles |
+| `h3` | 22px | 28px | 600 | Card titles |
+| `h4` | 18px | 24px | 600 | Subsections |
+| `body-lg` | 18px | 28px | 400 | Intro text |
+| `body` | 16px | 24px | 400 | Default text |
+| `body-sm` | 14px | 20px | 400 | Secondary text |
+| `caption` | 12px | 16px | 400 | Labels |
+| `overline` | 11px | 14px | 600 | Categories |
+
+### 3.3 Spacing Tokens (from UI/UX Blueprint)
+
+| Token | Value | Use Case |
+|-------|-------|----------|
+| `space-1` | 4px | Tight spacing, icons |
+| `space-2` | 8px | Related elements |
+| `space-3` | 12px | Component padding |
+| `space-4` | 16px | Standard gap |
+| `space-5` | 20px | Card padding |
+| `space-6` | 24px | Section spacing |
+| `space-8` | 32px | Large gaps |
+| `space-10` | 40px | Section margins |
+| `space-12` | 48px | Page sections |
+| `space-16` | 64px | Major sections |
+| `space-20` | 80px | Hero spacing |
+| `space-24` | 96px | Page margins |
+
+---
+
+## 4. Component Requirements
+
+### 4.1 Core Components (P0 - This Task)
+
+| Component | Variants | Props | Accessibility |
+|-----------|----------|-------|---------------|
+| **Button** | `default`, `secondary`, `outline`, `ghost`, `destructive`, `link` | `size`, `disabled`, `loading`, `asChild` | Focus ring, aria-disabled |
+| **Input** | Text, Password, Search | `type`, `placeholder`, `disabled`, `error` | aria-invalid, aria-describedby |
+| **Textarea** | Default | `rows`, `placeholder`, `disabled` | aria-invalid |
+| **Card** | Default | `children`, `className` | Semantic HTML |
+| **Avatar** | `xs`, `sm`, `md`, `lg`, `xl` | `src`, `alt`, `fallback` | alt text required |
+| **Badge** | `default`, `secondary`, `destructive`, `outline` | `variant` | role="status" where needed |
+| **Dialog/Modal** | Default, Full, Bottom Sheet | `open`, `onOpenChange` | Focus trap, escape key |
+| **Toast** | `default`, `success`, `error`, `warning` | `title`, `description`, `action` | aria-live, role="alert" |
+| **Tabs** | Default, Pills | `value`, `onValueChange` | aria-selected, keyboard nav |
+| **Select** | Default | `value`, `onValueChange`, `options` | aria-expanded, keyboard nav |
+| **Dropdown Menu** | Default | `trigger`, `items` | aria-haspopup, keyboard nav |
+| **Skeleton** | Text, Circle, Card | `className` | aria-hidden |
+| **Label** | Default | `htmlFor` | Associated with input |
+| **Separator** | Horizontal, Vertical | `orientation` | role="separator" |
+
+### 4.2 Component Structure
+
+```
+src/components/ui/
+├── button.tsx
+├── input.tsx
+├── textarea.tsx
+├── card.tsx
+├── avatar.tsx
+├── badge.tsx
+├── dialog.tsx
+├── toast.tsx
+├── toaster.tsx
+├── tabs.tsx
+├── select.tsx
+├── dropdown-menu.tsx
+├── skeleton.tsx
+├── label.tsx
+├── separator.tsx
+└── index.ts          # Barrel export
+```
+
+---
+
+## 5. Functional Requirements
+
+### 5.1 Design System Setup
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| **FR-DS-001** | Create CSS variables for all color tokens in `globals.css` | P0 |
+| **FR-DS-002** | Create CSS variables for dark mode (ready for toggle) | P0 |
+| **FR-DS-003** | Extend Tailwind config with custom colors using CSS variables | P0 |
+| **FR-DS-004** | Extend Tailwind config with custom typography scale | P0 |
+| **FR-DS-005** | Extend Tailwind config with custom spacing scale | P0 |
+| **FR-DS-006** | Configure border-radius tokens in Tailwind | P0 |
+| **FR-DS-007** | Configure font families (Inter as primary) | P0 |
+
+### 5.2 shadcn/ui Setup
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| **FR-UI-001** | Initialize shadcn/ui with `npx shadcn-ui@latest init` | P0 |
+| **FR-UI-002** | Configure `components.json` for project structure | P0 |
+| **FR-UI-003** | Install Lucide React for icons | P0 |
+| **FR-UI-004** | Configure path aliases in `tsconfig.json` if needed | P0 |
+
+### 5.3 Component Installation
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| **FR-COMP-001** | Add Button component | P0 |
+| **FR-COMP-002** | Add Input component | P0 |
+| **FR-COMP-003** | Add Textarea component | P0 |
+| **FR-COMP-004** | Add Card component | P0 |
+| **FR-COMP-005** | Add Avatar component | P0 |
+| **FR-COMP-006** | Add Badge component | P0 |
+| **FR-COMP-007** | Add Dialog component | P0 |
+| **FR-COMP-008** | Add Toast + Toaster components | P0 |
+| **FR-COMP-009** | Add Tabs component | P0 |
+| **FR-COMP-010** | Add Select component | P0 |
+| **FR-COMP-011** | Add Dropdown Menu component | P0 |
+| **FR-COMP-012** | Add Skeleton component | P0 |
+| **FR-COMP-013** | Add Label component | P0 |
+| **FR-COMP-014** | Add Separator component | P0 |
+
+### 5.4 Customization
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| **FR-CUST-001** | Customize Button primary color to NuttyFans pink (`#ff3366`) | P0 |
+| **FR-CUST-002** | Customize border-radius to match design (default: 8px) | P0 |
+| **FR-CUST-003** | Add Avatar size variants (xs, sm, md, lg, xl) | P0 |
+| **FR-CUST-004** | Create barrel export in `src/components/ui/index.ts` | P0 |
+
+---
+
+## 6. Non-Functional Requirements
+
+### 6.1 Accessibility
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| **NFR-A11Y-001** | All components must be keyboard navigable | P0 |
+| **NFR-A11Y-002** | Focus states must be visible | P0 |
+| **NFR-A11Y-003** | Color contrast must meet WCAG 2.1 AA (4.5:1 for text) | P0 |
+| **NFR-A11Y-004** | Interactive elements must have accessible names | P0 |
+
+### 6.2 Performance
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| **NFR-PERF-001** | Components must be tree-shakeable | P0 |
+| **NFR-PERF-002** | No runtime CSS-in-JS (Tailwind only) | P0 |
+| **NFR-PERF-003** | Lazy load Dialog/Modal content | P1 |
+
+### 6.3 Developer Experience
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| **NFR-DX-001** | All components must have TypeScript types | P0 |
+| **NFR-DX-002** | All components must pass ESLint | P0 |
+| **NFR-DX-003** | Components must support `className` prop for customization | P0 |
+| **NFR-DX-004** | Components must support `ref` forwarding | P1 |
+
+---
+
+## 7. Technical Specifications
+
+### 7.1 File Structure After Task
+
+```
+src/
+├── app/
+│   └── globals.css          # Design tokens as CSS variables
+├── components/
+│   └── ui/
+│       ├── button.tsx
+│       ├── input.tsx
+│       ├── textarea.tsx
+│       ├── card.tsx
+│       ├── avatar.tsx
+│       ├── badge.tsx
+│       ├── dialog.tsx
+│       ├── toast.tsx
+│       ├── toaster.tsx
+│       ├── tabs.tsx
+│       ├── select.tsx
+│       ├── dropdown-menu.tsx
+│       ├── skeleton.tsx
+│       ├── label.tsx
+│       ├── separator.tsx
+│       └── index.ts
+├── lib/
+│   └── utils.ts             # cn() helper (already exists)
+tailwind.config.ts           # Extended with design tokens
+components.json              # shadcn/ui config
+```
+
+### 7.2 Dependencies to Add
+
+| Package | Purpose |
+|---------|---------|
+| `@radix-ui/react-dialog` | Dialog primitive |
+| `@radix-ui/react-dropdown-menu` | Dropdown primitive |
+| `@radix-ui/react-tabs` | Tabs primitive |
+| `@radix-ui/react-select` | Select primitive |
+| `@radix-ui/react-avatar` | Avatar primitive |
+| `@radix-ui/react-toast` | Toast primitive |
+| `@radix-ui/react-label` | Label primitive |
+| `@radix-ui/react-separator` | Separator primitive |
+| `@radix-ui/react-slot` | Slot for asChild pattern |
+| `lucide-react` | Icons |
+| `class-variance-authority` | Component variants |
+
+---
+
+## 8. Assumptions
+
+| # | Assumption | Risk if Wrong |
+|---|------------|---------------|
+| A1 | UI/UX Blueprint is final and approved | May need to update tokens |
+| A2 | Inter font is acceptable (similar to Söhne) | May need font licensing |
+| A3 | shadcn/ui is compatible with Next.js 15 + React 19 | May need workarounds |
+| A4 | Dark mode toggle UI is out of scope (just CSS vars) | May need to add toggle |
+| A5 | No Storybook in this task | Separate documentation task |
+
+---
+
+## 9. Open Questions
+
+| # | Question | Answer | Status |
+|---|----------|--------|--------|
+| Q1 | Should we include dark mode toggle component? | **No** (just CSS vars ready) | ✅ Assumed |
+| Q2 | Should we add Storybook for component docs? | **No** (future task) | ✅ Assumed |
+| Q3 | Font: Use Inter or get Söhne license? | **Inter** (free, similar) | ✅ Assumed |
+| Q4 | Include form components (Form, FormField)? | **No** (separate task) | ✅ Assumed |
+
+**All questions resolved with reasonable defaults.**
+
+---
+
+## 10. Out of Scope
+
+| Item | Reason |
+|------|--------|
+| Domain components (PostCard, CreatorCard) | Separate feature tasks |
+| Page layouts | Separate task |
+| Form components with validation | Separate task |
+| Storybook documentation | Future task |
+| Dark mode toggle UI | Future task |
+| Animation library (Framer Motion) | Future task |
+| Icon customization | Future task |
+
+---
+
+## 11. Dependencies
+
+| Dependency | Status | Notes |
+|------------|--------|-------|
+| UI/UX Blueprint | ✅ Ready | `docs/06-UI-UX-BLUEPRINT.md` |
+| Tailwind CSS | ✅ Installed | v3.4.x |
+| clsx + tailwind-merge | ✅ Installed | `cn()` helper ready |
+| TypeScript | ✅ Configured | v5.7.x |
+| Next.js | ✅ Running | v15.x |
+
+---
+
+## 12. Success Criteria
+
+| Criteria | Verification |
+|----------|--------------|
+| CSS variables for colors | Check `globals.css` |
+| CSS variables for dark mode | Check `:root` and `.dark` classes |
+| Tailwind extended theme | Check `tailwind.config.ts` |
+| shadcn/ui initialized | Check `components.json` exists |
+| 14 core components created | Check `src/components/ui/` folder |
+| Components type-safe | Run `pnpm typecheck` |
+| Components pass lint | Run `pnpm lint` |
+| Components match design | Visual comparison to UI/UX Blueprint |
+
+---
+
+## 13. Risk Assessment
+
+| Risk | Probability | Impact | Mitigation |
+|------|-------------|--------|------------|
+| shadcn/ui incompatible with React 19 | Low | High | Use canary version or patch |
+| Design tokens don't match mockups | Medium | Medium | Review with design before dev |
+| Component customization breaks accessibility | Low | High | Test with screen reader |
+| Bundle size increases significantly | Low | Low | Tree-shaking handles it |
+
+---
+
+## 14. Next Phase
+
+**✅ PM Research COMPLETE**
+
+### Summary
+
+| Category | Count |
+|----------|-------|
+| Design Tokens | 30+ CSS variables |
+| Core Components | 14 components |
+| Dependencies | ~10 Radix packages |
+| Estimated Files | ~18 new/modified files |
+
+### Ready for: **02-ARCHITECTURE-REVIEW.mdc** (Tech Lead Agent)
+
+---
+
+## Document History
+
+| Version | Date | Author | Changes |
+|---------|------|--------|---------|
+| 1.0 | Dec 14, 2025 | PM Agent | Initial research |
