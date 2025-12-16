@@ -1,5 +1,7 @@
+import { SpeedInsights } from '@vercel/speed-insights/next';
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
+
 
 import { SessionProvider } from '@/components/providers/SessionProvider';
 import './globals.css';
@@ -18,6 +20,7 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <SessionProvider>{children}</SessionProvider>
+        <SpeedInsights />
       </body>
     </html>
   );
