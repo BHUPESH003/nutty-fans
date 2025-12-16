@@ -84,15 +84,13 @@ export class PayoutService {
     const periodEnd = new Date();
 
     // Count transactions in period
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const _transactionCount = await prisma.transaction.count({
-      // eslint-disable-line no-unused-vars
-      where: {
-        creatorId,
-        status: 'completed',
-        createdAt: { gt: periodStart, lte: periodEnd },
-      },
-    });
+    // const _transactionCount = await prisma.transaction.count({
+    //   where: {
+    //     creatorId,
+    //     status: 'completed',
+    //     createdAt: { gt: periodStart, lte: periodEnd },
+    //   },
+    // });
 
     const payout = await this.payoutRepo.create({
       creatorId,
@@ -107,8 +105,8 @@ export class PayoutService {
   /**
    * Get payout settings
    */
+  // eslint-disable-next-line no-unused-vars
   async getSettings(_creatorId: string): Promise<PayoutSettings> {
-    // eslint-disable-line no-unused-vars
     // For now, return defaults
     return {
       minimumAmount: MINIMUM_PAYOUT_AMOUNT,

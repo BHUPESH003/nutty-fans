@@ -40,8 +40,8 @@ export class PaymentService {
   /**
    * Handle Square OAuth callback
    */
+  // eslint-disable-next-line no-unused-vars
   async handleCallback(code: string, _state: string): Promise<{ success: boolean }> {
-    // eslint-disable-line no-unused-vars
     // In production, verify state matches stored session state
     // For now, we'll proceed with the code exchange
 

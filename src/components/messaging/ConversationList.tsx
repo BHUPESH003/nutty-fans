@@ -14,12 +14,7 @@ interface ConversationListProps {
   onSelect?: (_id: string) => void;
 }
 
-// eslint-disable-next-line no-unused-vars
-export function ConversationList({
-  conversations,
-  selectedId: _selectedId,
-  onSelect: _onSelect,
-}: ConversationListProps) {
+export function ConversationList({ conversations }: ConversationListProps) {
   const pathname = usePathname();
 
   if (conversations.length === 0) {
