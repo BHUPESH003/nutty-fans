@@ -1,0 +1,38 @@
+# PM Research Reference
+
+**Task:** 2025-12-16__CREATOR-FOUNDATION  
+**Date:** 2025-12-16
+
+---
+
+## Research Source
+
+This task is based on consolidated PM research documented in:
+
+📄 **[SPRINT-3-COMBINED-RESEARCH.md](file:///home/pelocal/Desktop/nuttyfans/docs/SPRINT-3-COMBINED-RESEARCH.md)**
+
+---
+
+## Key Confirmed Decisions
+
+| Decision | Answer |
+|----------|--------|
+| KYC Provider | **Veriff** ✅ |
+| Payment Provider | **Square** ✅ |
+| Creator Age | 18+ ✅ |
+| Category System | Fixed list in DB ✅ |
+| Subscription Range | $4.99 - $49.99/month |
+| Platform Fee | 15% |
+| Minimum Payout | $20 |
+| Payout Schedule | Weekly (Fridays) |
+
+---
+
+## Functional Requirements Summary
+
+1. **Creator Application** — User initiates via "Become a Creator" 
+2. **KYC Verification** — Veriff integration with webhook callbacks
+3. **Creator Profile** — Public profile at `/c/[handle]`
+4. **Subscription Setup** — Pricing with 3/6/12 month bundles
+5. **Square Payments** — OAuth onboarding for payouts
+6. **Creator Dashboard** — Revenue, subscribers, profile views

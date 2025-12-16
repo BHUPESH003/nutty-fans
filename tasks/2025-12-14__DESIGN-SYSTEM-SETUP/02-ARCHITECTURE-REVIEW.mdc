@@ -1,0 +1,77 @@
+Task: 2025-12-14__DESIGN-SYSTEM-SETUP
+Owner: Tech Lead Agent (proposal only; requires human approval)
+Status: ✅ APPROVED (2025-12-16)
+
+## 1) Goals & Scope
+- Convert UI/UX Blueprint tokens into code (CSS vars + Tailwind theme).
+- Initialize shadcn/ui with NuttyFans theming and base primitives only (no domain UI).
+- Ship P0 core UI components (dumb/render-only) in `src/components/ui`.
+- Prepare dark-mode tokens (toggle UI out of scope).
+- Keep compliance with CODEBASE_ARCHITECTURE_RULES (UI components = dumb, no data fetching; containers not needed here).
+
+## 2) Assumptions & Dependencies
+- Use Inter font (per PM research). If design requests Söhne later, swap via tokens.
+- Dark mode toggle UI is future work; we only supply `.dark` token set.
+- Storybook/docs are deferred.
+- pnpm is the only package manager (CODEBASE_GOVERNANCE_RULES).
+
+## 3) High-Level Architecture
+- Theming layer: CSS custom properties defined in `src/app/globals.css` under `:root` and `.dark`. Tailwind consumes tokens via `tailwind.config.ts` (colors, spacing, radius, typography).
+- Component library: shadcn/ui codegen into `src/components/ui/*` with NuttyFans token overrides. Components are presentational, accept `className`, and forward refs where supported by primitives.
+- Utilities: reuse existing `src/lib/utils.ts` `cn()` helper; no new utility duplications.
+- No backend/networking impact; no stateful containers introduced.
+
+## 4) File Ownership & Planned Touchpoints
+- `src/app/globals.css`: Add CSS variables for colors, typography (font-size/line-height/weight), spacing, radii, shadows; add `.dark` overrides; ensure base body text styles use tokens.
+- `tailwind.config.ts`: Extend theme to reference CSS vars (colors via `hsl(var(--token) / <alpha-value>)` or hex), custom spacing scale, font sizes/weights, borderRadius, boxShadow, and key transitions. Keep content globs unchanged.
+- `components.json`: Configure shadcn/ui paths: components -> `src/components/ui`, utils -> `src/lib/utils.ts`, tailwind config -> `tailwind.config.ts`, alias -> `@/`.
+- `src/components/ui/*.tsx`: Generated/customized shadcn components (Button, Input, Textarea, Card, Avatar, Badge, Dialog, Toast + Toaster, Tabs, Select, DropdownMenu, Skeleton, Label, Separator); add `index.ts` barrel exports.
+- `package.json` / `pnpm-lock.yaml`: Add required dependencies (Radix primitives, class-variance-authority, lucide-react). Use pnpm only.
+
+## 5) Design Tokens (Architecture Mapping)
+- Colors: Encode PM table as CSS vars (bg, text, accent, border) with light and dark values. Tailwind `colors` should map to semantic names (e.g., `accent`, `accent-foreground`, `muted`, `muted-foreground`, `border`, `input`, `ring`, `background`, `foreground`, `destructive`).
+- Typography: Map tokens (display, h1–h4, body-lg, body, body-sm, caption, overline) into Tailwind `fontSize` entries including line-height/weight tuples. Set global font family to Inter, fallback to `system-ui`, `sans-serif`.
+- Spacing: Add custom scale per tokens (`1,2,3,4,5,6,8,10,12,16,20,24` px values) while retaining Tailwind defaults for compatibility.
+- Radius: Default 8px per FR-CUST-002; expose `sm/md/lg/full` consistent with shadcn defaults but adjusted to match blueprint.
+- Shadows: Define minimal elevation set (e.g., card, popover, modal) tied to tokens to avoid inline box-shadows.
+- Motion: Keep base transitions/animation durations small and tokenized; no new animation libraries.
+
+## 6) Component Architecture & Customization Strategy
+- Pattern: Each component is a dumb UI primitive. Props follow shadcn defaults, with NuttyFans variants via `class-variance-authority` where applicable.
+- Theming: Components consume Tailwind classes that reference CSS vars; no hard-coded hex values. Primary actions use `accent` tokens (`#ff3366` / `--accent-primary`).
+- Variants:
+  - Button: `default, secondary, outline, ghost, destructive, link` + sizes (`sm, md, lg, icon`). Primary uses accent; hover/focus use `--accent-primary-hover`; destructive uses `--accent-error`.
+  - Badge: `default, secondary, destructive, outline`; leverage accent and neutral tokens.
+  - Avatar: Sizes `xs–xl`; use fallback initials; ensure border uses `--border-light`.
+  - Skeleton: Use neutral background vars; `aria-hidden`.
+  - Dialog/Select/Tabs/Dropdown/Toast: Use Radix primitives; theme surfaces (content, trigger, overlay) with tokenized colors/radii/shadows; lazy-load heavy content only if implementation chooses later (NFR-PERF-003).
+- Accessibility: Preserve/extend Radix a11y defaults; ensure focus ring uses tokenized `ring` color and width; support `aria-*` props as defined in PM research.
+- Barrel: `src/components/ui/index.ts` exports all components for ergonomics; no default exports.
+
+## 7) shadcn/ui Initialization Plan
+- Run `pnpm dlx shadcn-ui@latest init` with config targeting:
+  - `components.json`: `style: "default"`, `rsc: true/false` as repo default, `tsx` extension, `tailwind.config.ts` path, `src/components/ui` output, `aliases: { components: "@/components", utils: "@/lib/utils" }`.
+- Generate components via `pnpm dlx shadcn-ui@latest add <component>` per list, then apply NuttyFans-specific class overrides (accent colors, radii, spacing).
+- Ensure generated files do not introduce additional utility duplicates; reuse `cn`.
+
+## 8) Non-Functional Compliance
+- Accessibility: WCAG 2.1 AA contrast via token choices; visible focus states; keyboard navigation verified for Radix-based components.
+- Performance: Tree-shakeable imports; avoid dynamic runtime theming beyond CSS vars; no CSS-in-JS.
+- DX: All components typed; `className` passthrough; forward refs where supported by shadcn patterns.
+
+## 9) Risks & Mitigations
+- React 19 / Next 15 compatibility issues with shadcn templates: Mitigate by using latest shadcn version and verifying Radix peer versions; adjust `use client` placement per component guidance.
+- Token mismatch vs blueprint: Validate colors/typography with design review before merging.
+- Dark mode conflicts: Keep `.dark` tokens defined but unused; avoid automatic media-pref switch to prevent surprises.
+- Dependency bloat: Import only required components; avoid unused Radix primitives.
+
+## 10) Validation & Handover (for Engineering)
+- After implementation, run: `pnpm lint`, `pnpm typecheck`, `pnpm test` (if tests added), and verify `pnpm dlx shadcn-ui@latest lint` if available.
+- Manual checks: Visual spot-check against `docs/06-UI-UX-BLUEPRINT.md`; a11y keyboard traversal for Dialog/Select/Tabs/Dropdown/Toast.
+- Artifact verification: `components.json` present; `src/app/globals.css` contains tokens and `.dark`; `tailwind.config.ts` maps to tokens; `src/components/ui` contains listed components plus `index.ts`.
+
+## 11) Out of Scope / Deferrals (Confirming)
+- No domain-specific components, no page layouts, no API integration, no Storybook/docs, no dark-mode toggle UI, no animation library.
+
+## 12) Approvals Needed
+- Human approval of this architecture before any engineering or `pnpm dlx shadcn-ui` commands are executed.

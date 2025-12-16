@@ -1,0 +1,582 @@
+# 04-ENGINEERING/BACKEND.mdc — User Profiles, Settings & Avatar (Backend)
+
+Task: `2025-12-15__USER-PROFILES`  
+Owner: Backend Agent (proposal; requires human approval)  
+Status: Draft – backend architecture & API contract
+
+---
+
+## 1. Scope & Objectives (Backend)
+
+- Implement backend support for:
+  - **Profiles**: public and self views (data from `User` and follow stats).
+  - **Profile editing**: displayName, bio, location, discoverability, showLocation (username immutable).
+  - **Settings**: coarse notification and privacy toggles (non-payment, non-creator).
+  - **Avatar lifecycle**: upload URL generation, confirm, remove, with file validation and cleanup.
+- Respect constraints from:
+  - `01-PM-RESEARCH.mdc` (profile/settings/avatar requirements).
+  - `02-ARCHITECTURE-REVIEW.mdc` (layering, fields, flows).
+  - `03-UI-UX.mdc` (routes and UI behaviors).
+  - Global rules in `CODEBASE_ARCHITECTURE_RULES.md` and `CODEBASE_GOVERNANCE_RULES.md`.
+- Keep **strict backend layering**:
+
+```text
+Route (app/api/**/route.ts)
+  → Controller (src/app/api/_controllers/*Controller.ts)
+  → Service (src/services/*Service.ts)
+  → Repository (src/repositories/*Repository.ts)
+  → Prisma (src/lib/db/prisma.ts)
+```
+
+---
+
+## 2. Data Model (Conceptual + Migration Plan)
+
+### 2.1 Existing User Model (from `schema.prisma`)
+
+`User` already includes many needed profile fields:
+
+- `email: string`
+- `displayName: string @db.VarChar(50)`
+- `username: string @unique @db.VarChar(30)` (handle, immutable)
+- `avatarUrl: string?`
+- `dateOfBirth`, `country`
+- `preferences: Json` (generic)
+- `metadata: Json` (generic)
+- `createdAt`, `updatedAt`
+
+**Decision**:
+- Reuse `displayName`, `username`, `avatarUrl`, `createdAt` as “join date”.
+- Add **bio**, **location**, **isDiscoverable**, **showLocation** directly to `User` to keep profile lookups simple and indexable.
+- Represent **notification settings** in a dedicated table (coarse toggles) instead of overloading `preferences`.
+- Represent **profile stats** via queries on `Follow` table; no new table for MVP (counts are derived).
+
+### 2.2 New User Fields (Migration Plan)
+
+**Prisma schema changes** (conceptual; to be implemented in DB task migrations):
+
+- Extend `User`:
+
+```prisma
+model User {
+  // existing fields...
+  bio            String?  @db.VarChar(160)
+  location       String?  @db.VarChar(100)
+  isDiscoverable Boolean  @default(true)  @map("is_discoverable")
+  showLocation   Boolean  @default(false) @map("show_location")
+}
+```
+
+**Notes**:
+- Length limits align with UI/UX spec (bio 160 chars, location 100 chars).
+- `isDiscoverable`:
+  - Controls search/explore inclusion (future discovery features).
+- `showLocation`:
+  - Controls whether location is returned on **public** profile responses.
+
+### 2.3 Notification Settings Model
+
+Add a coarse-grained notification settings table:
+
+```prisma
+model UserNotificationSettings {
+  id                     String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId                 String   @unique @map("user_id") @db.Uuid
+  emailNotifications     Boolean  @default(true)  @map("email_notifications")
+  marketingEmails        Boolean  @default(false) @map("marketing_emails")
+  platformUpdates        Boolean  @default(true)  @map("platform_updates")
+  profileDiscoverable    Boolean  @default(true)  @map("profile_discoverable")
+  showLocation           Boolean  @default(false) @map("show_location")
+  createdAt              DateTime @default(now()) @map("created_at")
+  updatedAt              DateTime @default(now()) @updatedAt @map("updated_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_notification_settings")
+}
+```
+
+**Rationale**:
+- Keeps coarse notification + privacy toggles in a dedicated, easily-queried place.
+- `profileDiscoverable` / `showLocation` are duplicated here for **settings UI**; backend will ensure consistency between `User.isDiscoverable` / `User.showLocation` and this table (single source of truth chosen in services).
+
+### 2.4 Profile Stats Representation
+
+- Follower/following relationships already exist via `Follow` table.
+- **MVP approach**:
+  - **No new table**.
+  - `ProfileRepository` will compute:
+    - `followersCount` via `Follow` where `creatorId = userId`.
+    - `followingCount` via `Follow` where `followerId = userId`.
+- If performance becomes an issue, we can introduce a denormalized `UserProfileStats` table (with background jobs) under a future performance task.
+
+---
+
+## 3. Backend Layers & Files
+
+### 3.1 Repositories
+
+- `src/repositories/profileRepository.ts`
+  - `findById(userId: string)` – includes profile fields and join date.
+  - `findByUsername(username: string)` – for `/profile/[handle]`.
+  - `updateProfile(userId, partialProfile)` – displayName, bio, location, isDiscoverable, showLocation.
+  - `getStats(userId)` – followers/following counts via `Follow`.
+
+- `src/repositories/settingsRepository.ts`
+  - `getByUserId(userId)` – upsert default if missing.
+  - `update(userId, partialSettings)` – email/marketing/platform/visibility toggles.
+
+- `src/repositories/avatarRepository.ts` (thin wrapper or part of `profileRepository`)
+  - `updateAvatarUrl(userId, avatarUrl: string | null)`.
+
+### 3.2 Services
+
+- `src/services/profileService.ts`
+  - Public profile view logic:
+    - Returns only allowed fields (no email/legal name).
+    - Applies `showLocation` and `isDiscoverable`.
+  - Self profile view logic:
+    - Returns editable fields + derived join date.
+  - Update profile:
+    - Validates lengths.
+    - Enforces username immutability.
+    - Applies privacy decisions (e.g. treat unset toggles as safe defaults).
+
+- `src/services/settingsService.ts`
+  - Reads and updates `UserNotificationSettings`.
+  - Keeps `User.isDiscoverable` / `User.showLocation` in sync with settings.
+
+- `src/services/avatarService.ts`
+  - Validates file metadata (mime, size).
+  - Requests upload URL from storage abstraction (e.g. `avatarStorageClient`).
+  - Confirms avatar upload (ensuring URL/key under expected prefix).
+  - Deletes previous avatar (if any) on replace/remove.
+
+### 3.3 Controllers
+
+- `src/app/api/_controllers/profileController.ts`
+  - `me(req)` – calls `profileService.getSelfProfile`.
+  - `byHandle(req, handle)` – calls `profileService.getPublicProfile`.
+  - `update(req)` – parses/validates request body and calls `profileService.updateProfile`.
+
+- `src/app/api/_controllers/settingsController.ts`
+  - `get(req)` – calls `settingsService.getSettings`.
+  - `update(req)` – calls `settingsService.updateSettings`.
+
+- `src/app/api/_controllers/avatarController.ts`
+  - `getUploadUrl(req)` – calls `avatarService.getUploadUrl`.
+  - `confirm(req)` – calls `avatarService.confirmAvatar`.
+  - `remove(req)` – calls `avatarService.removeAvatar`.
+
+### 3.4 Route Handlers (Next.js App Router)
+
+- `app/api/profile/me/route.ts`
+- `app/api/profile/[handle]/route.ts`
+- `app/api/profile/route.ts` (PATCH)
+- `app/api/settings/route.ts` (GET/PATCH)
+- `app/api/profile/avatar/upload-url/route.ts`
+- `app/api/profile/avatar/confirm/route.ts`
+- `app/api/profile/avatar/route.ts` (DELETE)
+
+All:
+- Use **auth/session middleware** (from AUTH-SYSTEM) for authenticated routes.
+- Use `withRateLimit` for all **write** routes (PATCH/POST/DELETE).
+
+---
+
+## 4. Privacy & Security Rules (Backend)
+
+- **Never** return:
+  - `email`, `legal name`, or any internal IDs from **public** profile endpoint.
+- **Public profile (`GET /api/profile/[handle]`)**:
+  - May include:
+    - `displayName`, `username` (`handle`), `avatarUrl`, `bio`, `joinDate`, `followersCount`, `followingCount`.
+    - `location` **only if** `showLocation === true`.
+  - Should **respect isDiscoverable**:
+    - For MVP, `/api/profile/[handle]` can still return a profile even if `isDiscoverable=false` (user shared direct link); future search APIs must check discoverability.
+- **Self profile (`GET /api/profile/me`)**:
+  - May include:
+    - All editable fields: `displayName`, `username`, `bio`, `location`, `isDiscoverable`, `showLocation`, `avatarUrl`, `joinDate`.
+  - Must not return:
+    - Password, secrets, or internal flags.
+- **Settings endpoints**:
+  - Return notification + privacy toggles, email and legal name as **read-only** values (for display in settings).
+- All **write endpoints**:
+  - Require authenticated user.
+  - Rate-limited via `withRateLimit` to prevent abuse.
+  - Must validate payloads and return **structured error payloads** FE can consume (see §5.4).
+
+---
+
+## 5. API Contracts (Integration with Frontend)
+
+> All paths below are **backend** (`/api/...`).  
+> `apiClient` maps them via `API_BASE_URL` (`/auth/*`, `/profile/*`, `/settings`, etc.) in `src/services/apiClient.ts`.  
+> Error payloads are structured as:
+>
+> ```json
+> { "error": { "code": "SOME_CODE", "message": "Human readable", "details": {...} } }
+> ```
+
+### 5.1 `GET /api/profile/me` – Self Profile
+
+- **Auth**: Required (NextAuth session).
+- **Rate limit**: Standard global (no extra).
+
+**Response 200 OK**
+
+```json
+{
+  "id": "user-uuid",
+  "displayName": "Sarah Connor",
+  "username": "sarahconnor",
+  "avatarUrl": "https://cdn.nuttyfans.com/avatars/...",
+  "bio": "Fighting machines since 1984.",
+  "location": "Los Angeles, CA",
+  "isDiscoverable": true,
+  "showLocation": true,
+  "joinDate": "2025-12-15T10:00:00.000Z",
+  "followersCount": 1234,
+  "followingCount": 567
+}
+```
+
+**Error responses**
+
+- `401` – not authenticated:
+
+```json
+{ "error": { "code": "AUTH_REQUIRED", "message": "Authentication required." } }
+```
+
+---
+
+### 5.2 `GET /api/profile/[handle]` – Public Profile by Handle
+
+- **Auth**: Not required.
+- **Rate limit**: Read-appropriate (configurable via middleware if needed).
+
+**Response 200 OK**
+
+```json
+{
+  "displayName": "Sarah Connor",
+  "username": "sarahconnor",
+  "avatarUrl": "https://cdn.nuttyfans.com/avatars/...",
+  "bio": "Fighting machines since 1984.",
+  "location": "Los Angeles, CA",
+  "joinDate": "2025-12-15T10:00:00.000Z",
+  "followersCount": 1234,
+  "followingCount": 567
+}
+```
+
+Rules:
+- `location` is **omitted** if `showLocation === false` or `location` is null.
+- Email and legal name are **never** included.
+
+**Error responses**
+
+- `404` – handle not found:
+
+```json
+{ "error": { "code": "PROFILE_NOT_FOUND", "message": "Profile not found." } }
+```
+
+---
+
+### 5.3 `PATCH /api/profile` – Update Profile
+
+- **Auth**: Required.
+- **Rate limit**: Yes (e.g. 20 req / 15 min per IP+user).
+
+**Request**
+
+```json
+{
+  "displayName": "Sarah Connor",
+  "bio": "Fighting machines since 1984.",
+  "location": "Los Angeles, CA",
+  "isDiscoverable": true,
+  "showLocation": false
+}
+```
+
+- All fields **optional**; backend performs partial update.
+- Backend:
+  - Enforces:
+    - `displayName`: 1–50 chars.
+    - `bio`: ≤160 chars.
+    - `location`: ≤100 chars.
+  - Ignores any attempt to change `username`.
+
+**Response 200 OK**
+
+```json
+{
+  "displayName": "Sarah Connor",
+  "username": "sarahconnor",
+  "bio": "Fighting machines since 1984.",
+  "location": "Los Angeles, CA",
+  "isDiscoverable": true,
+  "showLocation": false,
+  "avatarUrl": "https://cdn.nuttyfans.com/avatars/...",
+  "joinDate": "2025-12-15T10:00:00.000Z"
+}
+```
+
+**Validation error 400**
+
+```json
+{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "One or more fields are invalid.",
+    "details": {
+      "displayName": ["Display name is required", "Display name must be under 50 characters"],
+      "bio": ["Bio must be under 160 characters"]
+    }
+  }
+}
+```
+
+**Auth error 401**
+
+```json
+{ "error": { "code": "AUTH_REQUIRED", "message": "Authentication required." } }
+```
+
+---
+
+### 5.4 `GET /api/settings` – Account & Notification Settings
+
+- **Auth**: Required.
+
+**Response 200 OK**
+
+```json
+{
+  "email": "sarah@example.com",
+  "legalName": "Sarah Jane Connor",
+  "notifications": {
+    "emailNotifications": true,
+    "marketingEmails": false,
+    "platformUpdates": true
+  },
+  "privacy": {
+    "profileDiscoverable": true,
+    "showLocation": false
+  }
+}
+```
+
+- `legalName` may be `null` if no KYC done.
+
+---
+
+### 5.5 `PATCH /api/settings` – Update Settings
+
+- **Auth**: Required.
+- **Rate limit**: Yes (e.g. 60 req / hour per user).
+
+**Request**
+
+```json
+{
+  "notifications": {
+    "emailNotifications": false,
+    "marketingEmails": true
+  },
+  "privacy": {
+    "profileDiscoverable": false,
+    "showLocation": true
+  }
+}
+```
+
+- Partial updates allowed; missing fields remain unchanged.
+- Backend:
+  - Updates `UserNotificationSettings`.
+  - Mirrors `profileDiscoverable`/`showLocation` into `User.isDiscoverable` / `User.showLocation`.
+
+**Response 200 OK**
+
+```json
+{
+  "notifications": {
+    "emailNotifications": false,
+    "marketingEmails": true,
+    "platformUpdates": true
+  },
+  "privacy": {
+    "profileDiscoverable": false,
+    "showLocation": true
+  }
+}
+```
+
+**Validation error 400** – same `VALIDATION_ERROR` pattern as profile.
+
+---
+
+### 5.6 Avatar Lifecycle Endpoints
+
+#### 5.6.1 `POST /api/profile/avatar/upload-url`
+
+- **Auth**: Required.
+- **Rate limit**: Yes (restrict uploads).
+
+**Request**
+
+```json
+{
+  "fileName": "avatar.jpg",
+  "fileSize": 345678,
+  "mimeType": "image/jpeg"
+}
+```
+
+Validation:
+- `mimeType` must be one of: `image/jpeg`, `image/png`, `image/gif`, `image/webp`.
+- `fileSize` ≤ 5 MB.
+
+**Response 200 OK**
+
+```json
+{
+  "uploadUrl": "https://storage.nuttyfans.com/upload/avatars/...",
+  "assetKey": "avatars/user-uuid/xyz123.jpg",
+  "headers": {
+    "Content-Type": "image/jpeg"
+  }
+}
+```
+
+- FE uploads directly to `uploadUrl` (single-shot or multipart, per storage client).
+
+**Error 400 (validation)**
+
+```json
+{
+  "error": {
+    "code": "INVALID_AVATAR_FILE",
+    "message": "Avatar file is invalid.",
+    "details": {
+      "mimeType": ["Please upload a JPG, PNG, GIF, or WebP image."],
+      "fileSize": ["Image must be under 5MB."]
+    }
+  }
+}
+```
+
+#### 5.6.2 `POST /api/profile/avatar/confirm`
+
+- **Auth**: Required.
+
+**Request**
+
+```json
+{
+  "assetKey": "avatars/user-uuid/xyz123.jpg"
+}
+```
+
+Backend:
+- Validates that `assetKey` belongs to the current user / expected prefix.
+- Updates `User.avatarUrl` to the final CDN URL derived from `assetKey`.
+- Deletes old avatar asset if present.
+
+**Response 200 OK**
+
+```json
+{
+  "avatarUrl": "https://cdn.nuttyfans.com/avatars/user-uuid/xyz123.jpg"
+}
+```
+
+**Error 400**
+
+```json
+{
+  "error": {
+    "code": "INVALID_AVATAR_ASSET",
+    "message": "Avatar asset is invalid or not found."
+  }
+}
+```
+
+#### 5.6.3 `DELETE /api/profile/avatar`
+
+- **Auth**: Required.
+
+**Response 200 OK**
+
+```json
+{ "success": true }
+```
+
+Backend:
+- Sets `User.avatarUrl = null`.
+- Deletes existing avatar asset from storage (if any).
+
+---
+
+## 6. Error Format (All Endpoints)
+
+- Standardized error envelope:
+
+```json
+{
+  "error": {
+    "code": "STRING_CODE",
+    "message": "Human readable summary",
+    "details": { /* field-level or contextual info, optional */ }
+  }
+}
+```
+
+Examples:
+- `AUTH_REQUIRED`, `PROFILE_NOT_FOUND`, `VALIDATION_ERROR`, `INVALID_AVATAR_FILE`, `INVALID_AVATAR_ASSET`.
+- Frontend should:
+  - Prefer `error.code` for programmatic handling.
+  - Use `error.message` for toast copy.
+  - Use `error.details` for inline form errors.
+
+---
+
+## 7. Edge Cases & Ownership Rules
+
+- **Username immutability**:
+  - Backend ignores any `username` in `PATCH /api/profile` payloads.
+  - If a future flow allows handle changes, it must be in a separate, audited endpoint.
+- **Deleted / banned users**:
+  - `/api/profile/[handle]` returns `404` for deleted/banned users (exact mapping to `User.status` defined in service).
+- **Non-discoverable users**:
+  - Direct URL to `/api/profile/[handle]` still works.
+  - Search/explore endpoints (future) must honor `isDiscoverable=false`.
+- **Avatar NSFW**:
+  - This task does **not** classify or block NSFW avatars.
+  - Moderation tasks will later act on avatar URL events via audit logs or media processing pipeline.
+
+---
+
+## 8. Next Steps (Implementation Plan)
+
+After this document is **Approved/Locked**:
+
+1. **DB migrations**:
+   - Add `bio`, `location`, `isDiscoverable`, `showLocation` to `User`.
+   - Add `UserNotificationSettings` model + migration.
+2. **Repository implementation**:
+   - `profileRepository`, `settingsRepository`, `avatarRepository` (or integrated).
+3. **Service implementation**:
+   - `profileService`, `settingsService`, `avatarService` with full validation and privacy logic.
+4. **Route handlers + controllers**:
+   - Implement all routes above, wiring to services and shared `withRateLimit` + auth/session middleware.
+5. **API spec update**:
+   - Reflect final shapes in `docs/05-API-SPECIFICATION.md` once stable, referencing this task.
+
+Only after these are implemented and tested should frontend treat the profile/settings/avatar APIs as production-ready.  
+All deviations from this plan must be documented in `tasks/2025-12-15__USER-PROFILES/07-DECISIONS.md`.
+

@@ -129,12 +129,12 @@ The schema must correctly model (at minimum):
 
 ## Current State
 
-| Item | Status |
-|------|--------|
-| Schema design document | ✅ Exists in `docs/04-DATABASE-SCHEMA.md` |
-| Database implementation | ❌ NOT YET CREATED |
-| Migrations | ❌ NOT YET WRITTEN |
-| ORM models (Prisma) | ❌ NOT YET CREATED |
+| Item                    | Status                                    |
+| ----------------------- | ----------------------------------------- |
+| Schema design document  | ✅ Exists in `docs/04-DATABASE-SCHEMA.md` |
+| Database implementation | ❌ NOT YET CREATED                        |
+| Migrations              | ❌ NOT YET WRITTEN                        |
+| ORM models (Prisma)     | ❌ NOT YET CREATED                        |
 
 ---
 

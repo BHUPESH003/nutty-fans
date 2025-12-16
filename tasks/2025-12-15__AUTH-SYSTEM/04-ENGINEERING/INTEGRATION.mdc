@@ -1,0 +1,305 @@
+# 04-ENGINEERING/INTEGRATION.mdc
+
+Task: `2025-12-15__AUTH-SYSTEM`  
+Owner: Backend Agent (draft API spec for FE; requires human approval)  
+Status: Draft – API surface for frontend
+
+---
+
+## 1. Overview
+
+This document defines the **backend HTTP API surface** that the frontend will consume for the auth system, per:
+
+- `01-PM-RESEARCH.mdc` (functional + security/compliance requirements).
+- `02-ARCHITECTURE-REVIEW.mdc` (approved flows).
+- `04-ENGINEERING/BACKEND.mdc` (implemented backend design).
+
+All routes are **Next.js App Router API routes** under `/api/*` and must be accessed via the shared `apiClient` on the frontend.
+
+---
+
+## 2. Authentication & Session Routes
+
+### 2.1 NextAuth Core
+
+- **Route**: `POST /api/auth/[...nextauth]`
+  - **Purpose**: Handles sign-in/sign-out and provider flows (email/password, Google, Apple).
+  - **Frontend**: Should use `next-auth` client utilities (`signIn`, `signOut`) rather than calling directly.
+
+- **Route**: `GET /api/auth/[...nextauth]`
+  - **Purpose**: Session-related NextAuth operations.
+  - **Frontend**: Use `next-auth` helpers to retrieve session; no custom client wrapper required.
+
+Notes:
+- Session object includes a minimal `user` payload:
+  - `user.id: string`
+  - `user.email: string`
+- Account state/age gating details will be surfaced later via a dedicated “me” endpoint once designed; for now, frontend should derive gated-areas from:
+  - Session existence.
+  - Backend responses from auth-related routes below.
+
+---
+
+## 3. Registration
+
+### 3.1 Email/Password Registration
+
+- **Route**: `POST /api/auth/register`
+- **Description**: Creates a new user account with email/password and profile basics, issues an email verification token and triggers a verification email.
+- **Auth**: Public (no auth).
+- **Rate limiting**: Yes (IP-based; approx. 20 req / 15 min).
+
+#### 3.1.1 Request
+
+```json
+POST /api/auth/register
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "password": "StrongP@ssw0rd123",
+  "displayName": "User Display Name",
+  "username": "unique_username",
+  "dateOfBirth": "1990-01-01",
+  "country": "US"
+}
+```
+
+Field notes:
+- `email`:
+  - Will be normalized/lowercased by backend.
+  - Must be unique.
+- `password`:
+  - Must satisfy password policy:
+    - Min 12 chars.
+    - Includes upper/lower/digit/symbol.
+- `dateOfBirth`:
+  - ISO 8601 date string (YYYY-MM-DD).
+
+#### 3.1.2 Response
+
+**Success – 201**
+
+```json
+{
+  "id": "uuid-of-user",
+  "email": "user@example.com"
+}
+```
+
+**Failure – 400 (generic, non-enumerating)**  
+Errors will be generic for privacy; frontend should map to user-friendly messages:
+
+```json
+{
+  "error": "Unable to register user"
+}
+```
+
+---
+
+## 4. Email Verification
+
+### 4.1 Verify Email
+
+- **Route**: `POST /api/auth/email/verify`
+- **Description**: Consumes an email verification token and updates user’s email + account state.
+- **Auth**: Public; token-based.
+- **Rate limiting**: Yes (IP + token-based).
+
+#### 4.1.1 Request
+
+```json
+POST /api/auth/email/verify
+Content-Type: application/json
+
+{
+  "token": "verification-token-from-email-link"
+}
+```
+
+Token is opaque to frontend; backend validates and consumes it.
+
+#### 4.1.2 Response
+
+**Success – 200**
+
+```json
+{
+  "success": true,
+  "accountState": "active"      // or "age_pending"
+}
+```
+
+**Failure – 400/422 (generic)**
+
+```json
+{
+  "success": false,
+  "error": "Invalid or expired verification link"
+}
+```
+
+Frontend should:
+- Show success/expired/error states based on `success` flag.
+- Offer “resend verification email” via a future route (not in this task).
+
+---
+
+## 5. Password Reset
+
+### 5.1 Request Password Reset
+
+- **Route**: `POST /api/auth/password/reset/request`
+- **Description**: Requests a password reset email. Response is always generic to avoid account enumeration.
+- **Auth**: Public.
+- **Rate limiting**: Yes (IP + email).
+
+#### 5.1.1 Request
+
+```json
+POST /api/auth/password/reset/request
+Content-Type: application/json
+
+{
+  "email": "user@example.com"
+}
+```
+
+#### 5.1.2 Response
+
+**Always – 200**
+
+```json
+{
+  "message": "If an account exists for this email, a reset link has been sent."
+}
+```
+
+Frontend must **not** try to infer whether the email exists.
+
+### 5.2 Confirm Password Reset
+
+- **Route**: `POST /api/auth/password/reset/confirm`
+- **Description**: Consumes a password reset token and sets a new password; invalidates prior sessions.
+- **Auth**: Public; token-based.
+- **Rate limiting**: Yes (IP + token).
+
+#### 5.2.1 Request
+
+```json
+POST /api/auth/password/reset/confirm
+Content-Type: application/json
+
+{
+  "token": "reset-token-from-email-link",
+  "newPassword": "NewStr0ngP@ssw0rd"
+}
+```
+
+#### 5.2.2 Response
+
+**Success – 200**
+
+```json
+{
+  "success": true
+}
+```
+
+**Failure – 400/422**
+
+```json
+{
+  "success": false,
+  "error": "Invalid or expired reset link"
+}
+```
+
+Frontend should:
+- Show success/expired/error state.
+- Prompt user to sign in again after success.
+
+---
+
+## 6. Age Verification (Veriff)
+
+### 6.1 Initiate Age Verification
+
+- **Route**: `POST /api/age/verify/initiate`
+- **Description**: Starts an age-verification session with Veriff and returns a token/URL for the Veriff SDK/UI.
+- **Auth**: Requires authenticated session.
+- **Rate limiting**: Yes (IP + user).
+
+#### 6.1.1 Request
+
+```json
+POST /api/age/verify/initiate
+Content-Type: application/json
+Authorization: (session cookie managed by NextAuth)
+
+{}
+```
+
+No body fields required initially; DOB/country are read from user profile.
+
+#### 6.1.2 Response
+
+**Success – 200**
+
+```json
+{
+  "sessionId": "provider-session-id",
+  "url": "https://veriff.com/session-url-or-client-token"
+}
+```
+
+Frontend should:
+- Use this data to launch Veriff’s client (web widget, redirect, or iframe per integration choice).
+
+**Failure – 400/403**
+
+```json
+{
+  "error": "Age verification cannot be initiated"
+}
+```
+
+### 6.2 Age Verification Webhook (Backend-only)
+
+- **Route**: `POST /api/age/verify/webhook`
+- **Description**: Veriff → backend webhook; **not called by frontend**.
+- **Auth**: HMAC-based via provider secret; no frontend interaction.
+
+Frontend will infer updated age state from:
+- Session (future “me” endpoint).
+- Or explicit “age status” endpoint (future); not defined in this task.
+
+---
+
+## 7. Frontend Usage Notes
+
+- All custom HTTP calls must go through `src/services/apiClient.ts`:
+  - E.g., `apiClient.post('/api/auth/register', body)`.
+- For session/sign-in:
+  - Use `next-auth` client (`signIn`, `signOut`, `useSession`) rather than manual API calls.
+- Error handling:
+  - Backend intentionally returns generic errors to avoid info leaks.
+  - Frontend should map:
+    - Generic registration error → “Something went wrong. Please try again or contact support.”
+    - Invalid/expired tokens → “This link is invalid or has expired. Request a new one.”
+- States to reflect in UI (from PM research §4 and architecture §11):
+  - Email sent, email verified, link expired, reset sent, reset success.
+  - Age pending, age failed (with retry CTA), age verified, account locked.
+
+---
+
+## 8. Open Integration Questions
+
+1. Should we expose a dedicated `GET /api/auth/me` endpoint now (with accountState/ageStatus), or keep session-minimal and add this later as part of a separate task?
+2. For age verification status polling, do you prefer:
+   - A dedicated `GET /api/age/verify/status` endpoint, or
+   - Relying on session/account metadata surfaced by a “me” endpoint?
+
+Once you confirm these, we can refine this API spec and, if approved, promote key parts into `docs/05-API-SPECIFICATION.md`.
+

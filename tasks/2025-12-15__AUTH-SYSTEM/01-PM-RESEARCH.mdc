@@ -1,0 +1,192 @@
+# 01-PM-RESEARCH.mdc
+
+## Task Information
+| Field | Value |
+|-------|-------|
+| Task ID | `2025-12-15__AUTH-SYSTEM` |
+| Task Name | Authentication, Social Login, Email + Password Flows, Age Verification |
+| PM Agent | PM Agent |
+| Date | December 15, 2025 |
+| Status | ✅ COMPLETE |
+
+---
+
+## 1. Task Intent Interpretation
+### 1.1 Problem Summary
+NuttyFans needs foundational authentication and identity safeguards: email/password registration, social login (Google, Apple), email verification, password reset, and an age-verification gate using a third-party provider. These flows are prerequisites for user onboarding, compliance (adult-content gating), and downstream features.
+
+### 1.2 Goals
+- Enable friction-balanced onboarding while enforcing trust/safety (18+).
+- Support federated sign-in to reduce drop-off (Google, Apple).
+- Ensure account integrity via email verification and password reset.
+- Integrate age verification using an external provider suitable for global, mixed-content use.
+
+### 1.3 Success Criteria (high level)
+- Users can create accounts and sign in via email/password or Google/Apple.
+- Email verification required before full access; unverified users have limited access.
+- Password reset completes end-to-end with secure tokens.
+- Age gate blocks under-18 access using third-party verification; provides clear allow/deny/appeal states.
+- Sessions and sign-out behave predictably across web and future mobile.
+
+---
+
+## 2. Scope
+### 2.1 In Scope
+- NextAuth-based auth integration (per architecture rules).
+- Email/password registration + login.
+- Social login: Google OAuth, Apple Sign In.
+- Email verification flow.
+- Password reset flow.
+- Age verification gate via third-party provider.
+- Basic account state handling: active, email-unverified, age-pending, age-denied, locked/suspended (state labels TBD by backend/tech lead).
+
+### 2.2 Out of Scope
+- MFA/2FA and phone/SMS OTP.
+- Creator KYC (separate process).
+- Admin tooling for manual review.
+- Mobile app UX specifics.
+- Payment or payout KYC.
+
+---
+
+## 3. Research (Patterns & Considerations)
+### 3.1 Authentication & Identity Patterns
+- **Progressive friction:** allow starting with social login but require age + email verification before accessing restricted content.
+- **Stateful onboarding:** maintain intermediate states (email-unverified, age-pending, age-denied) and gate features accordingly.
+- **Session hygiene:** short-lived sessions with refresh where applicable; explicit sign-out clears sessions on all devices (design detail to be defined in engineering).
+- **Recovery-first UX:** password reset emails must be time-bound, single-use, and rate-limited.
+
+### 3.2 Social Login (Google, Apple)
+- Google: standard OAuth 2.0 with email scope; handle missing verified email edge cases.
+- Apple: supports private relay emails; must surface “sign in with Apple” compliance copy and handle non-recoverable relay addresses (users deleting relay).
+- Account linking: avoid duplicate accounts by matching provider email when verified; if mismatch, require explicit linking flow (backend policy to define).
+
+### 3.3 Email Verification
+- Required before accessing age-restricted content or payments.
+- Link must be single-use, time-bound; clear expired link messaging with resend.
+- Track verification status at user level; support re-send with rate limits.
+
+### 3.4 Password Reset
+- Tokenized reset links (single-use, time-bound).
+- Post-reset forced re-auth across sessions.
+- Rate limit requests; do not reveal account existence (generic messaging).
+
+### 3.5 Age Verification (Third-Party) — Options for NuttyFans
+We need global coverage, adult-content friendliness, strong fraud controls, and fast UX. Top candidates:
+
+| Vendor | Why It Fits | Considerations |
+|--------|-------------|----------------|
+| **Persona** | Strong SDKs, global docs support, age estimation + document verification, flexible policies | Pricing at scale; DPIA/DP handling needed |
+| **Veriff** | High accuracy, supports video/selfie + docs, good fraud prevention | Can be stricter UX; pricing premium |
+| **Onfido** | Mature KYC/age checks, liveness, broad ID coverage | May require custom flows for age-only use |
+| **Jumio** | Fast verification, liveness, document breadth | Cost; integration complexity |
+| **Yoti** | Privacy-forward, age estimation & reusable digital ID, good for age-gate | Coverage varies by country; brand recognition lower in US |
+
+Recommendation criteria (to decide in architecture/legal):
+- Content tolerance (adult use accepted).
+- Global coverage (IDs + biometrics).
+- Fraud/liveness strength.
+- SDK/web UX quality and time-to-verify.
+- Data residency, GDPR/CCPA compliance, retention controls.
+- Pricing at projected volume (Year 1: 500k users).
+
+### 3.6 Compliance & Trust/Safety Notes
+- BRD/PRD call out strict 18+ gating (PRD U-003).
+- Must avoid revealing whether an email exists (privacy).
+- Need auditability of verification outcomes (who/when/provider result).
+- Accessibility: all flows keyboard/reader friendly.
+
+---
+
+## 4. Functional Requirements (Draft)
+**Auth Foundation**
+- FR-AUTH-001: NextAuth configured for email/password plus Google and Apple providers.
+- FR-AUTH-002: Account state model includes at least: `email_unverified`, `age_pending`, `age_denied`, `active`, `locked/suspended` (exact labels to be finalized by backend/tech lead).
+- FR-AUTH-003: Sign-out clears session reliably; stale sessions expire per policy.
+
+**Registration & Login**
+- FR-REG-001: Email registration with password policy (min length, complexity).
+- FR-REG-002: Social login via Google OAuth; handle missing/invalid email.
+- FR-REG-003: Social login via Apple; handle private relay emails.
+- FR-REG-004: Prevent duplicate accounts across providers; enable account linking policy.
+
+**Email Verification**
+- FR-EMAIL-001: Send verification email on registration (and on demand with rate limits).
+- FR-EMAIL-002: Verification links are single-use, time-limited; clear success/expired/error states.
+- FR-EMAIL-003: Unverified users cannot access age-restricted content or payments.
+
+**Password Reset**
+- FR-RESET-001: Request reset via email with generic confirmation message.
+- FR-RESET-002: Reset link single-use, time-limited; enforce new password policy.
+- FR-RESET-003: Invalidate existing sessions after password reset.
+
+**Age Verification**
+- FR-AGE-001: Age gate before full access; capture DOB and route to third-party verification.
+- FR-AGE-002: Integrate chosen provider (per Section 3.5) for document/selfie or age estimation.
+- FR-AGE-003: Store verification status/result metadata (pass/fail/pending/appeal) per compliance guidance.
+- FR-AGE-004: Provide retry/appeal path for false negatives (manual review out-of-scope here but state supported).
+
+**User Communication & UX States**
+- FR-COMM-001: Clear user messaging for: email sent, email verified, link expired, reset sent, reset success, age pending, age failed, age verified.
+- FR-COMM-002: Resend controls with rate limits for verification and reset emails.
+
+---
+
+## 5. Non-Functional Requirements
+- NFR-SEC-001: Enforce strong password policy; hash storage (implementation detail to backend).
+- NFR-SEC-002: Rate limiting on sensitive endpoints (login, register, verification resend, reset request).
+- NFR-SEC-003: Secrets managed via environment variables; no secrets in repo.
+- NFR-PRIV-001: Do not disclose account existence in responses.
+- NFR-COMPL-001: Age verification data handling aligns with GDPR/CCPA; retention and deletion policies documented.
+- NFR-UX-001: Flows are accessible (WCAG 2.1 AA for forms, focus states).
+- NFR-REL-001: Email delivery reliability tracked (bounce handling), but provider selection is out of scope.
+
+---
+
+## 6. Assumptions
+| ID | Assumption | Risk if Wrong |
+|----|------------|--------------|
+| A1 | Email provider and domain setup will be available (SPF/DKIM) | Verification/reset emails fail to deliver |
+| A2 | OAuth credentials for Google/Apple can be provisioned | Social login blocked |
+| A3 | Chosen age-verification vendor supports adult-content use cases | Compliance risk; need alternative vendor |
+| A4 | No MFA/2FA required in this phase | Additional scope needed |
+| A5 | Web is primary surface; mobile apps later | Flow may need rework for mobile |
+
+---
+
+## 7. Open Questions (needs human/architecture/legal input)
+| ID | Question | Decision/Notes |
+|----|----------|----------------|
+| Q1 | Which age verification vendor? | **Veriff** — global coverage, adult-content tolerant, strong fraud/liveness; fallback vendor can be reassessed if coverage gaps emerge. |
+| Q2 | Password policy (length/complexity/breach check)? | **Min 12 chars**, require upper+lower+digit+symbol; block common/breached passwords via k-anon HIBP; prevent recent password reuse; lockout/rate-limit login attempts. |
+| Q3 | Session duration and refresh strategy? | **Idle 12h**, absolute 30d cap with “keep me signed in”; rotate/refresh at sign-in and every 12h; force re-auth after password reset or state changes (lock/age-denied). |
+| Q4 | Account linking rules (social + email)? | One canonical account per verified email. Auto-link if provider email is verified and matches existing verified email. If mismatch: require sign-in with canonical account then link; block creating a new account with a different verified email from the same identity. Handle Apple relay by encouraging primary email addition post-signup. |
+| Q5 | What age-provider data to store and retention period? | Store minimal: provider session/reference ID, result (pass/fail/pending), method type, verification timestamps, DOB confirmation flag, country, and liveness/fraud score (if provided). **Purge raw documents/biometrics within 30 days**; keep long-term audit record of status + timestamps only. |
+| Q6 | Geo restrictions that affect gating? | **Global launch**; no geo blocks now. Keep a configurable allow/deny list for future policy changes; rely on provider coverage and surface graceful fallback if unsupported country. |
+
+---
+
+## 8. Owners Required
+- Product/PM (you) — requirements, approvals.
+- Tech Lead — architecture, state model, sequencing.
+- Backend Engineer — auth flows, provider integrations, state handling.
+- Frontend Engineer — UI flows, form states, messaging.
+- DevOps — secrets/env setup, CI gating, email/OAuth secret management.
+- Security/Compliance — age verification policy, vendor approval, data retention.
+- Legal — content/age policy, ToS/Privacy updates, geo restrictions.
+
+---
+
+## 9. Risks & Mitigations
+| Risk | Impact | Mitigation |
+|------|--------|------------|
+| Email deliverability issues | Users blocked from verifying/resetting | Verify SPF/DKIM, monitor bounce, fallback resend |
+| Vendor age check false negatives | Legit users blocked | Provide retry/appeal path; allow manual review later |
+| Social login duplicate accounts | Fragmented identities | Clear linking rules; match on verified email |
+| Apple private relay loss | Lost access when relay revoked | Encourage adding primary email post-signup |
+
+---
+
+## 10. Next Phase
+- PM research **complete**; all open questions resolved.
+- Ready for `02-ARCHITECTURE-REVIEW.mdc` (Tech Lead).

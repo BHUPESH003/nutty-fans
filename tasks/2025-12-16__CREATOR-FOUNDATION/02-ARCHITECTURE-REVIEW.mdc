@@ -1,0 +1,447 @@
+# Creator Foundation — Architecture Review
+
+**Task:** 2025-12-16__CREATOR-FOUNDATION  
+**Owner:** Engineering Lead Agent  
+**Status:** ✅ APPROVED  
+**Date:** 2025-12-16
+
+---
+
+## 1. Goals & Scope
+
+### Primary Goals
+1. Enable users to apply to become creators
+2. Integrate Veriff for KYC identity verification
+3. Integrate Square for payment processing
+4. Provide creator dashboard with basic metrics
+
+### Assumptions
+- User has verified email before applying
+- Age verification passed (18+)
+- US/UK/EU regions only initially
+
+---
+
+## 2. High-Level Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                           CLIENT (Next.js App Router)                    │
+├─────────────────────────────────────────────────────────────────────────┤
+│  /creator/apply     │  /creator/verify  │  /creator/dashboard           │
+│  /creator/onboard   │  /creator/payouts │  /c/[handle] (public)        │
+└───────────┬─────────────────┬─────────────────┬─────────────────────────┘
+            │                 │                 │
+            ▼                 ▼                 ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         API LAYER (Route Handlers)                       │
+├─────────────────────────────────────────────────────────────────────────┤
+│  /api/creator/*     │  /api/webhooks/*  │  (authenticated routes)       │
+└───────────┬─────────────────┬─────────────────┬─────────────────────────┘
+            │                 │                 │
+            ▼                 ▼                 ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                      CONTROLLER LAYER                                    │
+├─────────────────────────────────────────────────────────────────────────┤
+│  CreatorController  │ WebhookController │ DashboardController           │
+└───────────┬─────────────────┬─────────────────┬─────────────────────────┘
+            │                 │                 │
+            ▼                 ▼                 ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                       SERVICE LAYER                                      │
+├─────────────────────────────────────────────────────────────────────────┤
+│  CreatorService  │  KycService  │  PaymentService  │ DashboardService   │
+└───────────┬──────────┬──────────────┬───────────────────────────────────┘
+            │          │              │
+            ▼          ▼              ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                     REPOSITORY LAYER                                     │
+├─────────────────────────────────────────────────────────────────────────┤
+│  CreatorRepository  │  TransactionRepository  │  PayoutRepository       │
+└───────────┬─────────────────────────────────────────────────────────────┘
+            │
+            ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                       DATABASE (PostgreSQL)                              │
+├─────────────────────────────────────────────────────────────────────────┤
+│  users  │  creator_profiles  │  transactions  │  payouts                │
+└─────────────────────────────────────────────────────────────────────────┘
+            │                               │
+            ▼                               ▼
+┌───────────────────────┐     ┌───────────────────────────────────────────┐
+│      VERIFF API       │     │              SQUARE API                    │
+│  (KYC Verification)   │     │  (Payments, Payouts, OAuth)               │
+└───────────────────────┘     └───────────────────────────────────────────┘
+```
+
+---
+
+## 3. API Endpoints
+
+### 3.1 Creator Application
+
+| Endpoint | Method | Description | Auth |
+|----------|--------|-------------|------|
+| `/api/creator/apply` | POST | Submit creator application | Required |
+| `/api/creator/status` | GET | Get application/KYC status | Required |
+
+**POST /api/creator/apply**
+```typescript
+// Request
+{
+  displayName: string;
+  bio: string;
+  categoryId: string;
+  subscriptionPrice: number; // 4.99 - 49.99
+}
+
+// Response 201
+{
+  creatorProfileId: string;
+  status: 'pending_kyc';
+  nextStep: '/creator/verify';
+}
+```
+
+### 3.2 KYC Verification (Veriff)
+
+| Endpoint | Method | Description | Auth |
+|----------|--------|-------------|------|
+| `/api/creator/kyc/start` | POST | Create Veriff session | Required |
+| `/api/creator/kyc/status` | GET | Check KYC status | Required |
+| `/api/webhooks/veriff` | POST | Veriff callback | HMAC |
+
+**POST /api/creator/kyc/start**
+```typescript
+// Response 200
+{
+  sessionUrl: string;  // Veriff hosted flow URL
+  sessionId: string;
+}
+```
+
+**POST /api/webhooks/veriff** (Webhook)
+```typescript
+// Veriff sends decision webhook
+// Verify HMAC signature before processing
+// Update creator_profiles.kyc_status
+```
+
+### 3.3 Square Payments
+
+| Endpoint | Method | Description | Auth |
+|----------|--------|-------------|------|
+| `/api/creator/square/connect` | GET | Start Square OAuth | Required |
+| `/api/creator/square/callback` | GET | OAuth callback | State token |
+| `/api/creator/payouts` | GET | Get payout history | Required |
+| `/api/creator/payouts/settings` | PATCH | Update payout settings | Required |
+
+**GET /api/creator/square/connect**
+```typescript
+// Response 302 Redirect to Square OAuth URL
+// State token stored in session for CSRF protection
+```
+
+### 3.4 Creator Profile
+
+| Endpoint | Method | Description | Auth |
+|----------|--------|-------------|------|
+| `/api/creator/profile` | GET | Get own creator profile | Required |
+| `/api/creator/profile` | PATCH | Update creator profile | Required |
+| `/api/creator/subscription` | PATCH | Update pricing | Required |
+| `/api/public/creator/[handle]` | GET | Public creator profile | None |
+
+### 3.5 Dashboard
+
+| Endpoint | Method | Description | Auth |
+|----------|--------|-------------|------|
+| `/api/creator/dashboard` | GET | Dashboard metrics | Required |
+| `/api/creator/dashboard/earnings` | GET | Earnings breakdown | Required |
+
+**GET /api/creator/dashboard**
+```typescript
+// Query params: period=7d|30d|90d|all
+// Response
+{
+  totalRevenue: number;
+  subscriberCount: number;
+  profileViews: number;
+  pendingPayout: number;
+  nextPayoutDate: string;
+  accountStatus: 'active' | 'pending_kyc' | 'pending_payout_setup';
+}
+```
+
+---
+
+## 4. Database Interactions
+
+### 4.1 Existing Tables Used
+
+| Table | Fields Used |
+|-------|-------------|
+| `users` | `id`, `role`, `status` |
+| `creator_profiles` | All fields (KYC, pricing, Square) |
+| `transactions` | Revenue tracking |
+| `payouts` | Payout history |
+| `follows` | Follower counts |
+
+### 4.2 User Role Transition
+
+```sql
+-- When creator is approved:
+UPDATE users SET role = 'creator' WHERE id = ?;
+UPDATE creator_profiles SET kyc_status = 'approved', is_verified = true WHERE user_id = ?;
+```
+
+### 4.3 Key Queries
+
+**Get creator with stats:**
+```sql
+SELECT 
+  cp.*,
+  (SELECT COUNT(*) FROM subscriptions WHERE creator_id = cp.id AND status = 'active') as subscriber_count,
+  (SELECT COUNT(*) FROM follows WHERE creator_id = cp.id) as follower_count
+FROM creator_profiles cp
+WHERE cp.user_id = ?;
+```
+
+**Dashboard earnings (last 30 days):**
+```sql
+SELECT 
+  SUM(creator_earnings) as total_earnings,
+  COUNT(*) as transaction_count
+FROM transactions
+WHERE creator_id = ? 
+  AND status = 'completed'
+  AND created_at > NOW() - INTERVAL '30 days';
+```
+
+---
+
+## 5. External Integrations
+
+### 5.1 Veriff (KYC)
+
+**Environment Variables:**
+```env
+VERIFF_API_KEY=           # API key
+VERIFF_API_SECRET=        # For HMAC webhook verification
+VERIFF_BASE_URL=          # https://stationapi.veriff.com
+```
+
+**Session Creation:**
+```typescript
+// POST https://stationapi.veriff.com/v1/sessions
+{
+  verification: {
+    callback: 'https://app.nuttyfans.com/api/webhooks/veriff',
+    person: {
+      firstName: user.displayName,
+      idNumber: user.id
+    },
+    vendorData: user.id
+  }
+}
+```
+
+**Webhook Verification:**
+```typescript
+function verifyVeriffSignature(payload: string, signature: string): boolean {
+  const expected = crypto
+    .createHmac('sha256', process.env.VERIFF_API_SECRET!)
+    .update(payload)
+    .digest('hex');
+  return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
+}
+```
+
+### 5.2 Square (Payments)
+
+**Environment Variables:**
+```env
+SQUARE_APPLICATION_ID=    # OAuth app ID
+SQUARE_APPLICATION_SECRET=# OAuth secret
+SQUARE_ACCESS_TOKEN=      # Platform access token
+SQUARE_ENVIRONMENT=       # sandbox or production
+SQUARE_WEBHOOK_SIGNATURE_KEY=
+```
+
+**OAuth Flow:**
+1. Redirect to Square authorize URL with scope: `MERCHANT_PROFILE_READ PAYMENTS_WRITE BANK_ACCOUNTS_READ`
+2. Receive callback with authorization code
+3. Exchange code for access token
+4. Store `square_merchant_id` and encrypted tokens
+
+**Payout Trigger (Weekly job):**
+```typescript
+// Every Friday at 00:00 UTC
+// Find creators with balance >= $20
+// Create Square payout via Bank Accounts API
+```
+
+---
+
+## 6. File Structure
+
+### 6.1 New Files to Create
+
+```
+src/
+├── app/
+│   ├── (creator)/
+│   │   ├── creator/
+│   │   │   ├── apply/page.tsx
+│   │   │   ├── verify/page.tsx
+│   │   │   ├── onboard/page.tsx
+│   │   │   ├── dashboard/page.tsx
+│   │   │   ├── profile/edit/page.tsx
+│   │   │   ├── subscription/page.tsx
+│   │   │   └── payouts/
+│   │   │       ├── page.tsx
+│   │   │       └── setup/page.tsx
+│   │   └── layout.tsx
+│   ├── c/
+│   │   └── [handle]/page.tsx          # Public creator profile
+│   └── api/
+│       ├── creator/
+│       │   ├── apply/route.ts
+│       │   ├── status/route.ts
+│       │   ├── profile/route.ts
+│       │   ├── subscription/route.ts
+│       │   ├── kyc/
+│       │   │   ├── start/route.ts
+│       │   │   └── status/route.ts
+│       │   ├── square/
+│       │   │   ├── connect/route.ts
+│       │   │   └── callback/route.ts
+│       │   ├── dashboard/route.ts
+│       │   └── payouts/route.ts
+│       ├── webhooks/
+│       │   ├── veriff/route.ts
+│       │   └── square/route.ts
+│       └── public/
+│           └── creator/
+│               └── [handle]/route.ts
+├── services/
+│   ├── creator/
+│   │   ├── creatorService.ts
+│   │   ├── kycService.ts
+│   │   ├── paymentService.ts
+│   │   └── dashboardService.ts
+│   └── integrations/
+│       ├── veriff/
+│       │   ├── veriffClient.ts
+│       │   └── types.ts
+│       └── square/
+│           ├── squareClient.ts
+│           └── types.ts
+├── repositories/
+│   ├── creatorRepository.ts
+│   ├── transactionRepository.ts (extend)
+│   └── payoutRepository.ts
+├── controllers/
+│   ├── creatorController.ts
+│   ├── webhookController.ts
+│   └── dashboardController.ts
+└── types/
+    └── creator.ts
+```
+
+### 6.2 File Ownership
+
+| Path | Owner |
+|------|-------|
+| `src/app/(creator)/*` | Frontend |
+| `src/app/api/creator/*` | Backend |
+| `src/app/api/webhooks/*` | Backend |
+| `src/services/creator/*` | Backend |
+| `src/services/integrations/*` | Backend |
+| `src/repositories/*` | Backend |
+| `src/controllers/*` | Backend |
+
+---
+
+## 7. Security Considerations
+
+### 7.1 Authentication
+- All `/api/creator/*` endpoints require authenticated session
+- Session user must have `role: 'creator'` OR be in application flow
+
+### 7.2 Webhook Security
+- **Veriff:** HMAC-SHA256 signature verification
+- **Square:** Signature verification via SDK
+- Webhook endpoints exempt from CSRF but require signature
+
+### 7.3 OAuth Security
+- State parameter for CSRF protection
+- Tokens stored encrypted in database
+- Access tokens never exposed to client
+
+### 7.4 PII Handling
+- KYC data never stored locally (Veriff handles)
+- Only store: `kyc_status`, `kyc_submitted_at`, `kyc_verified_at`
+- Square merchant ID stored, not bank details
+
+---
+
+## 8. Non-Functional Compliance
+
+| Requirement | Implementation |
+|-------------|----------------|
+| **Layered Architecture** | Controller → Service → Repository |
+| **Type Safety** | All APIs typed, Prisma types |
+| **Error Handling** | Standard error structure |
+| **Rate Limiting** | KYC start: 5/hour, Apply: 3/day |
+| **Logging** | Audit log for status transitions |
+
+---
+
+## 9. Risks & Mitigations
+
+| Risk | Probability | Impact | Mitigation |
+|------|-------------|--------|------------|
+| Veriff API delays | Medium | High | Mock in dev; timeout handling |
+| Square ToS for adult content | Medium | Critical | Legal review before launch |
+| Webhook failures | Medium | Medium | Retry queue; idempotency keys |
+| KYC fraud attempts | Low | High | Rate limiting; Veriff fraud detection |
+
+---
+
+## 10. Validation Steps
+
+### 10.1 Automated
+```bash
+pnpm typecheck          # No errors
+pnpm lint               # No warnings
+pnpm test               # Integration tests pass
+```
+
+### 10.2 Manual Testing
+1. Complete creator application flow
+2. Mock Veriff webhook → verify status update
+3. Complete Square OAuth flow
+4. Verify dashboard metrics calculation
+5. Test public creator profile page
+
+---
+
+## 11. Out of Scope
+
+- Content posting (separate task)
+- Subscriber purchasing flow (separate task)
+- Advanced analytics beyond basic metrics
+- Promotional/discount codes
+- Multi-currency support (USD only)
+
+---
+
+## ✅ Human Approval Required
+
+This architecture review requires human approval before engineering work begins.
+
+**Approval Criteria:**
+- [ ] API design is correct and complete
+- [ ] Security measures are sufficient
+- [ ] Square/Veriff integration approach is approved
+- [ ] File structure follows project conventions

@@ -73,29 +73,66 @@ pnpm dev
 
 ### Environment Variables
 
-```env
-# Database
-DATABASE_URL="postgresql://..."
+The canonical list of infrastructure-related environment variables is defined in
+`tasks/2025-12-14__INFRASTRUCTURE-SETUP/02-ARCHITECTURE-REVIEW.mdc` and mirrored in `.env.example`.
+For local development, you can use the following as a guide:
 
-# Auth
+```env
+# ============================================
+# DATABASE (Neon)
+# ============================================
+# Pooled connection string used by the app at runtime
+DATABASE_URL="postgresql://user:pass@ep-xxx.region.aws.neon.tech/nuttyfans?sslmode=require"
+
+# Unpooled connection string used only for migrations / schema changes
+DATABASE_URL_UNPOOLED="postgresql://user:pass@ep-xxx.region.aws.neon.tech/nuttyfans?sslmode=require"
+
+# ============================================
+# STORAGE (AWS S3)
+# ============================================
+AWS_ACCESS_KEY_ID="..."
+AWS_SECRET_ACCESS_KEY="..."
+AWS_REGION="us-east-1"
+
+# Bucket name varies by environment:
+# - nuttyfans-media-dev
+# - nuttyfans-media-qa
+# - nuttyfans-media-prod
+AWS_S3_BUCKET="nuttyfans-media-dev"
+
+# ============================================
+# CDN (CloudFront)
+# ============================================
+# CloudFront distribution URL for the current environment
+CLOUDFRONT_URL="https://dxxxxxxxxxx.cloudfront.net"
+
+# ============================================
+# APPLICATION
+# ============================================
+# Base URL for the app (varies by environment)
+# - https://nuttyfans-dev.vercel.app
+# - https://nuttyfans-qa.vercel.app
+# - https://nuttyfans.vercel.app
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
+NODE_ENV="development"
+
+# ============================================
+# AUTH (future tasks)
+# ============================================
 NEXTAUTH_SECRET="..."
 NEXTAUTH_URL="http://localhost:3000"
-
-# OAuth
 GOOGLE_CLIENT_ID="..."
 GOOGLE_CLIENT_SECRET="..."
 
-# Storage
-AWS_ACCESS_KEY_ID="..."
-AWS_SECRET_ACCESS_KEY="..."
-AWS_S3_BUCKET="..."
-AWS_REGION="..."
-
-# Payments
+# ============================================
+# PAYMENTS (future tasks)
+# ============================================
 STRIPE_SECRET_KEY="..."
 STRIPE_WEBHOOK_SECRET="..."
 
-# Video
+# ============================================
+# VIDEO (future tasks)
+# ============================================
 MUX_TOKEN_ID="..."
 MUX_TOKEN_SECRET="..."
 ```

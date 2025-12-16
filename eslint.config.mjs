@@ -18,7 +18,15 @@ const compat = new FlatCompat({
 const eslintConfig = [
   // Global ignores
   {
-    ignores: ['.next/**', 'node_modules/**', 'dist/**', 'coverage/**', 'out/**', 'build/**'],
+    ignores: [
+      '.next/**',
+      'node_modules/**',
+      'dist/**',
+      'coverage/**',
+      'out/**',
+      'build/**',
+      'prisma/**',
+    ],
   },
 
   // Base JS recommended

@@ -1,0 +1,120 @@
+# PM Research: Content/Posts System
+
+**Task:** `2025-12-16__CONTENT-POSTS-SYSTEM`  
+**Prepared By:** Product Operations Agent  
+**Date:** December 16, 2025  
+**Status:** ✅ Complete
+
+---
+
+## Executive Summary
+
+This task implements the core content system for NuttyFans, enabling creators to publish posts with media (images, videos) and users to engage through a personalized feed.
+
+---
+
+## Feature Scope
+
+| Feature | Priority | PRD Reference |
+|---------|----------|---------------|
+| Post Creation | P0 | C-010, C-011, C-012 |
+| Media Upload (S3) | P0 | C-010, C-011 |
+| Video Processing (Mux) | P0 | PRD 3.2.2 |
+| Access Control (free/sub/PPV) | P0 | C-013, C-014 |
+| Post Scheduling | P0 | C-015 |
+| Content Feed | P0 | U-010 |
+| Like/Bookmark | P0 | U-030, U-032 |
+| Comments | P0 | U-031 |
+| Stories | P0 | C-016 |
+| Reels | P0 | C-018 |
+| Invisible Watermark | P0 | C-042 |
+
+---
+
+## User Stories
+
+### Creator Stories
+
+- C-010: Upload images to share visual content
+- C-011: Upload videos to share video content
+- C-012: Write text posts for updates
+- C-013: Set posts as free/paid to control access
+- C-014: Set PPV prices for individual posts
+- C-015: Schedule posts for future publishing
+- C-016: Post stories for ephemeral content
+- C-018: Post short videos (reels)
+- C-042: Watermarked content for leak tracing
+
+### User Stories
+
+- U-010: Browse feed from subscribed creators
+- U-030: Like posts to show appreciation
+- U-031: Comment on posts to interact
+- U-032: Bookmark posts for later
+
+---
+
+## Technical Requirements
+
+### Post Types
+
+| Type | Max Size | Formats | Duration |
+|------|----------|---------|----------|
+| Image | 20MB | JPG, PNG, GIF, WebP | N/A |
+| Video | 5GB | MP4, MOV, WebM | 60 min |
+| Text | 5000 chars | Markdown | N/A |
+| Story | 50MB | Image/Video | 24h |
+| Reel | 500MB | MP4 | 3 min |
+
+### Video Processing (Mux)
+
+- Auto-transcode to 480p, 720p, 1080p
+- Thumbnail generation
+- Preview clip generation
+- HLS/DASH streaming
+
+### Access Levels
+
+| Level | Visibility |
+|-------|------------|
+| `free` | Anyone can view |
+| `subscribers` | Active subscribers only |
+| `ppv` | Pay to unlock ($1-$500) |
+
+---
+
+## Confirmed Decisions
+
+| Decision | Answer | Rationale |
+|----------|--------|-----------|
+| Video Provider | Mux | Managed, simple integration |
+| Comments | MVP | User engagement critical |
+| Stories/Reels | MVP | Competitive with Instagram/TikTok |
+| Watermark | Invisible | Better UX, still traceable |
+
+---
+
+## Dependencies
+
+All dependencies are complete:
+- ✅ Auth System
+- ✅ Creator Foundation
+- ✅ User Profiles
+- ✅ S3/CloudFront configured
+- ✅ Database schema defined
+
+---
+
+## Risks
+
+| Risk | Mitigation |
+|------|------------|
+| Mux costs at scale | Monitor usage, set alerts |
+| Large file uploads | Chunked uploads, progress UI |
+| Comment moderation | Start manual, add AI later |
+
+---
+
+## Next Phase
+
+→ Architecture Review by Engineering Lead

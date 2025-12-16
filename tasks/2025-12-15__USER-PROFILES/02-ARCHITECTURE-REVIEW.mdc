@@ -1,0 +1,176 @@
+Task: 2025-12-15__USER-PROFILES
+Owner: Tech Lead Agent (proposal only; requires human approval)
+Status: Draft for review
+
+## 1) Goals & Scope (In-Task)
+- Ship first-gen user-facing account surfaces:
+  - Public profile pages (self + other).
+  - Profile editing for MVP fields.
+  - Account/settings page for non-payment, non-creator settings.
+  - Avatar upload/update/remove.
+  - Core layout + navigation (desktop side-nav, mobile top-nav).
+- Reuse existing AUTH-SYSTEM (signed-in users) and design system (UI components/layout patterns).
+- Keep clean separation of concerns per CODEBASE_ARCHITECTURE_RULES (dumb UI vs smart containers, services, repositories).
+
+## 2) Requirements Decisions (from PM/Human)
+- MVP profile fields (all from PM list):
+  - Display name, username/handle, avatar, bio, location (optional), join date (read-only), follower/following counts (read-only).
+- Public vs account-only:
+  - Public profile: avatar, display name, handle, bio, (optional) location, join date, follower/following counts.
+  - Account-only settings: email, legal name (if any), notification toggles, privacy toggles (profile discoverability, show/hide location).
+- Navigation pattern:
+  - Responsive hybrid: side nav on desktop + top nav on mobile.
+- Avatar content:
+  - NSFW avatars are allowed, subject to future moderation rules (copy should reference community guidelines; moderation infra is a separate task).
+
+## 3) Domain Model (Conceptual – schema changes defined by engineering)
+- User (extends AUTH-SYSTEM user):
+  - id
+  - email
+  - username (unique handle, immutable or limited-change)
+  - displayName
+  - bio (short text)
+  - location (optional)
+  - avatarUrl (nullable)
+  - isDiscoverable (profile discoverability toggle)
+  - showLocation (bool)
+  - joinDate (derived from createdAt)
+- ProfileStats (can be denormalized or view):
+  - userId
+  - followersCount
+  - followingCount
+- NotificationSettings (coarse-grained MVP):
+  - userId
+  - basic toggles (e.g. emailNotificationsEnabled, marketingEmailsEnabled, platformUpdatesEnabled) – exact set can be finalized in engineering.
+
+> NOTE: No enforcement of NSFW avatar policy here; that will live in separate moderation/flagging flows.
+
+## 4) Layered Architecture (Backend)
+- Route Handlers (Next.js App Router `app/api/**/route.ts`):
+  - Thin HTTP mapping only; call exactly one controller each.
+- Controllers (`src/app/api/_controllers/profileController.ts`, `settingsController.ts`, `avatarController.ts`):
+  - Parse/validate request DTOs.
+  - Call services.
+  - Map domain results → HTTP responses.
+- Services (`src/services/profileService.ts`, `settingsService.ts`, `avatarService.ts`):
+  - Business logic for profile updates, visibility rules, ownership checks.
+  - Enforce privacy decisions (what can be read/changed by whom).
+- Repositories (`src/repositories/profileRepository.ts`, `settingsRepository.ts`, `statsRepository.ts`):
+  - Pure DB/data access (Prisma).
+  - No business rules, only queries and simple projections.
+- Storage/Media client (`src/services/media/avatarStorageClient.ts` or reuse existing storage abstraction):
+  - Wraps existing storage strategy (S3/Cloudflare/etc.) for avatars only.
+  - Handles upload URLs, deletion, and path conventions.
+
+## 5) HTTP/API & Routing Plan
+High-level API surface (exact paths to align with `docs/05-API-SPECIFICATION.md` in engineering; here is the conceptual mapping):
+- `GET /api/profile/me` – get current user's profile (including account-only fields, e.g. email, settings) for edit context.
+- `GET /api/profile/[handle]` – public profile view by handle (public fields only).
+- `PATCH /api/profile` – update profile fields (displayName, bio, location, discoverability, showLocation).
+- `GET /api/settings` – fetch account + notification + privacy settings.
+- `PATCH /api/settings` – update settings.
+- `POST /api/profile/avatar/upload-url` – issue signed upload URL / upload token for avatar.
+- `POST /api/profile/avatar/confirm` – confirm new avatar URL after successful upload.
+- `DELETE /api/profile/avatar` – remove avatar, revert to default.
+
+All routes:
+- Must pass through shared auth middleware (session from AUTH-SYSTEM).
+- Should use shared rate limiting middleware for write endpoints.
+
+## 6) Core Flows
+- View own profile:
+  - Authenticated user → fetch `/api/profile/me` via container → render profile page using UI components.
+- View other profile:
+  - Route by handle → `/api/profile/[handle]` → returns only public fields.
+- Edit profile:
+  - Container loads `/api/profile/me`.
+  - Submit `PATCH /api/profile` with partial payload.
+  - Service validates lengths, reserved words, handle immutability rules.
+  - On success, return updated profile; containers update app-level profile cache so header avatar/display name reflect changes.
+- Settings:
+  - Container fetches `/api/settings`.
+  - `PATCH /api/settings` persists notification/privacy toggles.
+- Avatar upload lifecycle:
+  - Frontend requests `POST /api/profile/avatar/upload-url` with file metadata (name, size, mime).
+  - Service validates size/type, generates storage URL or pre-signed upload URL, stores pending reference if needed.
+  - Client uploads directly to storage; on success, calls `POST /api/profile/avatar/confirm` with final URL/key.
+  - Service updates `avatarUrl`, optionally deletes old avatar.
+  - `DELETE /api/profile/avatar` clears `avatarUrl` and triggers deletion.
+
+## 7) Layout & Navigation Architecture
+- App shell:
+  - Implemented as a shared layout in `src/app/(app)/layout.tsx` (or similar route group), not per-page duplication.
+  - Uses design system components (header, nav items, avatar, buttons, icons).
+- Desktop:
+  - Persistent side nav with primary sections: Home/Feed, Explore (if present), Profile, Settings (and placeholders for later features).
+  - Header may show logo/brand and user avatar + quick actions.
+- Mobile:
+  - Top nav or bottom bar (UI/UX to choose, but constraint is “no desktop side nav”).
+  - Collapsible menu or tab-like navigation to same primary sections.
+- Containers:
+  - Navigation containers decide which item is active based on route.
+  - UI components for nav items remain dumb (receive `active`, `icon`, `label`, `href`).
+
+## 8) Frontend Architecture (per CODEBASE_ARCHITECTURE_RULES)
+- Containers:
+  - `src/components/containers/profile/ProfilePageContainer.tsx`:
+    - Fetch current or other profile via services/api client.
+    - Pass normalized data to dumb profile UI component(s).
+  - `src/components/containers/profile/EditProfileContainer.tsx`:
+    - Fetch current profile, manage form state, call profile service.
+  - `src/components/containers/settings/SettingsPageContainer.tsx`:
+    - Fetch and update settings, manage toggles.
+  - `src/components/containers/layout/AppShellContainer.tsx`:
+    - Provide layout props (nav items, active state, user summary).
+- UI Components (`src/components/ui` and/or `src/components/profile` for composite UI):
+  - Purely presentational: profile header, avatar+meta block, stats row, settings form sections, nav list.
+  - No data fetching or business logic.
+- Networking:
+  - All HTTP calls via existing single API client in `src/services/apiClient.ts`.
+  - Frontend services `profileApi` / `settingsApi` wrap endpoints; no inline `fetch`.
+
+## 9) Privacy & Visibility Rules
+- Public profile:
+  - Only serves explicitly public fields: avatar, displayName, handle, bio, location (if `showLocation` true), joinDate, follower/following counts.
+- Settings vs profile:
+  - Email and legal name (if any) are **never** returned from public profile endpoints.
+- Discoverability:
+  - `isDiscoverable` controls whether a profile appears in discovery/search (search feature out-of-scope here but flag exists).
+- Avatar NSFW:
+  - This task **does not** filter or classify avatars.
+  - UI copy must state avatars must follow community guidelines and may be moderated later.
+  - Future moderation tasks will handle detection, reporting, and enforcement.
+
+## 10) Non-Functional & Performance
+- All profile/settings endpoints protected by auth; rate limits on write paths.
+- Avatar images:
+  - Use existing media pipeline (CDN/resizing handled there).
+  - Prefer responsive image components on the frontend (design system aware).
+- Caching:
+  - Profile responses can be cached client-side; server response should be fast (simple selects/joins).
+
+## 11) Testing Strategy (for Engineering)
+- Unit:
+  - Services: profile updates (validation, ownership), settings updates, avatar lifecycle logic.
+- Integration:
+  - Repositories with DB, including unique handle constraints and safe updates.
+  - API routes with auth middleware, ensuring privacy rules hold (no email in public profile).
+- E2E (later QA task references):
+  - View own profile, edit, and verify data reflected in header/nav.
+  - View other profile with only public fields.
+  - Avatar upload/replace/remove flows.
+  - Settings toggles persist and change behavior where applicable.
+
+## 12) Out of Scope (Confirmed)
+- Creator-specific profile customization, monetization settings, analytics dashboards.
+- Admin views and moderation tooling.
+- Fine-grained notification matrix.
+- Payment/subscription/payout settings.
+- Full IA/secondary nav; only primary sections needed for MVP.
+
+## 13) Approvals Needed
+- Human approval of this architecture.
+- After approval:
+  - UI/UX agent to define concrete screens, layouts, and interaction details per this architecture.
+  - Then FE/BE agents to implement according to their contracts.
+

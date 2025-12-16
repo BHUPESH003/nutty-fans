@@ -1,0 +1,97 @@
+Task: 2025-12-15__AUTH-SYSTEM
+Owner: Tech Lead Agent (proposal only; requires human approval)
+Status: Draft for review
+
+## 1) Goals & Scope (In-Task)
+- NextAuth-based auth with email/password + Google + Apple.
+- Email verification (single-use, time-bound), password reset.
+- Age verification gate via Veriff (per PM decision), with clear states and gating.
+- Session and sign-out hygiene; account states enforced across app.
+- Compliant handling of secrets, tokens, and PII per CODEBASE_ARCHITECTURE_RULES.
+
+## 2) Assumptions & Dependencies
+- Email delivery provider + DNS (SPF/DKIM) available.
+- OAuth creds provisioned (Google, Apple).
+- Veriff approved for adult-content use; API keys available.
+- No MFA/2FA in this phase; no mobile-specific UX.
+- pnpm only (CODEBASE_GOVERNANCE_RULES); NextAuth already aligned with stack.
+
+## 3) Domain Model & States (conceptual, schema changes to be designed in engineering)
+- User core: id, email (unique), emailVerifiedAt, passwordHash (nullable for social-only), providerLinks [{provider, providerUserId, emailVerified}].
+- AccountState: `email_unverified`, `age_pending`, `age_denied`, `active`, `locked`.
+- AgeVerification: id, userId, providerSessionId, status (`pending|passed|failed|needs_review`), method, country, livenessScore?, fraudScore?, verifiedAt?, failureReason?, expiresAt?, metadata JSON, audit timestamps.
+- VerificationToken: id, userId, type (`email_verify|password_reset`), tokenHash (hashed), expiresAt, consumedAt, createdAt, createdIp.
+- Session: NextAuth session store (DB-backed) with rotation and absolute/idle timeouts; store accountState + age status snapshot for quick gating.
+
+## 4) Layered Architecture (per CODEBASE_ARCHITECTURE_RULES)
+- Routes (`app/api/**/route.ts`): thin; map HTTP → controller.
+- Controllers (`src/app/api/_controllers/authController.ts` etc.): orchestrate validation, call services, shape responses.
+- Services (`src/services/authService.ts`, `ageVerificationService.ts`, `emailService.ts`): business logic, token issuance/validation, state transitions, provider orchestration.
+- Repositories (`src/repositories/userRepository.ts`, `tokenRepository.ts`, `ageVerificationRepository.ts`): DB access via Prisma; no business rules.
+- Provider client (`src/services/providers/veriffClient.ts`): wraps Veriff REST/Webhooks; no domain logic.
+- Middleware: rate limiting, auth/session extraction, state gating; no duplication in routes.
+
+## 5) Flows (happy path + key branches)
+- Email signup: create user (email lowercase, unique); hash password (argon2/bcrypt); issue email verification token; send email; user state = `email_unverified`.
+- Email verification: validate token (hash, expiry, single-use); set emailVerifiedAt; if age verification required, move to `age_pending`; else `active`.
+- Login email/password: verify credentials; enforce lockout policy; deny if state `locked`; if `email_unverified` allow limited session (gated) but block restricted areas; apply session rotation.
+- Social login (Google/Apple): NextAuth provider; if verified email matches existing verified user → link provider; if email exists but unverified → require verify; if Apple relay non-verified → prompt add primary email post-login; prevent duplicate accounts.
+- Password reset: request creates reset token (single-use, time-bound, rate limited); email generic confirmation; redeem sets new password, clears sessions, rotates tokens.
+- Age verification (Veriff): initiate session via service; store providerSessionId/status `pending`; webhook or polling updates status; on `passed` → state `active`; on `failed` → `age_denied`; support retry count; purge sensitive artifacts per retention policy.
+- Sign-out: invalidate session server-side; ensure token rotation on subsequent sign-in.
+
+## 6) HTTP/API & Routing Plan (Next.js App Router)
+- `app/api/auth/[...nextauth]/route.ts`: NextAuth handler configured for credentials + Google + Apple; adapters point to repositories; callbacks enforce state gating.
+- `app/api/auth/email/verify/route.ts`: accept token; call controller→service to consume token and update state.
+- `app/api/auth/password/reset/request/route.ts`: request reset token.
+- `app/api/auth/password/reset/confirm/route.ts`: consume token, set new password, revoke sessions.
+- `app/api/age/verify/initiate/route.ts`: start Veriff session; returns client token/url.
+- `app/api/age/verify/webhook/route.ts`: receive Veriff webhooks; signature validation; update status; audit log.
+- Middleware: rate limiting and auth gating for sensitive routes; feature flags optional for rollout.
+
+## 7) Session & Security Policies
+- Password policy (per PM): min 12 chars, upper+lower+digit+symbol; check against breached list (HIBP k-anon); prevent recent reuse.
+- Session lifetime: idle 12h, absolute 30d, “keep me signed in” respects absolute cap; rotate on sign-in and every 12h.
+- Lockout & rate limits: login/register/reset/verify-resend all rate-limited; account lock after repeated failures with cool-off.
+- Token handling: store hashed tokens with expiry; single-use; include IP/user-agent in audit.
+- Secrets: all credentials via env; no secrets in repo; `.env.example` updated by engineering.
+- PII minimization: store only necessary Veriff metadata; purge docs/biometrics within 30 days; retain audit status/timestamps.
+- Email responses: generic messaging to avoid account enumeration.
+
+## 8) Data & Schema Changes (to be detailed by engineering, no migrations here)
+- New tables/fields likely: users (state, emailVerifiedAt, passwordHash nullable), providerLinks, verification_tokens, age_verifications, sessions (if DB-backed adapter), audit logs (minimal).
+- Indices: email unique, providerUserId scoped to provider, tokenHash indexed, age_verifications userId index.
+- Soft-delete not required here; locked state instead.
+
+## 9) Provider Integration (Veriff)
+- Client wrapper handles: session creation, status polling (if needed), webhook signature verification, error normalization, retry with backoff.
+- Configurable policies: allowed methods (document + selfie), country allowlist/denylist (config), max retries, SLA timeouts.
+- Webhook security: HMAC verification, idempotent updates (based on providerSessionId + status).
+
+## 10) Observability & Audit
+- Log auth events (register, login, reset request/confirm, verify, age status changes) with userId, result, reason, IP/UA (hashed UA acceptable), no sensitive payloads.
+- Metrics: rate-limit hits, verification success/failure, reset success, provider latency.
+- Audit trail for age verification decisions (status, timestamp, provider ref).
+
+## 11) Frontend Contract (non-UI-detailed)
+- Forms/pages: signup, login, verify-email state page, resend verification, request reset, reset password, age verification start/status page, error states.
+- States to surface: email sent, verified, expired link, reset sent, reset success, age pending, age failed (retry), age verified, locked.
+- API surface: use single API client; no inline fetch in components; containers handle data, UI components remain dumb per architecture rules.
+
+## 12) Testing Strategy (for engineering)
+- Unit: services (auth, token, age verification), password policy, token expiry, state transitions.
+- Integration: NextAuth callbacks, repository + service interactions, webhook handling, rate limiting behavior.
+- E2E (happy + edge): signup + verify, social login linking, reset flow, age verification pass/fail, locked account behavior, session rotation.
+- Security tests: replay of tokens, enumeration resilience, webhook signature failure.
+
+## 13) Risks & Mitigations
+- OAuth/Veriff credential delays → block: mitigate by feature flag + fallbacks for email-only until ready (if approved).
+- Email deliverability → block verification/reset: mitigate SPF/DKIM, bounce monitoring, resend with rate limits.
+- False negatives in age check: allow retry; log for appeal; keep manual review hook (future).
+- Apple private relay loss: prompt user to add primary email post-signup; store contact update reminder.
+
+## 14) Out of Scope (confirmed)
+- MFA/2FA, phone/SMS OTP, admin review tools, mobile-specific UX, payouts/KYC, domain-specific UI polish beyond required forms.
+
+## 15) Approvals Needed
+- Human approval of this architecture before engineering or agent execution (FE/BE/DevOps).

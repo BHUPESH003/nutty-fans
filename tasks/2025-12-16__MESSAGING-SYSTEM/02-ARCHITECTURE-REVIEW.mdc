@@ -1,0 +1,93 @@
+# Architecture Review: Messaging System
+
+**Task:** `2025-12-16__MESSAGING-SYSTEM`
+**Date:** December 16, 2025
+**Status:** 🟡 In Review
+
+---
+
+## 1. System Overview
+
+The Messaging System enables direct, private communication between users and creators. It supports text, media attachments, and paid (PPV) messages. The system is designed to drive engagement and provide a direct revenue stream for creators.
+
+## 2. Key Architecture Decisions
+
+### 2.1 Real-time Strategy: Polling (MVP)
+- **Decision**: Use **Short Polling** (via SWR/React Query) for the MVP.
+- **Reasoning**: Reduces infrastructure complexity (no WebSocket server/Pusher costs) while maintaining acceptable user experience for an initial release.
+- **Implementation**:
+  - Active Chat: Poll every 3-5 seconds.
+  - Inbox List: Poll every 10-15 seconds or on focus.
+- **Future Upgrade**: Migrate to Pusher or a custom WebSocket server when scale demands it.
+
+### 2.2 Paid Messages (PPV)
+- **Flow**:
+  1. Creator sends a message with `price > 0`.
+  2. Message is stored with `isPaid=true`.
+  3. Recipient receives message metadata but content is "locked" (UI placeholder).
+  4. Recipient calls `/api/messages/[id]/unlock` to purchase.
+  5. Backend verifies balance, processes transaction, creates `PpvPurchase` record.
+  6. Backend returns full message content.
+- **Security**: The API must strictly enforce that locked message content is **never** sent to the client until purchased.
+
+### 2.3 Media Privacy
+- **Storage**: Use a private S3 bucket (or private path in existing bucket) for message attachments.
+- **Access**: Media URLs stored in DB are keys. The API generates **Presigned URLs** (valid for 15-60 mins) when serving message data.
+- **Constraint**: Only conversation participants can request presigned URLs for that conversation's media.
+
+## 3. API Design
+
+### 3.1 Conversations
+- `GET /api/conversations`: List conversations (pagination: cursor-based).
+- `POST /api/conversations`: Start a new conversation (body: `{ participantId }`).
+- `GET /api/conversations/[id]`: Get conversation details and metadata.
+- `DELETE /api/conversations/[id]`: Hide/Delete conversation.
+
+### 3.2 Messages
+- `GET /api/conversations/[id]/messages`: List messages (pagination: cursor-based).
+- `POST /api/conversations/[id]/messages`: Send a message.
+  - Body: `{ content, mediaId?, price? }`
+- `POST /api/messages/[id]/read`: Mark message(s) as read.
+- `POST /api/messages/[id]/unlock`: Purchase a PPV message.
+
+### 3.3 Media
+- `POST /api/media/upload-url`: Get presigned upload URL (existing endpoint, add `context: 'message'` param).
+
+## 4. Data Model (Existing Schema)
+
+The following Prisma models are already defined and ready:
+- `Conversation`: Tracks participants, last message, unread counts.
+- `Message`: Stores content, price, paid status.
+- `PpvPurchase`: Tracks unlocks of paid messages.
+- `Media`: Links media to messages (`messageId`).
+
+## 5. Security & Access Control
+
+- **Conversation Access**: Middleware/Service layer must verify `session.user.id` is one of the `participants` for ALL conversation routes.
+- **Media Access**: Presigned URLs are only generated if the user has access to the message.
+- **Blocking**:
+  - Check `Block` table before allowing a new conversation or message.
+  - If `isBlocked` is true in `Conversation`, disable sending.
+
+## 6. Frontend Components
+
+- **ConversationList**: Sidebar/Page showing active chats with unread badges.
+- **ChatWindow**: Main interface.
+  - **MessageList**: Scrollable area with infinite loading.
+  - **MessageInput**: Text area + media picker + price setter (creators only).
+  - **MessageBubble**: Renders text, media, or "Locked" state.
+- **UnlockModal**: Confirmation dialog for purchasing PPV messages.
+
+## 7. Implementation Plan
+
+1. **Backend**:
+   - Implement `ConversationService` (create, list, get).
+   - Implement `MessageService` (send, list, mark read).
+   - Implement `MessagingController` and API routes.
+   - Add "Unlock" logic to `PaymentService` or `MessageService`.
+2. **Frontend**:
+   - Create `useConversations` and `useMessages` hooks (SWR).
+   - Build UI components.
+   - Integrate `MediaUpload` for attachments.
+3. **Integration**:
+   - Connect Unlock flow to Wallet/Payment system.

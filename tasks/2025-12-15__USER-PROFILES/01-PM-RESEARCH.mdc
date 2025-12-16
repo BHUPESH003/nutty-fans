@@ -1,0 +1,165 @@
+# 01-PM-RESEARCH.mdc
+
+## Task Information
+| Field | Value |
+|-------|-------|
+| Task ID | `2025-12-15__USER-PROFILES` |
+| Task Name | User Profiles, Settings, Avatar Upload, Layout & Navigation |
+| PM Agent | PM Agent |
+| Date | December 15, 2025 |
+| Status | Draft |
+
+---
+
+## 1. Task Intent Interpretation
+### 1.1 Problem Summary
+This task bundles the first-generation user-facing account surfaces: profile pages, profile editing, settings, avatar upload, and core layout/navigation. Today, NuttyFans lacks a coherent “account and identity” area and a reusable layout/navigation skeleton, which blocks many PRD stories around users managing their presence and moving through the app.
+
+### 1.2 Goals
+- Let users see and manage their public-facing profile.
+- Provide a basic settings surface for account and preference controls (non-payment, non-creator).
+- Enable avatar upload so profiles feel personal and recognizable.
+- Establish baseline layout and navigation that other features can plug into.
+
+### 1.3 Related PRD/BRD References
+- PRD §2.1.1 Account Management: U-001, U-004, U-006.
+- BRD goals around **premium experience** and **creator-first** presentation (profiles are a core expression of this).
+
+---
+
+## 2. Scope Clarification
+### 2.1 In Scope (Refined)
+- **User profile pages**
+  - Basic “My profile” view.
+  - Basic “Other user” profile view (at least username/avatar/bio).
+- **Profile editing**
+  - Core profile fields (see Section 3).
+  - Simple success/error feedback.
+- **Settings page**
+  - Account and basic preference settings (no payments, no creator monetization settings).
+- **Avatar upload**
+  - Upload/replace/remove avatar image using existing storage approach.
+- **Basic layout components**
+  - App shell (header/nav + content area).
+  - Reusable containers/sections for pages.
+- **Navigation implementation**
+  - At minimum: entry points to Home/Feed, Profile, Settings.
+
+### 2.2 Explicitly Out of Scope
+- Creator page design, creator monetization settings, and analytics dashboards.
+- Admin views of users and profiles.
+- Detailed notification preference matrix.
+- Payment, subscription, and payout-related settings.
+- Complex information architecture beyond immediate primary nav needs.
+
+---
+
+## 3. Functional Requirements (Draft)
+### 3.1 User Profile Data (Conceptual)
+High-level fields for user-facing profile (exact schema is an architecture decision, not defined here):
+- Display name.
+- Username/handle.
+- Avatar.
+- Short bio/about.
+- Location (optional, if allowed by legal/privacy).
+- Join date (read-only display).
+- Basic follower/following counts (display-only, if available).
+
+### 3.2 Profile Pages
+- FR-PROFILE-001: Users can view their own profile in a dedicated profile page.
+- FR-PROFILE-002: Users can view other users’ profiles from appropriate entry points (e.g., clicking avatar/name).
+- FR-PROFILE-003: Profiles surface at least: avatar, display name, handle, bio, and basic engagement numbers if available.
+- FR-PROFILE-004: If a user has incomplete profile information, the page should handle this gracefully (empty states, placeholders).
+
+### 3.3 Profile Editing
+- FR-EDIT-001: Users can edit display name, avatar, and bio.
+- FR-EDIT-002: Changes should be reflected in subsequent profile views and navigation (e.g., header avatar).
+- FR-EDIT-003: Validation rules for text fields (length limits, disallowed characters/words) are applied consistently.
+- FR-EDIT-004: Editing flows include clear success/failure messaging.
+
+### 3.4 Settings Page (Non-payment)
+- FR-SETTINGS-001: Provide an account settings page reachable from navigation.
+- FR-SETTINGS-002: Settings include at minimum:
+  - Email visibility or similar basic privacy toggle (exact options to be refined later).
+  - Basic notification preferences at a coarse level (on/off or a small number of categories, not a full matrix).
+  - Account-level actions placeholders (e.g., “Delete account” link pointing to existing or future flow).
+- FR-SETTINGS-003: Settings changes persist and apply consistently across sessions.
+
+### 3.5 Avatar Upload
+- FR-AVATAR-001: Users can upload a profile image.
+- FR-AVATAR-002: Basic validations: supported file types and size limits.
+- FR-AVATAR-003: Users can replace an existing avatar.
+- FR-AVATAR-004: Users can remove an avatar and fallback to a default representation.
+- FR-AVATAR-005: Avatar updates propagate to key UI surfaces (profile page, navigation header, etc.).
+
+### 3.6 Layout & Navigation
+- FR-LAYOUT-001: Introduce a reusable app shell/layout structure that other pages can plug into (header/navigation + content).
+- FR-LAYOUT-002: Navigation should include entry points for:
+  - Home/Feed.
+  - Profile.
+  - Settings.
+- FR-LAYOUT-003: Navigation state clearly indicates the current active section.
+- FR-LAYOUT-004: Layout and navigation work on desktop and mobile-width viewports (exact breakpoints/UX left to UI/UX task).
+
+---
+
+## 4. Non-Functional Requirements
+### 4.1 UX & Accessibility (Conceptual)
+- NFR-UX-001: Pages and navigation must be keyboard-navigable and screen-reader friendly.
+- NFR-UX-002: Avatar and profile elements must expose appropriate labels/alt text.
+- NFR-UX-003: Error states and empty states must be clearly communicated.
+
+### 4.2 Privacy & Safety
+- NFR-PRIV-001: Profile fields exposed publicly must be clearly distinguished from private/account-only fields.
+- NFR-PRIV-002: Avatar and profile content must adhere to content policies (enforcement details are a separate moderation task).
+- NFR-PRIV-003: Settings must not accidentally reveal sensitive information (e.g., emails) without explicit user choice.
+
+### 4.3 Performance & Reliability
+- NFR-PERF-001: Profile and settings pages should load within acceptable performance budgets (exact metrics to be defined by engineering).
+- NFR-PERF-002: Avatar images should be delivered via the existing media pipeline (caching/CDN already covered at infra level).
+
+---
+
+## 5. Assumptions
+| ID | Assumption | Risk if Wrong |
+|----|------------|--------------|
+| A1 | Basic user identity and avatar fields are already modeled or will be modeled by backend within this task’s scope. | Profile editing may require schema changes and slip in schedule. |
+| A2 | Media/storage for avatars is available via existing infrastructure. | Avatar upload might require additional infra work. |
+| A3 | No complex privacy model is needed for MVP beyond simple “public vs not shown” profile fields. | Might require redesign of settings and visibility controls. |
+| A4 | Navigation IA will remain relatively simple in this phase. | Later expansion could require refactoring nav layout. |
+
+---
+
+## 6. Open Questions (for Human/Tech Lead/UI-UX)
+| ID | Question | Notes |
+|----|----------|-------|
+| Q1 | Which profile fields are MVP vs later (e.g., links, social handles, location)? | Avoid over-scoping initial profile edit form. |
+| Q2 | What is the exact distinction between “public profile” data and “account-only” data? | Impacts which fields appear on profile vs settings. |
+| Q3 | Are there specific content rules for avatars (e.g., NSFW avatars allowed or not)? | Impacts moderation and UI copy. |
+| Q4 | Should the first iteration of navigation be top-nav, side-nav, or responsive hybrid? | Will be decided by UI/UX; PM just flags the need. |
+
+---
+
+## 7. Owners Required
+- Product/PM (you) — define priorities and fields, approve scope.
+- Tech Lead — determine data model boundaries and service ownership for profile/settings.
+- Backend engineer — implement persistence for profile/settings and avatar references.
+- Frontend engineer — implement profile, settings, layout, and navigation UIs.
+- UI/UX — finalize layout pattern (header/nav) and profile/settings visual hierarchy.
+- Security/Compliance — sign off on what profile data is public vs private.
+
+---
+
+## 8. Risks & Mitigations
+| Risk | Impact | Mitigation |
+|------|--------|------------|
+| Over-scoping profile fields for MVP | Delays and more complex forms | Start with small set of fields, iterate later. |
+| Confusion between public vs private data | Privacy concerns or user mistrust | Clear labels and separation between profile and settings. |
+| Navigation pattern changes later | Rework in layout and routes | Choose a simple, extensible pattern and document assumptions. |
+
+---
+
+## 9. Next Phase
+- Await clarification on open questions (Section 6).
+- After approval, proceed to `02-ARCHITECTURE-REVIEW.mdc` for this task.
+

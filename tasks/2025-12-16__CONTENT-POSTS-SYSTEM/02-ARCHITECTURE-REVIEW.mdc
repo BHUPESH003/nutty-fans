@@ -1,0 +1,629 @@
+**Task:** 2025-12-16__CONTENT-POSTS-SYSTEM  
+**Owner:** Engineering Lead Agent  
+**Status:** ✅ APPROVED  
+**Date:** 2025-12-16
+
+---
+
+# Content/Posts System — Architecture Review
+
+## Overview
+
+This document defines the technical architecture for the Content/Posts System, covering post creation, media upload/processing, video handling via Mux, content feed, engagement features (likes, comments, bookmarks), and ephemeral content (stories/reels).
+
+---
+
+## 1. System Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        CLIENT (Next.js)                          │
+├─────────────────────────────────────────────────────────────────┤
+│  Post Creation     │   Media Upload    │   Feed/Engagement       │
+│  (/creator/posts)  │   (Presigned URL) │   (/feed, /post/[id])   │
+└────────┬───────────┴────────┬──────────┴──────────┬─────────────┘
+         │                    │                      │
+         ▼                    ▼                      ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                      API ROUTES (Next.js)                        │
+├─────────────────────────────────────────────────────────────────┤
+│  /api/posts/*      │  /api/media/*     │  /api/feed/*            │
+│  /api/comments/*   │  /api/webhooks/*  │  /api/posts/[id]/*      │
+└────────┬───────────┴────────┬──────────┴──────────┬─────────────┘
+         │                    │                      │
+         ▼                    ▼                      ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                      SERVICE LAYER                               │
+├─────────────────────────────────────────────────────────────────┤
+│  PostService   │  MediaService  │  FeedService  │  CommentService│
+│  MuxService    │  UploadService │  LikeService  │  BookmarkService│
+└────────┬───────┴────────┬───────┴────────┬──────┴────────┬──────┘
+         │                │                 │               │
+         ▼                ▼                 ▼               ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    REPOSITORY LAYER                              │
+├─────────────────────────────────────────────────────────────────┤
+│  PostRepository  │  MediaRepository  │  CommentRepository       │
+│  LikeRepository  │  BookmarkRepository                          │
+└────────┬─────────┴─────────┬─────────┴────────┬─────────────────┘
+         │                   │                   │
+         ▼                   ▼                   ▼
+     ┌───────┐         ┌──────────┐        ┌────────────┐
+     │ Prisma│         │ S3/CDN   │        │ Mux API    │
+     │(PostgreSQL)     │          │        │            │
+     └───────┘         └──────────┘        └────────────┘
+```
+
+---
+
+## 2. API Route Structure
+
+### Post Management (Creator)
+
+| Route | Method | Handler | Auth | Description |
+|-------|--------|---------|------|-------------|
+| `/api/posts` | POST | `postController.create` | Creator | Create post |
+| `/api/posts` | GET | `postController.list` | Creator | List own posts |
+| `/api/posts/[id]` | GET | `postController.getById` | Auth | Get post details |
+| `/api/posts/[id]` | PATCH | `postController.update` | Creator | Update post |
+| `/api/posts/[id]` | DELETE | `postController.delete` | Creator | Delete post |
+| `/api/posts/[id]/publish` | POST | `postController.publish` | Creator | Publish draft |
+
+### Media Management
+
+| Route | Method | Handler | Auth | Description |
+|-------|--------|---------|------|-------------|
+| `/api/media/upload-url` | POST | `mediaController.getUploadUrl` | Creator | Get presigned S3 URL |
+| `/api/media/confirm` | POST | `mediaController.confirmUpload` | Creator | Confirm upload, start processing |
+| `/api/media/[id]/status` | GET | `mediaController.getStatus` | Creator | Check processing status |
+
+### Video (Mux)
+
+| Route | Method | Handler | Auth | Description |
+|-------|--------|---------|------|-------------|
+| `/api/media/video/upload-url` | POST | `muxController.getUploadUrl` | Creator | Get Mux direct upload URL |
+| `/api/webhooks/mux` | POST | `webhookController.handleMux` | None | Mux webhook callbacks |
+
+### Feed
+
+| Route | Method | Handler | Auth | Description |
+|-------|--------|---------|------|-------------|
+| `/api/feed` | GET | `feedController.getSubscribedFeed` | Auth | User's subscribed feed |
+| `/api/feed/explore` | GET | `feedController.getExplore` | Optional | Discover public content |
+
+### Engagement
+
+| Route | Method | Handler | Auth | Description |
+|-------|--------|---------|------|-------------|
+| `/api/posts/[id]/like` | POST | `likeController.toggle` | Auth | Toggle like |
+| `/api/posts/[id]/bookmark` | POST | `bookmarkController.toggle` | Auth | Toggle bookmark |
+| `/api/posts/[id]/comments` | GET | `commentController.list` | Auth | Get comments |
+| `/api/posts/[id]/comments` | POST | `commentController.create` | Auth | Add comment |
+| `/api/comments/[id]` | DELETE | `commentController.delete` | Auth | Delete comment |
+| `/api/comments/[id]/like` | POST | `commentController.toggleLike` | Auth | Like comment |
+| `/api/user/bookmarks` | GET | `bookmarkController.list` | Auth | User's bookmarks |
+
+### Public
+
+| Route | Method | Handler | Description |
+|-------|--------|---------|-------------|
+| `/api/public/creator/[handle]/posts` | GET | `publicController.creatorPosts` | Public posts only |
+
+---
+
+## 3. Service Layer Design
+
+### PostService
+
+```typescript
+class PostService {
+  // CRUD
+  create(creatorId: string, input: CreatePostInput): Promise<Post>
+  getById(id: string, viewerId?: string): Promise<PostWithAccess>
+  update(id: string, creatorId: string, input: UpdatePostInput): Promise<Post>
+  delete(id: string, creatorId: string): Promise<void>
+  
+  // Publishing
+  publish(id: string, creatorId: string): Promise<Post>
+  schedule(id: string, creatorId: string, scheduledAt: Date): Promise<Post>
+  
+  // Queries
+  listByCreator(creatorId: string, filters: PostFilters): Promise<PaginatedPosts>
+  checkAccess(postId: string, userId?: string): Promise<AccessResult>
+}
+```
+
+### MediaService
+
+```typescript
+class MediaService {
+  // Upload
+  getPresignedUploadUrl(creatorId: string, file: FileMetadata): Promise<UploadUrlResponse>
+  confirmUpload(creatorId: string, mediaId: string, s3Key: string): Promise<Media>
+  
+  // Processing
+  startImageProcessing(mediaId: string): Promise<void>
+  startVideoProcessing(mediaId: string): Promise<void> // Delegates to MuxService
+  
+  // Watermarking
+  applyInvisibleWatermark(mediaId: string, viewerId: string): Promise<string>
+}
+```
+
+### MuxService
+
+```typescript
+class MuxService {
+  // Direct upload
+  getDirectUploadUrl(creatorId: string): Promise<{ uploadUrl: string; assetId: string }>
+  
+  // Webhooks
+  handleWebhook(payload: MuxWebhookPayload): Promise<void>
+  
+  // Playback
+  getPlaybackUrl(assetId: string, viewerId?: string): Promise<string>
+  
+  // Status
+  getAssetStatus(assetId: string): Promise<MuxAssetStatus>
+}
+```
+
+### FeedService
+
+```typescript
+class FeedService {
+  // Feeds
+  getSubscribedFeed(userId: string, cursor?: string, limit?: number): Promise<FeedResult>
+  getExploreFeed(cursor?: string, limit?: number): Promise<FeedResult>
+  getCreatorPublicPosts(creatorId: string, cursor?: string): Promise<FeedResult>
+  
+  // Stories/Reels
+  getActiveStories(userId: string): Promise<Story[]>
+  getReelsFeed(cursor?: string): Promise<FeedResult>
+}
+```
+
+### CommentService
+
+```typescript
+class CommentService {
+  create(postId: string, userId: string, input: CreateCommentInput): Promise<Comment>
+  delete(id: string, userId: string): Promise<void>
+  list(postId: string, cursor?: string): Promise<PaginatedComments>
+  getReplies(commentId: string, cursor?: string): Promise<PaginatedComments>
+  toggleLike(commentId: string, userId: string): Promise<void>
+  hide(id: string, hiddenByUserId: string, reason: string): Promise<void>
+}
+```
+
+---
+
+## 4. Mux Video Integration
+
+### Configuration
+
+```typescript
+// Environment variables
+MUX_TOKEN_ID=             // API Token ID
+MUX_TOKEN_SECRET=         // API Token Secret
+MUX_WEBHOOK_SECRET=       // Webhook signature verification
+```
+
+### Upload Flow
+
+```
+1. Creator initiates video upload
+   └── POST /api/media/video/upload-url
+   
+2. MuxService creates direct upload
+   └── Mux API: POST /video/v1/uploads
+   └── Returns: upload URL + upload ID
+   
+3. Client uploads video directly to Mux
+   └── Uses returned upload URL (no server involvement)
+   
+4. Mux processes video automatically
+   └── Generates: thumbnails, multiple qualities, HLS streams
+   
+5. Mux sends webhook on completion
+   └── POST /api/webhooks/mux
+   └── Event: video.asset.ready
+   
+6. WebhookController updates Media record
+   └── processingStatus: completed
+   └── Stores: playbackId, thumbnailUrl, duration, etc.
+```
+
+### Webhook Handling
+
+```typescript
+// Webhook events to handle
+- video.upload.created     // Upload started
+- video.upload.asset_ready // Transcoding complete
+- video.asset.ready        // Asset playable
+- video.asset.errored      // Processing failed
+```
+
+### Playback
+
+```typescript
+// Mux playback URLs
+const playbackUrl = `https://stream.mux.com/${playbackId}.m3u8`; // HLS
+const thumbnailUrl = `https://image.mux.com/${playbackId}/thumbnail.jpg`;
+const gifUrl = `https://image.mux.com/${playbackId}/animated.gif`;
+```
+
+---
+
+## 5. Media Upload Flow (Images)
+
+### Presigned URL Flow
+
+```
+1. Client requests upload URL
+   └── POST /api/media/upload-url
+   └── Body: { filename, contentType, size }
+   
+2. Server generates presigned S3 URL
+   └── Validates file type/size
+   └── Creates Media record (status: pending)
+   └── Generates unique S3 key: `uploads/{creatorId}/{uuid}/{filename}`
+   └── Returns: { uploadUrl, mediaId, key }
+   
+3. Client uploads directly to S3
+   └── PUT to presigned URL
+   └── Bypasses server (efficient for large files)
+   
+4. Client confirms upload
+   └── POST /api/media/confirm
+   └── Body: { mediaId, key }
+   
+5. Server starts processing
+   └── Queue image processing job
+   └── Generate: thumbnail, multiple sizes, watermarked version
+   └── Update Media: processingStatus → completed
+   └── Store processed URLs
+```
+
+### S3 Key Structure
+
+```
+nuttyfans-media-{env}/
+├── uploads/
+│   └── {creatorId}/
+│       └── {uuid}/
+│           ├── original.jpg
+│           ├── thumb_200x200.jpg
+│           ├── small_480.jpg
+│           ├── medium_720.jpg
+│           └── large_1080.jpg
+└── videos/
+    └── (Mux handles storage)
+```
+
+---
+
+## 6. Feed Query Optimization
+
+### Subscribed Feed Query
+
+```sql
+-- Optimized with cursor-based pagination
+SELECT p.*, creator.handle, creator.display_name, creator.avatar_url
+FROM posts p
+INNER JOIN creator_profiles creator ON p.creator_id = creator.id
+INNER JOIN subscriptions sub ON sub.creator_id = creator.id
+WHERE sub.user_id = :userId
+  AND sub.status = 'active'
+  AND p.status = 'published'
+  AND p.published_at <= now()
+  AND (p.expires_at IS NULL OR p.expires_at > now())
+  AND p.published_at < :cursor  -- Cursor for pagination
+ORDER BY p.published_at DESC
+LIMIT :limit
+```
+
+### Indexes (Already Defined)
+
+```
+@@index([creatorId, publishedAt(sort: Desc)])
+@@index([creatorId, status, publishedAt(sort: Desc)])
+```
+
+### Caching Strategy
+
+```typescript
+// Feed caching (future implementation)
+// Key: feed:user:{userId}:page:{cursor}
+// TTL: 60 seconds (short to handle new posts)
+// Invalidate on: new post from subscribed creator
+```
+
+---
+
+## 7. Comments Threading Model
+
+### Data Model
+
+```
+Comment {
+  id
+  postId       → Post
+  userId       → User
+  parentId     → Comment (self-reference, nullable)
+  content
+  likeCount
+  replyCount
+  isHidden
+  ...
+}
+```
+
+### Threading Logic
+
+```typescript
+// Top-level comments (parentId = null)
+const topLevelComments = await commentRepo.findByPostId(postId, {
+  where: { parentId: null },
+  orderBy: { createdAt: 'desc' },
+  take: 20,
+});
+
+// Load first 3 replies for each
+for (const comment of topLevelComments) {
+  comment.replies = await commentRepo.findReplies(comment.id, { take: 3 });
+}
+
+// User can "View more replies" → loads next page
+```
+
+### Comment Creation
+
+```typescript
+async create(postId: string, userId: string, input: CreateCommentInput) {
+  // 1. Check if post exists and has comments enabled
+  const post = await postRepo.findById(postId);
+  if (!post || !post.commentsEnabled) throw new Error('Comments disabled');
+  
+  // 2. Check access (subscriber-only posts)
+  const hasAccess = await postService.checkAccess(postId, userId);
+  if (!hasAccess) throw new Error('Access denied');
+  
+  // 3. Create comment
+  const comment = await commentRepo.create({ postId, userId, ...input });
+  
+  // 4. Update counters
+  await postRepo.incrementCommentCount(postId);
+  if (input.parentId) {
+    await commentRepo.incrementReplyCount(input.parentId);
+  }
+  
+  return comment;
+}
+```
+
+---
+
+## 8. Stories/Reels Content Type Handling
+
+### Differentiation
+
+| Aspect | Post | Story | Reel |
+|--------|------|-------|------|
+| PostType | `post` | `story` | `reel` |
+| Duration | Permanent | 24 hours | Permanent |
+| expiresAt | null | `now + 24h` | null |
+| Media | Multiple images/1 video | 1 image/short video | 1 vertical video |
+| Comments | Optional | Disabled | Optional |
+| Feed | Main feed | Stories bar | Reels feed |
+
+### Story Expiration
+
+```typescript
+// Scheduled job (runs hourly)
+async cleanupExpiredStories() {
+  await prisma.post.updateMany({
+    where: {
+      postType: 'story',
+      expiresAt: { lte: new Date() },
+      status: 'published',
+    },
+    data: {
+      status: 'archived',
+    },
+  });
+}
+```
+
+### Reels Query
+
+```typescript
+// Vertical video feed (TikTok-style pagination)
+async getReelsFeed(cursor?: string, limit = 10) {
+  return postRepo.findMany({
+    where: {
+      postType: 'reel',
+      status: 'published',
+      publishedAt: { lte: new Date() },
+    },
+    orderBy: { publishedAt: 'desc' },
+    cursor: cursor ? { id: cursor } : undefined,
+    take: limit,
+    include: { media: true, creator: true },
+  });
+}
+```
+
+---
+
+## 9. File Structure
+
+### New Files
+
+```
+src/
+├── types/
+│   └── content.ts                    # Post, Media, Comment types
+│
+├── repositories/
+│   ├── postRepository.ts             # Post CRUD
+│   ├── mediaRepository.ts            # Media CRUD
+│   ├── commentRepository.ts          # Comment CRUD
+│   ├── likeRepository.ts             # Like operations
+│   └── bookmarkRepository.ts         # Bookmark operations
+│
+├── services/
+│   ├── content/
+│   │   ├── postService.ts            # Post business logic
+│   │   ├── mediaService.ts           # Media & upload logic
+│   │   ├── feedService.ts            # Feed generation
+│   │   └── commentService.ts         # Comment logic
+│   │
+│   └── integrations/
+│       └── mux/
+│           ├── types.ts              # Mux API types
+│           └── muxClient.ts          # Mux API client
+│
+├── app/api/
+│   ├── posts/
+│   │   ├── route.ts                  # POST, GET /api/posts
+│   │   └── [id]/
+│   │       ├── route.ts              # GET, PATCH, DELETE
+│   │       ├── publish/route.ts      # POST publish
+│   │       ├── like/route.ts         # POST like toggle
+│   │       ├── bookmark/route.ts     # POST bookmark toggle
+│   │       └── comments/route.ts     # GET, POST comments
+│   │
+│   ├── media/
+│   │   ├── upload-url/route.ts       # POST presigned URL
+│   │   ├── confirm/route.ts          # POST confirm upload
+│   │   ├── [id]/
+│   │   │   └── status/route.ts       # GET processing status
+│   │   └── video/
+│   │       └── upload-url/route.ts   # POST Mux upload URL
+│   │
+│   ├── comments/
+│   │   └── [id]/
+│   │       ├── route.ts              # DELETE comment
+│   │       └── like/route.ts         # POST like toggle
+│   │
+│   ├── feed/
+│   │   ├── route.ts                  # GET subscribed feed
+│   │   └── explore/route.ts          # GET explore feed
+│   │
+│   ├── user/
+│   │   └── bookmarks/route.ts        # GET user bookmarks
+│   │
+│   ├── webhooks/
+│   │   └── mux/route.ts              # POST Mux webhooks
+│   │
+│   └── public/
+│       └── creator/
+│           └── [handle]/
+│               └── posts/route.ts    # GET public posts
+│
+└── app/
+    ├── (creator)/creator/
+    │   └── posts/
+    │       ├── page.tsx              # My posts list
+    │       ├── new/page.tsx          # Create post
+    │       └── [id]/
+    │           └── edit/page.tsx     # Edit post
+    │
+    ├── feed/
+    │   └── page.tsx                  # Main feed (SSR)
+    │
+    ├── post/
+    │   └── [id]/page.tsx             # Post detail
+    │
+    └── bookmarks/
+        └── page.tsx                  # User bookmarks
+```
+
+---
+
+## 10. Environment Variables
+
+```bash
+# Mux (Video Processing)
+MUX_TOKEN_ID=
+MUX_TOKEN_SECRET=
+MUX_WEBHOOK_SECRET=
+
+# Already configured
+AWS_S3_BUCKET=            # ✅
+AWS_ACCESS_KEY_ID=        # ✅
+AWS_SECRET_ACCESS_KEY=    # ✅
+CLOUDFRONT_URL=           # ✅
+```
+
+---
+
+## 11. Security Considerations
+
+| Concern | Mitigation |
+|---------|------------|
+| Unauthorized media access | Signed CloudFront URLs with expiration |
+| Webhook spoofing | Verify Mux webhook signatures |
+| Large file attacks | Enforce max file sizes (20MB image, 5GB video) |
+| Content injection | Sanitize post content (XSS prevention) |
+| Access control bypass | Server-side access check on every media/post request |
+
+---
+
+## 12. Validation Plan
+
+### Automated Tests
+
+```bash
+# Unit tests
+- PostService: CRUD operations, access checks
+- MediaService: Upload URL generation, processing flow
+- FeedService: Query pagination, access filtering
+- CommentService: Threading, counters
+
+# Integration tests
+- POST /api/posts → Create with media
+- GET /api/feed → Returns subscribed content
+- POST /api/posts/[id]/like → Toggles, updates count
+```
+
+### Manual Verification
+
+1. Create post with image → Verify S3 upload and thumbnail generation
+2. Create post with video → Verify Mux upload and playback
+3. View feed → Verify only subscribed content appears
+4. Comment on post → Verify threading works
+5. Like/bookmark → Verify counts update
+
+---
+
+## 13. Dependencies
+
+| Dependency | Status |
+|------------|--------|
+| Auth System | ✅ Complete |
+| Creator Foundation | ✅ Complete |
+| User Profiles | ✅ Complete |
+| S3 Infrastructure | ✅ Complete |
+| CDN (CloudFront) | ✅ Complete |
+| Database Schema | ✅ Complete |
+
+---
+
+## 14. Estimated Implementation
+
+| Phase | Duration |
+|-------|----------|
+| Types + Repositories | 1 day |
+| Mux Integration | 1 day |
+| Post/Media Services | 2 days |
+| Feed + Comment Services | 1 day |
+| API Routes | 2 days |
+| Frontend Pages | 3 days |
+| Integration Testing | 1 day |
+| **Total** | **~11 days** |
+
+---
+
+> **Approval Required:** Human approval needed before engineering work begins.

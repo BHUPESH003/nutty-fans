@@ -1,197 +1,121 @@
-# 🤖 AGENT CONTRACTS – README
+# 🤖 AGENT GOVERNANCE – SIMPLIFIED MODEL
 
 ## Purpose
 
-This folder defines **agent-specific contracts** for the NuttyFans project.
+This folder defines the **AI agent governance model** for the NuttyFans project.
 
-Each agent contract specifies:
+To balance:
 
-- What the agent is responsible for
-- What the agent is explicitly forbidden to do
-- What files the agent can read and write
-- How the agent must behave when information is missing
-- How the agent’s output is validated
-- When the agent must stop and wait for human input
+- Speed
+- Clarity
+- Safety
+- Human control
 
-These contracts exist to ensure:
+we intentionally use **TWO composite agents** instead of many fragmented roles.
 
-- Predictable behavior
-- No architectural drift
-- No scope bleed between roles
-- Safe and auditable AI usage
+This model is optimized for:
 
----
-
-## What Agent Contracts Are
-
-An **Agent Contract** is a **binding role definition**.
-
-Think of each agent as:
-
-> A junior-to-senior team member who must follow a written role charter.
-
-If an agent violates its contract:
-
-- Its output is invalid
-- The task is blocked
-- No downstream agent may proceed
+- Early to mid-stage product development
+- High-context engineering work
+- Solo founder + AI collaboration
+- Reduced orchestration overhead
 
 ---
 
-## What Agent Contracts Are NOT
+## The Two-Agent Model
 
-Agent contracts are **not**:
+### 1️⃣ Product & Operations Agent
 
-- Prompt experiments
-- Suggestions
-- Best practices
-- Flexible guidelines
+**(PM + QA + DevOps responsibilities)**
 
-They are **strict operating rules**.
+Focus:
 
----
+- What should be built
+- Whether it is correct
+- Whether it is safe to release
+- Whether infra or operational risks exist
 
-## Relationship to Other Rules
-
-Agent contracts do **not** exist in isolation.
-
-### Rule Precedence (Highest → Lowest)
-
-1. **USER_RULES.md**
-   Human authority and approval rules
-
-2. **PROJECT_RULES.md**
-   Repo structure, branching, environments
-
-3. **TASK_EXECUTION_CONTRACT.md**
-   Task lifecycle, files, gates
-
-4. **CODEBASE_ARCHITECTURE_RULES.md**
-   Code structure and layering
-
-5. **CODEBASE_GOVERNANCE_RULES.md**
-   Tooling, quality, hygiene
-
-6. **AGENT CONTRACTS (this folder)**
-   Role-specific behavior and boundaries
-
-7. Docs & agent suggestions
-
-If there is any conflict:
-
-- Higher-precedence rules win
-- Agents must stop and ask
+This agent acts as the **quality gatekeeper**.
 
 ---
 
-## Folder Structure
+### 2️⃣ Engineering Lead Agent
 
-```
-rules/AGENTS/
-├── README.md
-├── PM_AGENT_CONTRACT.md
-├── TECH_LEAD_AGENT_CONTRACT.md
-├── UI_UX_AGENT_CONTRACT.md
-├── FRONTEND_AGENT_CONTRACT.md
-├── BACKEND_AGENT_CONTRACT.md
-├── QA_AGENT_CONTRACT.md
-└── DEVOPS_AGENT_CONTRACT.md
-```
+**(Tech Lead + Backend + Frontend + UI/UX responsibilities)**
 
-Each file defines **one agent role**.
+Focus:
+
+- How things are built
+- Architecture correctness
+- Database design
+- API design
+- UI & implementation
+
+This agent acts as the **execution engine**.
 
 ---
 
-## Common Structure of an Agent Contract
+## Why This Model
 
-Every agent contract file must define:
+The previous multi-agent model was correct but heavy.
 
-1. **Role & Scope**
-2. **Allowed Responsibilities**
-3. **Explicitly Forbidden Actions**
-4. **Readable Inputs (files/folders)**
-5. **Writable Outputs (files/folders)**
-6. **Mandatory Output Structure (if applicable)**
-7. **Failure & Escalation Rules**
-8. **Stop Conditions**
+This simplified model:
 
-This consistency allows:
+- Reduces handoffs
+- Preserves separation of concerns
+- Matches real early-stage teams
+- Avoids agent fatigue
+- Keeps human approval central
 
-- Mechanical enforcement
-- Easy review
-- Predictable behavior
+Agents are **tools**, not decision-makers.
 
 ---
 
-## Stop-and-Ask Principle (Critical)
+## Rule Precedence (Highest → Lowest)
 
-All agents must follow this rule:
+1. USER_RULES.md
+2. PROJECT_RULES.md
+3. TASK_EXECUTION_CONTRACT.md
+4. CODEBASE_ARCHITECTURE_RULES.md
+5. CODEBASE_GOVERNANCE_RULES.md
+6. AGENT CONTRACTS (this folder)
+7. Docs / suggestions
 
-> If requirements are missing, conflicting, or ambiguous:
->
-> - Do NOT guess
-> - Do NOT invent
-> - Do NOT proceed
-> - Ask the human and wait
+If a conflict exists:
 
-Hallucination is treated as a **contract violation**.
+- Higher rules override lower ones
+- Agents must STOP and ask
 
 ---
 
 ## Human-in-the-Loop Guarantee
 
-No agent:
+- Agents cannot merge code
+- Agents cannot deploy
+- Agents cannot modify `/rules`
+- Agents cannot approve their own work
 
-- Approves work
-- Merges code
-- Deploys changes
-- Modifies production infrastructure
-
-All agent output is:
-
-- Proposals only
-- Subject to human review
-- Reversible
+All outputs are **proposals**, subject to human review.
 
 ---
 
-## How These Contracts Are Used
+## Stop-and-Ask Principle (Mandatory)
 
-Agent contracts are:
+If information is:
 
-- Referenced explicitly in Cursor agent system prompts
-- Treated as canonical during reviews
-- Used to reject invalid output
-- Stable across tools and IDEs
+- Missing
+- Ambiguous
+- Conflicting
 
-They are **tool-agnostic** by design.
+Agents must:
 
----
+- STOP
+- Document assumptions
+- Ask the human
+- Wait
 
-## Modifying Agent Contracts
-
-- Only the human owner may modify agent contracts
-- Any change must be deliberate and reviewed
-- Changes should be rare and documented
-
-Agents must never modify files in this folder.
+Hallucination is considered a contract violation.
 
 ---
 
-## Final Note
-
-These contracts exist to make AI:
-
-- Predictable
-- Safe
-- Useful at scale
-
-Speed without structure creates debt.
-Structure enables speed later.
-
----
-
-## Status
-
-This README establishes the **agent governance layer**.
-Individual agent contracts define execution.
+## Folder Structure

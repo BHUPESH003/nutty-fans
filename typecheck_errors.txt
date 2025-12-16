@@ -1,0 +1,46 @@
+
+> nuttyfans@0.1.0 typecheck /home/pelocal/Desktop/nuttyfans
+> tsc --noEmit
+
+src/app/(creator)/creator/earnings/page.tsx(17,14): error TS2345: Argument of type '"/auth/signin"' is not assignable to parameter of type 'RouteImpl<"/auth/signin">'.
+src/app/(creator)/creator/earnings/page.tsx(25,14): error TS2345: Argument of type '"/creator/onboarding"' is not assignable to parameter of type 'RouteImpl<"/creator/onboarding">'.
+src/app/(creator)/creator/payouts/page.tsx(5,79): error TS2307: Cannot find module '@/components/ui/table' or its corresponding type declarations.
+src/app/(creator)/creator/payouts/page.tsx(19,14): error TS2345: Argument of type '"/auth/signin"' is not assignable to parameter of type 'RouteImpl<"/auth/signin">'.
+src/app/(creator)/creator/payouts/page.tsx(25,14): error TS2345: Argument of type '"/creator/onboarding"' is not assignable to parameter of type 'RouteImpl<"/creator/onboarding">'.
+src/app/(creator)/creator/payouts/settings/page.tsx(9,24): error TS2307: Cannot find module '@/components/ui/switch' or its corresponding type declarations.
+src/app/(creator)/creator/payouts/settings/page.tsx(19,14): error TS2345: Argument of type '"/auth/signin"' is not assignable to parameter of type 'RouteImpl<"/auth/signin">'.
+src/app/(creator)/creator/payouts/settings/page.tsx(25,14): error TS2345: Argument of type '"/creator/onboarding"' is not assignable to parameter of type 'RouteImpl<"/creator/onboarding">'.
+src/app/(creator)/creator/subscribers/page.tsx(5,79): error TS2307: Cannot find module '@/components/ui/table' or its corresponding type declarations.
+src/app/(creator)/creator/subscribers/page.tsx(18,14): error TS2345: Argument of type '"/auth/signin"' is not assignable to parameter of type 'RouteImpl<"/auth/signin">'.
+src/app/(creator)/creator/subscribers/page.tsx(24,14): error TS2345: Argument of type '"/creator/onboarding"' is not assignable to parameter of type 'RouteImpl<"/creator/onboarding">'.
+src/app/api/creator/payouts/settings/route.ts(4,35): error TS2307: Cannot find module '../../../../_controllers/paymentController' or its corresponding type declarations.
+src/app/api/creator/subscribers/route.ts(4,35): error TS2307: Cannot find module '../../../_controllers/paymentController' or its corresponding type declarations.
+src/app/api/creator/transactions/route.ts(4,35): error TS2307: Cannot find module '../../../_controllers/paymentController' or its corresponding type declarations.
+src/app/api/messages/[id]/unlock/route.ts(4,37): error TS2307: Cannot find module '../../_controllers/messagingController' or its corresponding type declarations.
+src/app/api/ppv/[postId]/purchase/route.ts(4,35): error TS2307: Cannot find module '../../../../_controllers/paymentController' or its corresponding type declarations.
+src/app/messages/[id]/page.tsx(8,22): error TS4111: Property 'id' comes from an index signature, so it must be accessed with ['id'].
+src/app/subscriptions/client.tsx(66,9): error TS2353: Object literal may only specify known properties, and 'variant' does not exist in type 'Toast'.
+src/app/subscriptions/page.tsx(15,14): error TS2345: Argument of type '"/auth/signin"' is not assignable to parameter of type 'RouteImpl<"/auth/signin">'.
+src/app/transactions/page.tsx(17,14): error TS2345: Argument of type '"/auth/signin"' is not assignable to parameter of type 'RouteImpl<"/auth/signin">'.
+src/app/wallet/page.tsx(17,14): error TS2345: Argument of type '"/auth/signin"' is not assignable to parameter of type 'RouteImpl<"/auth/signin">'.
+src/components/messaging/ChatWindow.tsx(1,23): error TS2305: Module '"@/hooks/useMessages"' has no exported member 'useConversation'.
+src/components/messaging/ChatWindow.tsx(5,28): error TS2307: Cannot find module '@/components/ui/scroll-area' or its corresponding type declarations.
+src/components/messaging/ConversationList.tsx(3,28): error TS2307: Cannot find module '@/components/ui/scroll-area' or its corresponding type declarations.
+src/components/messaging/MessageInput.tsx(5,57): error TS2307: Cannot find module '@/components/ui/popover' or its corresponding type declarations.
+src/components/payments/SubscribeModal.tsx(48,9): error TS2353: Object literal may only specify known properties, and 'variant' does not exist in type 'Toast'.
+src/components/payments/TransactionList.tsx(3,79): error TS2307: Cannot find module '@/components/ui/table' or its corresponding type declarations.
+src/components/payments/WalletCard.tsx(28,9): error TS2353: Object literal may only specify known properties, and 'variant' does not exist in type 'Toast'.
+src/components/payments/WalletCard.tsx(42,9): error TS2353: Object literal may only specify known properties, and 'variant' does not exist in type 'Toast'.
+src/hooks/useConversations.ts(1,20): error TS2307: Cannot find module 'swr' or its corresponding type declarations.
+src/hooks/useConversations.ts(7,12): error TS7006: Parameter 'url' implicitly has an 'any' type.
+src/hooks/useConversations.ts(28,12): error TS7006: Parameter 'url' implicitly has an 'any' type.
+src/hooks/useMessages.ts(1,20): error TS2307: Cannot find module 'swr' or its corresponding type declarations.
+src/hooks/useMessages.ts(7,12): error TS7006: Parameter 'url' implicitly has an 'any' type.
+src/services/messaging/conversationService.ts(1,24): error TS2307: Cannot find module '@/lib/prisma' or its corresponding type declarations.
+src/services/messaging/conversationService.ts(64,38): error TS7006: Parameter 'c' implicitly has an 'any' type.
+src/services/messaging/messageService.ts(1,24): error TS2307: Cannot find module '@/lib/prisma' or its corresponding type declarations.
+src/services/messaging/messageService.ts(90,33): error TS7006: Parameter 'msg' implicitly has an 'any' type.
+src/services/messaging/messageService.ts(143,39): error TS7006: Parameter 'tx' implicitly has an 'any' type.
+src/services/payments/subscriptionService.ts(226,7): error TS2322: Type 'import("/home/pelocal/Desktop/nuttyfans/node_modules/.pnpm/@prisma+client@7.1.0_prisma@7.1.0_@types+react@19.2.7_react-dom@19.2.3_react@19.2.3__react@19_qmhjxlbpyxy4vqmnd5ivdwpz2a/node_modules/.prisma/client/index").$Enums.SubscriptionPlanType' is not assignable to type 'import("/home/pelocal/Desktop/nuttyfans/src/types/payments").SubscriptionPlanType'.
+  Type '"3month"' is not assignable to type 'SubscriptionPlanType'.
+ ELIFECYCLE  Command failed with exit code 1.

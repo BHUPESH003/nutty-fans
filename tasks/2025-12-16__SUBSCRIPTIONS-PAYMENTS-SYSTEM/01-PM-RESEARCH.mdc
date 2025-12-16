@@ -1,0 +1,141 @@
+# PM Research: Subscriptions & Payments System
+
+**Task:** `2025-12-16__SUBSCRIPTIONS-PAYMENTS-SYSTEM`  
+**Prepared By:** Product Operations Agent  
+**Date:** December 16, 2025  
+**Status:** ✅ Complete
+
+---
+
+## Executive Summary
+
+This task implements the complete revenue system for NuttyFans, enabling subscriptions, PPV purchases, tipping, wallet management, and creator payouts.
+
+---
+
+## Feature Scope
+
+| Feature | Priority | PRD Reference |
+|---------|----------|---------------|
+| Subscription Purchase | P0 | U-020 |
+| Square Payments | P0 | C-020 |
+| Subscription Management | P0 | U-023 |
+| Bundle Pricing | P0 | U-026 |
+| PPV Unlock | P0 | U-021, C-021 |
+| Wallet System | P0 | U-024 |
+| Transaction History | P0 | U-025 |
+| Tipping | P0 | U-022, C-022 |
+| Creator Payouts | P0 | C-026 |
+
+---
+
+## User Stories
+
+### Fan Stories
+- U-020: Subscribe to creator for content access
+- U-021: Purchase PPV to unlock specific posts
+- U-022: Tip creators to show appreciation
+- U-023: Manage subscriptions (cancel, renew)
+- U-024: Add funds to wallet
+- U-025: View transaction history
+- U-026: Purchase subscription bundles for savings
+
+### Creator Stories
+- C-020: Receive subscription payments
+- C-021: Receive PPV payments
+- C-022: Receive tips
+- C-026: Weekly payouts to bank account
+
+---
+
+## Technical Requirements
+
+### Payment Flow
+
+```
+User Action → Square Checkout → Payment Success → 
+  → Update DB (subscription/ppv_purchase/transaction)
+  → Grant Access
+  → Send Notification
+```
+
+### Subscription Plans
+
+| Plan | Duration | Discount |
+|------|----------|----------|
+| Monthly | 1 month | 0% |
+| 3-Month | 3 months | 10% (creator-set) |
+| 6-Month | 6 months | 20% (creator-set) |
+| 12-Month | 12 months | 30% (creator-set) |
+
+### Revenue Split
+
+| Party | Percentage |
+|-------|------------|
+| Creator | 85% |
+| Platform | 15% |
+
+---
+
+## API Endpoints (21 Total)
+
+### Subscriptions (5)
+- POST `/api/subscriptions/[creatorId]` - Subscribe
+- GET `/api/subscriptions` - List subscriptions
+- PATCH `/api/subscriptions/[id]` - Update/cancel
+- POST `/api/subscriptions/[id]/renew` - Renew
+- GET `/api/creator/subscribers` - List subscribers
+
+### Payments (3)
+- POST `/api/payments/checkout` - Create checkout
+- GET/POST/DELETE `/api/payments/cards` - Saved cards
+- POST `/api/webhooks/square/payments` - Webhook
+
+### Wallet (3)
+- GET `/api/wallet` - Get balance
+- POST `/api/wallet/topup` - Add funds
+- GET `/api/wallet/transactions` - History
+
+### PPV (2)
+- POST `/api/ppv/[postId]/purchase` - Purchase
+- GET `/api/ppv/purchases` - User purchases
+
+### Tips (2)
+- POST `/api/tips` - Send tip
+- GET `/api/tips/received` - Creator tips
+
+### Payouts (2)
+- GET `/api/creator/payouts` - Payout history
+- GET/PATCH `/api/creator/payouts/settings` - Settings
+
+### Transactions (2)
+- GET `/api/transactions` - User history
+- GET `/api/creator/transactions` - Creator earnings
+- GET `/api/transactions/export` - CSV export
+
+---
+
+## UI Pages (8)
+
+| Page | Route | User Type |
+|------|-------|-----------|
+| Subscribe Modal | Component | Fan |
+| My Subscriptions | `/subscriptions` | Fan |
+| Wallet | `/wallet` | Fan |
+| Transaction History | `/transactions` | Fan |
+| Earnings Dashboard | `/creator/earnings` | Creator |
+| Subscribers List | `/creator/subscribers` | Creator |
+| Payout History | `/creator/payouts` | Creator |
+| Payout Settings | `/creator/payouts/settings` | Creator |
+
+---
+
+## Dependencies
+
+All complete - ready for implementation.
+
+---
+
+## Next Phase
+
+→ Architecture Review by Engineering Lead

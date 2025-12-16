@@ -1,0 +1,442 @@
+---
+type: architecture-review
+task: 2025-12-16__SUBSCRIPTIONS-PAYMENTS-SYSTEM
+owner: Engineering Lead Agent
+status: APPROVED
+date: 2025-12-16
+---
+
+# Subscriptions & Payments System — Architecture Review
+
+## 1. Overview
+
+This document defines the technical architecture for the Subscriptions & Payments System, enabling creators to earn through subscriptions, PPV, and tips, with weekly payouts via Square.
+
+### Scope Summary
+| Feature | Description |
+|---------|-------------|
+| Subscriptions | Monthly + bundles (3/6/12 months) |
+| PPV | Unlock individual posts |
+| Tips | Send tips on posts/messages |
+| Wallet | Prepaid balance for purchases |
+| Payouts | Weekly payouts to creator's Square account |
+
+### Key Decisions (Confirmed)
+| Decision | Answer |
+|----------|--------|
+| Payment Provider | Square |
+| Platform Commission | **16%** |
+| Creator Earnings | **84%** |
+| Payout Schedule | Weekly (Friday) |
+| Minimum Payout | $20 |
+| Wallet Min Top-Up | $5 |
+| Wallet Structure | **Single USD balance** |
+| Auto-Renew | **ON by default** |
+| Email Receipts | **Yes** (all purchases) |
+| Refunds | **No automated refunds** |
+
+---
+
+## 2. Dependencies
+
+| Dependency | Status | Notes |
+|------------|--------|-------|
+| Auth System | ✅ Complete | User authentication |
+| Creator Foundation | ✅ Complete | Square OAuth, creator profiles |
+| Content/Posts System | ✅ Complete | PPV posts |
+| Database Schema | ✅ Complete | All tables exist |
+| Square Production Keys | ⬜ Required | For live payments |
+
+---
+
+## 3. Database Tables (Existing)
+
+All required tables already exist in schema:
+
+| Table | Purpose |
+|-------|---------|
+| `subscriptions` | User subscriptions to creators |
+| `subscription_history` | Subscription lifecycle events |
+| `transactions` | All financial transactions |
+| `payouts` | Creator payout records |
+| `ppv_purchases` | PPV content purchases |
+| `tip_goals` | Creator tip goal campaigns |
+| `tip_goal_contributions` | Individual tip contributions |
+
+### Enums
+- `SubscriptionPlanType`: monthly, 3month, 6month, 12month
+- `SubscriptionStatus`: active, cancelled, expired, paused
+- `TransactionType`: subscription, ppv, tip, message, live_tip, wallet_topup, payout, refund
+- `TransactionStatus`: pending, completed, failed, refunded
+- `PayoutStatus`: pending, processing, completed, failed
+
+---
+
+## 4. API Route Structure (21 Endpoints)
+
+### Subscriptions (5 routes)
+```
+POST   /api/subscriptions/[creatorId]     → Subscribe to creator
+GET    /api/subscriptions                 → List user's subscriptions
+PATCH  /api/subscriptions/[id]            → Cancel subscription
+POST   /api/subscriptions/[id]/renew      → Renew expired subscription
+GET    /api/creator/subscribers           → List creator's subscribers
+```
+
+### Payments (3 routes)
+```
+POST   /api/payments/checkout             → Create Square checkout
+GET    /api/payments/cards                → List saved cards
+POST   /api/webhooks/square/payments      → Square payment webhook
+```
+
+### Wallet (3 routes)
+```
+GET    /api/wallet                        → Get wallet balance
+POST   /api/wallet/topup                  → Add funds to wallet
+GET    /api/wallet/transactions           → Wallet transaction history
+```
+
+### PPV (2 routes)
+```
+POST   /api/ppv/[postId]/purchase         → Purchase PPV content
+GET    /api/ppv/purchases                 → List user's PPV purchases
+```
+
+### Tips (2 routes)
+```
+POST   /api/tips                          → Send tip
+GET    /api/tips/received                 → Creator's received tips
+```
+
+### Payouts (3 routes)
+```
+GET    /api/creator/payouts               → Payout history
+GET    /api/creator/payouts/settings      → Get payout settings
+PATCH  /api/creator/payouts/settings      → Update payout settings
+```
+
+### Transactions (3 routes)
+```
+GET    /api/transactions                  → User transaction history
+GET    /api/creator/transactions          → Creator earnings history
+GET    /api/transactions/export           → Export as CSV
+```
+
+---
+
+## 5. Service Layer Design
+
+### SubscriptionService
+```typescript
+class SubscriptionService {
+  // Core operations
+  subscribe(userId, creatorId, planType): Promise<Subscription>
+  cancel(subscriptionId, userId): Promise<void>
+  renew(subscriptionId): Promise<Subscription>
+  
+  // Queries
+  getUserSubscriptions(userId): Promise<Subscription[]>
+  getCreatorSubscribers(creatorId, cursor?, limit?): Promise<PaginatedResult>
+  isSubscribed(userId, creatorId): Promise<boolean>
+  
+  // Pricing
+  getPlans(creatorId): Promise<SubscriptionPlan[]>
+  calculatePrice(planType, basePrice): { price, discount }
+}
+```
+
+### PaymentService
+```typescript
+class PaymentService {
+  // Square Checkout
+  createCheckout(params: CheckoutParams): Promise<CheckoutResult>
+  processWebhook(event: SquareWebhookEvent): Promise<void>
+  
+  // Payment operations
+  chargeCard(userId, amount, source, metadata): Promise<Transaction>
+  chargeWallet(userId, amount, metadata): Promise<Transaction>
+  refund(transactionId, amount?, reason?): Promise<void>
+}
+```
+
+### WalletService
+```typescript
+class WalletService {
+  getBalance(userId): Promise<{ balance: number, currency: string }>
+  topup(userId, amount): Promise<Transaction>
+  debit(userId, amount, metadata): Promise<Transaction>
+  getTransactions(userId, cursor?, limit?): Promise<Transaction[]>
+}
+```
+
+### PpvService
+```typescript
+class PpvService {
+  purchase(userId, postId, paymentSource): Promise<PpvPurchase>
+  hasPurchased(userId, postId): Promise<boolean>
+  getUserPurchases(userId, cursor?, limit?): Promise<PpvPurchase[]>
+}
+```
+
+### TipService
+```typescript
+class TipService {
+  sendTip(fromUserId, toCreatorId, amount, message?, relatedId?): Promise<Transaction>
+  getReceivedTips(creatorId, cursor?, limit?): Promise<Transaction[]>
+}
+```
+
+### PayoutService
+```typescript
+class PayoutService {
+  calculateEarnings(creatorId, periodStart, periodEnd): Promise<EarningsSummary>
+  createPayout(creatorId): Promise<Payout>
+  processPayout(payoutId): Promise<void>
+  getPayoutHistory(creatorId, cursor?, limit?): Promise<Payout[]>
+  
+  // Settings
+  getSettings(creatorId): Promise<PayoutSettings>
+  updateSettings(creatorId, settings): Promise<void>
+}
+```
+
+---
+
+## 6. Square Payment Integration
+
+### Existing Integration
+- `SquareClient` already handles OAuth for creator onboarding
+- Need to extend for: Checkout, Payments, Transfers
+
+### Extended SquareClient Methods
+```typescript
+// Checkout (hosted payment page)
+createCheckout(accessToken, { lineItems, redirectUrl }): Promise<CheckoutResult>
+
+// Direct Payments (saved cards)
+createPayment(accessToken, { amount, sourceId, customerId }): Promise<PaymentResult>
+listCards(accessToken, customerId): Promise<Card[]>
+saveCard(accessToken, customerId, sourceId): Promise<Card>
+deleteCard(accessToken, customerId, cardId): Promise<void>
+
+// Payouts (transfers to creator's bank)
+createTransfer(accessToken, { amount, destinationId }): Promise<TransferResult>
+getBankAccounts(accessToken): Promise<BankAccount[]>
+```
+
+### Payment Flow
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      SUBSCRIPTION FLOW                          │
+├─────────────────────────────────────────────────────────────────┤
+│  1. User clicks "Subscribe"                                     │
+│  2. Frontend calls POST /api/subscriptions/[creatorId]          │
+│  3. Backend creates pending Subscription + Transaction          │
+│  4. Backend creates Square Checkout (redirect_url)              │
+│  5. User redirected to Square Checkout page                     │
+│  6. User completes payment on Square                            │
+│  7. Square webhook → POST /api/webhooks/square/payments         │
+│  8. Backend updates Transaction.status = completed              │
+│  9. Backend updates Subscription.status = active                │
+│  10. User redirected back to creator page                       │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      PPV PURCHASE FLOW                          │
+├─────────────────────────────────────────────────────────────────┤
+│  Option A: Pay with Wallet                                      │
+│  1. Check wallet balance >= price                               │
+│  2. Debit wallet                                                │
+│  3. Create Transaction + PpvPurchase                            │
+│  4. Grant access                                                │
+│                                                                 │
+│  Option B: Pay with Card                                        │
+│  1. Create Square Checkout                                      │
+│  2. User completes payment                                      │
+│  3. Webhook creates Transaction + PpvPurchase                   │
+│  4. Grant access                                                │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      PAYOUT FLOW (Weekly)                       │
+├─────────────────────────────────────────────────────────────────┤
+│  1. Cron job runs every Friday at 12:00 UTC                     │
+│  2. For each creator with earnings > $20:                       │
+│     a. Calculate earnings for period                            │
+│     b. Create Payout record (pending)                           │
+│     c. Call Square API to transfer to creator's bank            │
+│     d. Update Payout.status = processing                        │
+│  3. Square webhook confirms transfer complete                   │
+│  4. Update Payout.status = completed                            │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 7. Revenue Calculation
+
+### Commission Split
+```typescript
+function calculateSplit(amount: number) {
+  const platformFee = amount * 0.16;  // 16% platform
+  const creatorEarnings = amount * 0.84;  // 84% creator
+  return { platformFee, creatorEarnings };
+}
+```
+
+### Earnings Aggregation
+```sql
+SELECT 
+  SUM(creator_earnings) as total_earnings,
+  COUNT(*) as transaction_count
+FROM transactions
+WHERE creator_id = $1
+  AND status = 'completed'
+  AND created_at >= $2
+  AND created_at < $3
+  AND transaction_type IN ('subscription', 'ppv', 'tip', 'message', 'live_tip')
+```
+
+---
+
+## 8. File Structure
+
+```
+src/
+├── repositories/
+│   ├── subscriptionRepository.ts
+│   ├── transactionRepository.ts
+│   ├── walletRepository.ts
+│   ├── payoutRepository.ts
+│   └── ppvRepository.ts
+│
+├── services/
+│   ├── payments/
+│   │   ├── subscriptionService.ts
+│   │   ├── paymentService.ts
+│   │   ├── walletService.ts
+│   │   ├── ppvService.ts
+│   │   ├── tipService.ts
+│   │   └── payoutService.ts
+│   └── integrations/square/
+│       ├── squareClient.ts  (extend existing)
+│       └── types.ts         (extend existing)
+│
+├── types/
+│   └── payments.ts          (new)
+│
+├── app/api/
+│   ├── subscriptions/
+│   │   ├── route.ts
+│   │   └── [id]/
+│   │       ├── route.ts
+│   │       └── renew/route.ts
+│   ├── payments/
+│   │   ├── checkout/route.ts
+│   │   └── cards/route.ts
+│   ├── wallet/
+│   │   ├── route.ts
+│   │   ├── topup/route.ts
+│   │   └── transactions/route.ts
+│   ├── ppv/
+│   │   ├── [postId]/purchase/route.ts
+│   │   └── purchases/route.ts
+│   ├── tips/
+│   │   ├── route.ts
+│   │   └── received/route.ts
+│   ├── transactions/
+│   │   ├── route.ts
+│   │   └── export/route.ts
+│   ├── creator/
+│   │   ├── subscribers/route.ts
+│   │   ├── transactions/route.ts
+│   │   └── payouts/
+│   │       ├── route.ts
+│   │       └── settings/route.ts
+│   └── webhooks/square/
+│       └── payments/route.ts
+│
+└── app/
+    ├── subscriptions/page.tsx
+    ├── wallet/page.tsx
+    ├── transactions/page.tsx
+    └── (creator)/creator/
+        ├── earnings/page.tsx
+        ├── subscribers/page.tsx
+        └── payouts/
+            ├── page.tsx
+            └── settings/page.tsx
+```
+
+---
+
+## 9. Security Considerations
+
+| Concern | Mitigation |
+|---------|------------|
+| Payment injection | All amounts validated server-side, never trust client |
+| Webhook spoofing | Verify Square webhook signatures |
+| Double spending | Transaction idempotency via unique constraints |
+| Unauthorized access | Check ownership on all operations |
+| Race conditions | Database transactions for wallet operations |
+| PCI compliance | Never store card data, use Square tokenization |
+
+---
+
+## 10. Environment Variables
+
+```bash
+# Square (existing, may need additional)
+SQUARE_APPLICATION_ID=
+SQUARE_APPLICATION_SECRET=
+SQUARE_ACCESS_TOKEN=           # Platform access token
+SQUARE_ENVIRONMENT=            # sandbox or production
+SQUARE_WEBHOOK_SIGNATURE_KEY=
+```
+
+---
+
+## 11. Verification Plan
+
+### Automated Tests
+- Unit tests for revenue calculation
+- Integration tests for payment flows
+- Webhook signature verification tests
+
+### Manual Verification
+1. Subscribe to creator with test card
+2. Cancel and verify status update
+3. Purchase PPV and verify access
+4. Top up wallet and make purchase
+5. Send tip and verify receipt
+6. Trigger payout and verify transfer
+
+---
+
+## 12. Implementation Estimate
+
+| Phase | Days | Scope |
+|-------|------|-------|
+| Repositories | 1 | CRUD for all entities |
+| Services | 2 | Business logic + Square integration |
+| API Routes | 2 | All 21 endpoints |
+| Frontend Pages | 2 | 8 pages |
+| Testing | 1 | Unit + integration tests |
+| **Total** | **8 days** | |
+
+---
+
+## 13. Questions for User
+
+> [!IMPORTANT]
+> Please confirm or clarify:
+> 1. **Wallet Balance**: Should users see a single USD balance, or track balance per creator?
+> 2. **Subscription Renewal**: Auto-renew by default, or require manual renewal?
+> 3. **Receipt Emails**: Should we send email receipts for purchases?
+> 4. **Refund Policy**: Any automated refund rules (e.g., within 24h of subscription)?

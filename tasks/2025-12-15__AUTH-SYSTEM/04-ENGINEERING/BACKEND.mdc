@@ -1,0 +1,460 @@
+# 04-ENGINEERING/BACKEND.mdc
+
+Task: `2025-12-15__AUTH-SYSTEM`  
+Owner: Backend Agent (proposal; requires human approval)  
+Status: Draft – ready for review
+
+---
+
+## 1. Scope & Objectives (Backend)
+
+- Implement authentication, social login, email verification, password reset, and age verification **strictly per**:
+  - `01-PM-RESEARCH.mdc` (including Security & Compliance requirements, esp. NFR-SEC / NFR-COMPL).
+  - `02-ARCHITECTURE-REVIEW.mdc` (approved).
+  - `CODEBASE_ARCHITECTURE_RULES.md` and `CODEBASE_GOVERNANCE_RULES.md`.
+- Maintain strict layering:
+  - Route → Controller → Service → Repository (+ Provider client + Middleware).
+- Ensure:
+  - No DB access in routes.
+  - No secrets hardcoded; all from env with `.env.example` updates.
+  - Strong password policy, token security, rate limiting, audit logging, and PII minimization.
+
+Out of scope for this backend task (confirmed by PM/architecture):
+- MFA/2FA, SMS/phone OTP.
+- Admin tooling or manual review dashboards.
+- Payment/payout KYC.
+- Mobile-specific adaptations (web-first).
+
+---
+
+## 2. Backend Folder & Layer Plan
+
+### 2.1 New/Updated Files (high level)
+
+- `app/api/auth/[...nextauth]/route.ts`
+  - Thin NextAuth route handler; delegates to configured NextAuth handler.
+- `app/api/auth/email/verify/route.ts`
+  - POST; consumes email verification token and updates user/email state.
+- `app/api/auth/password/reset/request/route.ts`
+  - POST; generic response; issues reset token if user exists.
+- `app/api/auth/password/reset/confirm/route.ts`
+  - POST; consumes reset token, sets new password, revokes sessions.
+- `app/api/age/verify/initiate/route.ts`
+  - POST; starts Veriff session; returns client token/url.
+- `app/api/age/verify/webhook/route.ts`
+  - POST; Veriff webhook receiver with signature verification; idempotent updates.
+
+Backend orchestration & logic:
+- `src/app/api/_controllers/authController.ts`
+  - Registration, login-aux (non-NextAuth), email verify, password reset, session-related actions.
+- `src/app/api/_controllers/ageVerificationController.ts`
+  - Age verification initiate + webhook handling.
+- `src/services/auth/authService.ts`
+  - Core auth business logic (registration, credentials auth, state transitions, password policy).
+- `src/services/auth/tokenService.ts`
+  - Verification/reset token generation, hashing, validation, consumption.
+- `src/services/auth/sessionService.ts`
+  - Session invalidation, rotation hooks, NextAuth callback helpers.
+- `src/services/auth/emailService.ts`
+  - Email sending abstraction for verification and reset (or thin wrapper over future email provider service).
+- `src/services/ageVerification/ageVerificationService.ts`
+  - Domain logic for Veriff integration and mapping provider → domain states.
+- `src/services/ageVerification/veriffClient.ts`
+  - Low-level HTTP client for Veriff API (no business rules).
+
+Repositories (DB only):
+- `src/repositories/userRepository.ts`
+- `src/repositories/accountRepository.ts` (if needed beyond NextAuth adapter).
+- `src/repositories/verificationTokenRepository.ts`
+- `src/repositories/ageVerificationRepository.ts`
+- `src/repositories/sessionRepository.ts`
+
+Middleware / cross-cutting:
+- `src/lib/middleware/rateLimit.ts`
+- `src/lib/middleware/withAuth.ts` (session extraction, optional).
+- `src/lib/middleware/withAccountStateGuard.ts`
+- `src/lib/middleware/withVeriffWebhookAuth.ts`
+
+Shared utilities:
+- `src/lib/security/passwordPolicy.ts`
+- `src/lib/security/tokenUtils.ts`
+- `src/lib/security/haveIBeenPwnedClient.ts` (HIBP k‑anon).
+- `src/lib/security/hash.ts` (wrapping argon2/bcrypt + timing-safe compare).
+
+Note: File names may be adjusted slightly during implementation to align with existing patterns, but layer responsibilities must remain unchanged.
+
+---
+
+## 3. Database & Models (Prisma-Level)
+
+### 3.1 Existing Relevant Models (from `schema.prisma`)
+
+- `User`:
+  - Already has `email`, `emailVerified`, `passwordHash`, `dateOfBirth`, `country`, `status`, `metadata`, `preferences`, `lastLoginAt`.
+  - `status` currently covers: `active | suspended | banned | deleted` (via `UserStatus`).
+- `Account`, `Session`:
+  - Already defined for NextAuth.
+- `AuditLog`:
+  - Generic audit trail for compliance and traceability.
+
+### 3.2 Proposed New Auth-Specific Models
+
+These are **aligned with** `02-ARCHITECTURE-REVIEW.mdc` section 8 and PM FR/NFR, but final schema changes must follow the DB task governance (no migrations are written in this document).
+
+New logical tables (their exact Prisma shape will be implemented/migrated under the DB task as needed):
+
+- `VerificationToken`
+  - Fields: `id`, `userId`, `type` (`email_verify | password_reset`), `tokenHash`, `expiresAt`, `consumedAt`, `createdIp`, `createdUserAgent`, `createdAt`.
+  - Indices:
+    - `@@index([userId, type, expiresAt])`
+    - `@@index([tokenHash])`
+  - Purpose:
+    - Single-use, time-bound tokens for email verification (FR-EMAIL-001/002) and password reset (FR-RESET-001/002).
+    - Token stored **hashed** (\(NFR-SEC-001\)).
+
+- `AgeVerification`
+  - Fields: `id`, `userId`, `provider` (`veriff`), `providerSessionId`, `status` (`pending | passed | failed | needs_review`), `method`, `country`, `dobConfirmed`, `livenessScore?`, `fraudScore?`, `failureReason?`, `expiresAt?`, `metadata` (minimal JSON), `createdAt`, `updatedAt`, `verifiedAt?`.
+  - Indices:
+    - `@@index([userId])`
+    - `@@index([providerSessionId])`
+    - `@@index([status])`
+  - Purpose:
+    - Auditability (NFR-COMPL-001; PM §3.5, §3.6, Q5).
+    - Minimal storage of provider data; raw docs/biometrics purged within 30 days (policy implemented at service layer + retention jobs, see §7.3).
+
+### 3.3 User Account State
+
+We will **not** introduce a new enum at DB level for auth-only states in this task; instead:
+
+- Use `User.status` for coarse account states (`active`, `suspended`, `banned`, `deleted`).
+- Use `User.metadata` JSON for finer-grained auth onboarding states, e.g.:
+  - `authState.accountState` ∈ `["email_unverified", "age_pending", "age_denied", "active", "locked"]`.
+  - `authState.lockReason`, `authState.lockUntil`.
+- Reason:
+  - Avoid destabilizing the broader domain schema at this stage.
+  - Keeps auth states flexible while Architecture + Legal/Compliance may still evolve.
+  - Still compatible with PM FR-AUTH-002 and architecture §3 (domain model & states).
+
+Implementation detail (service-level):
+- Provide strongly-typed TypeScript models to represent account state, with parsing/validation when reading/writing `User.metadata.authState`.
+
+---
+
+## 4. NextAuth Configuration (Backend Responsibilities)
+
+Location:
+- `app/api/auth/[...nextauth]/route.ts` (route)
+- `src/services/auth/nextAuthOptions.ts` (config)
+- `src/services/auth/nextAuthAdapter.ts` (Prisma adapter wiring, reused via services/repositories)
+
+Key design points:
+- Providers:
+  - Credentials (email/password).
+  - Google OAuth.
+  - Apple Sign In (with private relay support).
+- Adapter:
+  - Use Prisma models `User`, `Account`, `Session`.
+  - No additional business logic inside adapter; only persistence.
+- Callbacks:
+  - `signIn`:
+    - Enforce:
+      - Email/password validity (delegated to `authService.verifyCredentials`).
+      - Account state:
+        - Deny if `accountState === "locked"` or `User.status` ∈ `{suspended, banned, deleted}`.
+        - Allow limited session if `accountState === "email_unverified"`; gating enforced by middleware, not NextAuth alone.
+    - Ensure no enumeration in error messages (NFR-PRIV-001).
+  - `session`:
+    - Embed minimal snapshot of account state (e.g. `accountState`, `ageStatus`, `role`).
+    - Do **not** embed sensitive PII or provider metadata.
+  - `jwt`:
+    - Handle session rotation per Q3: rotate on sign-in and at max every 12h; enforce absolute 30d cap.
+  - `redirect`:
+    - Ensure safe redirect rules (no open redirects).
+
+Security / Compliance tie-in:
+- All secrets (NextAuth secret, provider client IDs/secrets, Veriff keys) are env-only.
+- `.env.example` will be updated to include:
+  - `NEXTAUTH_SECRET`
+  - `NEXTAUTH_URL`
+  - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`
+  - `APPLE_CLIENT_ID`, `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY` (or equivalent).
+  - `VERIFF_API_KEY`, `VERIFF_WEBHOOK_SECRET`
+- No secrets in logs; only masked or non-sensitive metadata.
+
+---
+
+## 5. Services & Controllers (Business Logic)
+
+### 5.1 AuthService (`src/services/auth/authService.ts`)
+
+Responsibilities:
+- Registration:
+  - Normalize and lowercase email.
+  - Enforce password policy via `passwordPolicy` (Q2, NFR-SEC-001).
+  - Hash passwords (argon2 or bcrypt via `hash.ts`).
+  - Create `User` with:
+    - `emailVerified = null`.
+    - `metadata.authState.accountState = "email_unverified"`.
+    - `dateOfBirth`, `country` stored for age gating.
+  - Create email verification token via `tokenService.createVerificationToken`.
+  - Trigger `emailService.sendVerificationEmail`.
+- Credentials login:
+  - Look up user by email.
+  - Apply password verification with timing-safe compare.
+  - Apply lockout policy:
+    - Track failed attempts in `User.metadata.authState.failedLoginAttempts` + `lockUntil`.
+    - After N attempts in T window → set `accountState = "locked"` until cooloff.
+  - Update `lastLoginAt`.
+- Social login / account linking:
+  - Determine canonical account by verified email, per Q4.
+  - If Google/Apple provides a **verified** email:
+    - If user exists & verified → link provider (Account row).
+    - If user exists & unverified → keep single account; require email verification.
+  - For Apple private relay:
+    - Allow signup but flag `authState.requiresPrimaryEmail = true`; backend/email flows will gently nudge update.
+- State transitions:
+  - From `email_unverified` → `age_pending` or `active` based on age verification configuration.
+  - From `age_pending` → `active` or `age_denied` via `ageVerificationService`.
+  - From any → `locked` (security), `suspended|banned` (moderation, out-of-scope to implement here).
+
+### 5.2 TokenService (`src/services/auth/tokenService.ts`)
+
+Responsibilities:
+- Generate cryptographically strong random tokens.
+- Store only a **hash** of token in `VerificationToken`.
+- Enforce:
+  - Single-use:
+    - `consumeToken` marks `consumedAt` and prevents replay.
+  - Time-bound:
+    - Validate `expiresAt > now`.
+  - Type-specific constraints:
+    - Email verification tokens: TTL e.g. 24h (configurable via env).
+    - Password reset tokens: shorter TTL (e.g. 1h).
+- Audit context:
+  - Capture `createdIp`, `createdUserAgent` (consistent with NFR-PRIV/NFR-SEC).
+
+### 5.3 SessionService (`src/services/auth/sessionService.ts`)
+
+Responsibilities:
+- Provide helpers to:
+  - Invalidate all sessions for a given user (on password reset, lockout, or age_denied).
+  - Rotate sessions (update expiry) based on policy.
+- Called from:
+  - NextAuth callbacks.
+  - Password reset confirm flow.
+  - Admin/moderation flows (future).
+
+### 5.4 EmailService (`src/services/auth/emailService.ts`)
+
+Responsibilities:
+- Abstract sending:
+  - Verification emails.
+  - Password reset emails.
+- Provide templates and subject lines that:
+  - Avoid revealing if an email exists (generic confirmation wording; FR-RESET-001, NFR-PRIV-001).
+  - Include correct, signed token links.
+- Implementation detail:
+  - Initially, this may be a placeholder that calls a generic mailer (to be defined by separate infra/DevOps task), but interface will be stable.
+
+### 5.5 AgeVerificationService (`src/services/ageVerification/ageVerificationService.ts`)
+
+Responsibilities:
+- Initiate Veriff session:
+  - Validate user is eligible (18+ by DOB, or at least not clearly under).
+  - Call `veriffClient.createSession`.
+  - Create `AgeVerification` row with status `pending`.
+- Handle webhook updates:
+  - Verify signature via `withVeriffWebhookAuth` and `veriffClient.validateSignature`.
+  - Map provider result to domain status `passed | failed | needs_review`.
+  - On `passed`:
+    - Update `AgeVerification.status` and `verifiedAt`.
+    - Update `User.metadata.authState.accountState = "active"`.
+  - On `failed`:
+    - Update `accountState = "age_denied"`.
+    - Support retry counts (limited) with config.
+- Data minimization & retention:
+  - Only store minimal metadata as described in Q5.
+  - Ensure that any raw documents/biometrics provided via callbacks are **not persisted** or are persisted only in a separate, short-lived storage with explicit retention jobs (design hooks here; actual job implementation may be part of infra/compliance tasks).
+
+---
+
+## 6. Controllers & Routes (HTTP Contract)
+
+### 6.1 Email Verification
+
+- `POST /api/auth/email/verify`
+  - Body: `{ token: string }`.
+  - Flow:
+    - Controller extracts token.
+    - Calls `tokenService.consumeToken(token, "email_verify")`.
+    - If valid:
+      - `authService.confirmEmailVerification(userId)`:
+        - Set `emailVerified`.
+        - Transition `accountState`:
+          - If age verification required → `age_pending`.
+          - Else → `active`.
+      - Return 200 with outcome.
+    - If invalid/expired:
+      - Return generic 400/422 with non-enumerating message.
+
+### 6.2 Password Reset
+
+- `POST /api/auth/password/reset/request`
+  - Body: `{ email: string }`.
+  - Behavior:
+    - Always respond 200 with generic “If an account exists…” (NFR-PRIV-001).
+    - Under the hood:
+      - Lookup user by email.
+      - If user exists:
+        - Create reset token via `tokenService.createPasswordResetToken`.
+        - Send email via `emailService.sendPasswordResetEmail`.
+  - Rate limiting:
+    - Per IP + email via middleware `rateLimit`.
+
+- `POST /api/auth/password/reset/confirm`
+  - Body: `{ token: string, newPassword: string }`.
+  - Flow:
+    - Validate new password via `passwordPolicy`.
+    - Consume token of type `password_reset`.
+    - Update password hash for user.
+    - Call `sessionService.invalidateAllUserSessions(userId)`.
+    - Optionally log an `AuditLog` record.
+
+### 6.3 Age Verification
+
+- `POST /api/age/verify/initiate`
+  - Authenticated route (via `withAuth`).
+  - Flow:
+    - Ensure user’s email is verified.
+    - Call `ageVerificationService.initiateSession(user)`.
+    - Return `clientToken` / URL as provided by Veriff.
+
+- `POST /api/age/verify/webhook`
+  - Unauthenticated at HTTP level, but protected by `withVeriffWebhookAuth` (HMAC verification, timestamp checks).
+  - Flow:
+    - Verify signature.
+    - Idempotently upsert/update `AgeVerification` record.
+    - Propagate state changes to `User.metadata.authState`.
+    - Emit audit log (`AuditLog` with action `age_verification_update`).
+
+### 6.4 Route-Level Constraints
+
+- Routes:
+  - May only:
+    - Parse HTTP request.
+    - Call a single controller method.
+    - Return HTTP response.
+  - Must **not**:
+    - Access Prisma directly.
+    - Implement business rules.
+
+---
+
+## 7. Security, Compliance & Rate Limiting
+
+### 7.1 Password Policy (NFR-SEC-001, Q2)
+
+- Implemented in `passwordPolicy`:
+  - Min 12 characters.
+  - At least:
+    - One uppercase letter.
+    - One lowercase letter.
+    - One digit.
+    - One symbol.
+- Additional checks:
+  - Disallow passwords on a “commonly used” list (configurable).
+  - Optional HIBP k‑anon check via `haveIBeenPwnedClient`.
+    - If HIBP unavailable, fail open with logging (no blocking).
+- Prevent recent reuse:
+  - Store previous N password hashes in `User.metadata.authState.passwordHistory` or a dedicated table (TBD later); for now, design assumes metadata-based list with max N entries and compare via hash.
+
+### 7.2 Rate Limiting (NFR-SEC-002)
+
+- Implement `rateLimit` middleware with:
+  - Key dimensions:
+    - IP address.
+    - Email (where applicable).
+    - Route path.
+  - Use a pluggable store (in-memory for local/dev; Redis or equivalent in QA/PROD) to be wired by infra/DevOps.
+- Apply conservative defaults to:
+  - `/api/auth/[...nextauth]` (login attempts).
+  - `/api/auth/password/reset/request`.
+  - `/api/auth/email/verify` (resend flows will share this to avoid abuse once implemented).
+
+### 7.3 Data Privacy & Retention (NFR-COMPL-001, Q5)
+
+- Age verification:
+  - Persist only:
+    - Provider session ID.
+    - Result (pass/fail/pending/needs_review).
+    - Method type, country, DOB confirmation flag.
+    - Liveness/fraud scores (if needed).
+    - Timestamps.
+  - Do **not** store raw ID documents or biometric images in our primary DB.
+  - Any temporary storage (if ever needed) must:
+    - Be encrypted at rest.
+    - Enforce auto-deletion at ≤30 days via a scheduled job (out-of-scope implementation for this task; documented in `06-DEVOPS.mdc` when needed).
+- Logging:
+  - Use `AuditLog` for key actions with limited PII:
+    - `userId`, `action`, `entityType`, `entityId`, IP (can be stored as is or truncated), userAgent.
+  - Avoid logging:
+    - Raw tokens.
+    - Passwords or partials.
+    - Full provider responses.
+
+### 7.4 “No Account Enumeration” (NFR-PRIV-001)
+
+- All flows (register, login, password reset, email verification):
+  - Use generic error/success messages.
+  - Controllers expose only generic result codes to frontend; any specific mapping to user-facing messages is done in frontend with no information about account existence.
+
+---
+
+## 8. Testing Strategy (Backend-Focused)
+
+Unit tests:
+- `authService`:
+  - Registration, password policy enforcement, lockout logic.
+  - State transitions based on email/age verification results.
+- `tokenService`:
+  - Token generation, hashing, expiration, single-use behavior.
+- `ageVerificationService`:
+  - Mapping Veriff responses to domain states.
+  - Retry and failure rules.
+- `passwordPolicy`, `haveIBeenPwnedClient` (mocking HIBP).
+
+Integration tests:
+- NextAuth callbacks:
+  - Credentials sign-in with various account states.
+  - Social login linking rules.
+- Email verification and password reset flows end-to-end against a test DB.
+- Age verification webhook handling (signature, idempotency).
+
+Security tests:
+- Token replay attempts.
+- Brute-force login simulation (rate limit + lockout).
+- Webhook signature tampering.
+- Attempts at account enumeration via auth endpoints.
+
+---
+
+## 9. Open Backend Questions / Decisions for You
+
+Items where a narrow decision will simplify implementation:
+
+1. **Password hash algorithm preference**  
+   - Proposal: Use `argon2id` via a well-maintained Node binding; fallback to bcrypt only if argon2 not viable in hosting environment.
+
+2. **Exact token TTLs**  
+   - Email verification: proposal 24h.  
+   - Password reset: proposal 1h.  
+   - Are these acceptable, or do you want different defaults?
+
+3. **Max login attempts before lockout**  
+   - Proposal: 10 failed attempts within 15 minutes → lock for 30 minutes, with exponential backoff on repeated abuse.
+
+4. **Password history depth (reuse prevention)**  
+   - Proposal: Remember last 5 hashes for each user.
+
+Once you review and approve/adjust these, I’ll proceed to implement the concrete controllers, services, repositories, middleware, and NextAuth configuration as per this plan.
+

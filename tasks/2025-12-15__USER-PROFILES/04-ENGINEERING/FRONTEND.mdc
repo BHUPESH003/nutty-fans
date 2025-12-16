@@ -1,0 +1,293 @@
+Task: 2025-12-15__USER-PROFILES
+Owner: Frontend Agent (proposal only; requires human approval)
+Status: Draft for review
+
+## 1) Objectives (Frontend)
+- Implement **app shell layout + navigation** for authenticated areas:
+  - Desktop: persistent side-nav + top header.
+  - Mobile: top header + bottom nav.
+  - Primary routes: Home/Feed, Profile, Settings.
+- Implement **smart containers** (no inline fetch, no business logic in UI):
+  - `MyProfile`, `OtherUserProfile` (by handle), `EditProfile`, `Settings`, `Avatar` (within Edit Profile).
+- Implement **dumb UI components**:
+  - Profile header, stats row, bio block, edit form sections, settings sections, nav items, avatar widget, status banners, and empty-state components.
+- Wire everything to backend via:
+  - `src/services/apiClient.ts` (profile + settings + avatar endpoints).
+  - NextAuth for auth/session where needed (e.g., logout action, optional user summary).
+
+## 2) Routes, Layout, and Navigation
+
+### 2.1 Routes
+- `GET /profile` → self profile page (requires auth).
+- `GET /profile/edit` → edit profile (requires auth).
+- `GET /settings` → account + preferences (requires auth).
+- `GET /u/[handle]` → public profile view by handle (NOTE: UX doc says `/@[handle]`; we will implement `/u/[handle]` initially to avoid root-level dynamic route conflicts and document this divergence here for Tech Lead review).
+- `GET /` → Home/Feed placeholder, already exists; will be rendered inside app shell for authenticated users.
+
+### 2.2 Layout Strategy
+- Root layout (`src/app/layout.tsx`) remains global (loads globals, etc.).
+- Introduce an **app shell component** instead of a Next.js layout for now (to avoid large routing refactor in this task):
+  - `src/components/layout/AppShell.tsx` (dumb)
+  - `src/components/containers/layout/AppShellContainer.tsx` (smart)
+- Each primary page wraps its main content in `AppShellContainer`:
+  - `/` → `HomePage` inside `AppShellContainer`.
+  - `/profile` → `MyProfilePageContainer` inside `AppShellContainer`.
+  - `/profile/edit` → `EditProfileContainer` inside `AppShellContainer`.
+  - `/settings` → `SettingsPageContainer` inside `AppShellContainer`.
+  - `/u/[handle]` → `UserProfilePageContainer` inside `AppShellContainer`.
+
+> If we later move to a route-group layout (`(app)/layout.tsx`), `AppShell` and the containers can be reused with minimal changes.
+
+### 2.3 Nav & Header Behavior
+- **Desktop (≥1024px):**
+  - Header:
+    - Left: NuttyFans logo (links to `/`).
+    - Right: Notification icon (stub) + small avatar (from profile or initials).
+  - Side nav:
+    - Items: Home (`/`), Profile (`/profile`), Settings (`/settings`).
+    - Active state: accent-colored left border, filled icon, primary text; inactive: muted color.
+  - Avatar in header:
+    - On click: simple menu with links: Profile, Settings, Log Out (using NextAuth `signOut`).
+- **Mobile (<1024px):**
+  - Top bar:
+    - Left: logo.
+    - Center: page title (e.g., "Home", "Profile", "Settings").
+    - Right: small avatar, tap → `/profile`.
+  - Bottom nav:
+    - Items: Home, Profile, Settings.
+    - Active state: accent dot + colored icon/label.
+
+## 3) API Client Extensions
+
+### 3.1 Types
+- Add:
+  - `src/types/profile.ts`
+  - `src/types/settings.ts`
+
+#### `src/types/profile.ts` (proposed shapes)
+- `Profile` (self or public, frontend view model):
+  - `id: string`
+  - `displayName: string`
+  - `username: string`
+  - `bio: string | null`
+  - `location: string | null`
+  - `avatarUrl: string | null`
+  - `joinDate: string` (ISO string; formatted as "Joined Month Year" in UI)
+  - `followersCount: number`
+  - `followingCount: number`
+  - `isDiscoverable: boolean`
+  - `showLocation: boolean`
+- Responses:
+  - `GetMyProfileResponse: Profile`
+  - `GetPublicProfileResponse: Profile` (backend will omit private/account-only fields as needed).
+- Mutations:
+  - `UpdateProfilePayload` (all optional fields):
+    - `displayName?: string`
+    - `bio?: string | null`
+    - `location?: string | null`
+    - `isDiscoverable?: boolean`
+    - `showLocation?: boolean`
+- Avatar:
+  - `AvatarUploadUrlPayload`:
+    - `filename: string`
+    - `contentType: string`
+    - `fileSize: number`
+  - `AvatarUploadUrlResponse`:
+    - `uploadUrl: string`
+    - `avatarKey: string` (or similar storage key – aligns with backend)
+  - `ConfirmAvatarPayload`:
+    - `avatarKey: string`
+
+#### `src/types/settings.ts`
+- `SettingsResponse`:
+  - `email: string`
+  - `legalName?: string | null`
+  - `emailNotificationsEnabled: boolean`
+  - `marketingEmailsEnabled: boolean`
+  - `platformUpdatesEnabled: boolean`
+  - `isDiscoverable: boolean`
+  - `showLocation: boolean`
+- `UpdateSettingsPayload`:
+  - Partial of the toggles above (all optional; email/legalName excluded).
+
+### 3.2 `src/services/apiClient.ts` Additions
+- `profile` namespace:
+  - `profile.me(): Promise<GetMyProfileResponse>` → `GET /profile/me`
+  - `profile.byHandle(handle: string): Promise<GetPublicProfileResponse>` → `GET /profile/${handle}` (or `/profile/[handle]`; actual path matches backend).
+  - `profile.update(payload: UpdateProfilePayload): Promise<GetMyProfileResponse>` → `PATCH /profile`
+  - `profile.requestAvatarUpload(payload: AvatarUploadUrlPayload): Promise<AvatarUploadUrlResponse>` → `POST /profile/avatar/upload-url`
+  - `profile.confirmAvatar(payload: ConfirmAvatarPayload): Promise<{ avatarUrl: string }>` → `POST /profile/avatar/confirm`
+  - `profile.removeAvatar(): Promise<void>` → `DELETE /profile/avatar`
+- `settings` namespace:
+  - `settings.get(): Promise<SettingsResponse>` → `GET /settings`
+  - `settings.update(payload: UpdateSettingsPayload): Promise<SettingsResponse>` → `PATCH /settings`
+
+> All API methods will use the existing `request<T>()` helper and `ApiError` for consistent error handling.
+
+## 4) Containers (Smart Components)
+
+> All containers live under `src/components/containers`, call `apiClient` (no inline `fetch`), manage loading/error/empty, and pass plain props to dumb UI components.
+
+### 4.1 Layout
+- `src/components/containers/layout/AppShellContainer.tsx` (client):
+  - Uses `usePathname()` (from `next/navigation`) to determine active nav item.
+  - Optionally calls `apiClient.user.me()` to get a lightweight user summary (id, email, displayName, username, avatarUrl from profile if available later).
+  - Renders `AppShell` UI component with:
+    - `activeRoute`, `userSummary`, `children`.
+
+### 4.2 Profile
+- `src/components/containers/profile/MyProfilePageContainer.tsx`:
+  - Fetches self profile via `apiClient.profile.me()`.
+  - States:
+    - Loading → skeletons.
+    - Error (401) → prompt to log in.
+    - Error (other) → generic error banner.
+    - Success → render `ProfilePage` UI with normalized `Profile` prop and self-view flag.
+- `src/components/containers/profile/UserProfilePageContainer.tsx`:
+  - Takes `handle` from route params.
+  - Calls `apiClient.profile.byHandle(handle)`.
+  - States:
+    - Loading → skeleton.
+    - 404 → “User not found” empty state.
+    - Error → generic error.
+    - Success → `ProfilePage` UI with public view flag (no edit, no private fields).
+- `src/components/containers/profile/EditProfileContainer.tsx`:
+  - Loads `profile.me()` and populates form state.
+  - Submits `profile.update()` on Save.
+  - Manages:
+    - Dirty vs clean state (Save disabled when nothing changed).
+    - Inline validation:
+      - Display name required, max 50 chars.
+      - Bio max 160 chars.
+      - Location max 100 chars.
+    - Success → shows toast “Profile updated”, optionally notifies a shared profile cache (future).
+    - Error → inline field errors if backend returns validation details; fallback to generic toast.
+  - Integrates `AvatarUploader` component and avatar API methods for upload/replace/remove.
+
+### 4.3 Settings
+- `src/components/containers/settings/SettingsPageContainer.tsx`:
+  - Fetches `settings.get()`.
+  - Renders sections:
+    - Account (email, legalName – read-only).
+    - Notifications (3 toggles).
+    - Privacy (discoverability + showLocation).
+    - Account actions (Log out button via NextAuth `signOut`, Delete Account stub with dialog only).
+  - Auto-save toggles on change via `settings.update({ field: newValue })`.
+  - Handles:
+    - Loading → skeleton cards.
+    - Error → error banner.
+    - On toggle error → revert value and show toast “Something went wrong. Please try again.”.
+
+## 5) Dumb UI Components
+
+> All new dumb components live under dedicated folders, are prop-driven, and contain **no** data fetching or business logic.
+
+### 5.1 Layout & Nav
+- `src/components/layout/AppShell.tsx`:
+  - Props: `{ children, activeRoute, user?: { displayName?: string; username?: string; avatarUrl?: string | null } }`.
+  - Renders:
+    - `HeaderBar` (logo, title, avatar/menu).
+    - `SideNav` (desktop only).
+    - `BottomNav` (mobile only).
+    - Content area.
+- `src/components/layout/HeaderBar.tsx`:
+  - Dumb header; uses `Avatar` UI for small avatar and accepts nav callbacks/links as props.
+- `src/components/layout/SideNav.tsx` / `BottomNav.tsx`:
+  - Render nav items with icon, label, `active` flag, `href`.
+
+### 5.2 Profile
+- `src/components/profile/ProfileHeader.tsx`:
+  - Props: `profile: Profile`, `isSelf: boolean`.
+  - Shows avatar (LG), display name, handle, location (if `showLocation`), join date, and primary action (Edit Profile or Follow stub).
+- `src/components/profile/ProfileStats.tsx`:
+  - Props: `followersCount`, `followingCount`.
+- `src/components/profile/ProfileBio.tsx`:
+  - Props: `bio: string | null`, `isSelf: boolean`.
+  - Handles empty states: “No bio yet” (+ “Add a bio →” link for self).
+- `src/components/profile/IncompleteProfilePrompt.tsx`:
+  - Props: `show: boolean`, `onDismiss: () => void`.
+  - Pure UI; container decides when to show/dismiss (localStorage/7-day rule optional, in container).
+- `src/components/profile/AvatarUploader.tsx`:
+  - Dumb UI + callbacks:
+    - Props: `{ avatarUrl: string | null; onFileSelected(file: File): void; onRemove(): void; isUploading: boolean; error?: string | null }`.
+  - Shows avatar, Upload/Remove buttons, guidelines text.
+  - Client-side validation of file type/size is initiated in container or here (non-business UX-only rule).
+
+### 5.3 Settings
+- `src/components/settings/SettingsSection.tsx`:
+  - Simple card-like wrapper with title and children.
+- `src/components/settings/SettingsToggleRow.tsx`:
+  - Props: `{ label, description, checked, onChange, disabled }`.
+
+## 6) Edge Cases & Error Handling
+
+### 6.1 Profile
+- **Unauthenticated access to `/profile` or `/profile/edit`/`/settings`:**
+  - Backend returns 401; containers:
+    - Show “You need to sign in” message with link to `/login`.
+  - No client-side auth guessing beyond NextAuth state.
+- **Profile not found (other user) `/u/[handle]`:**
+  - 404 → render friendly “This profile could not be found” empty state.
+- **Incomplete profile data:**
+  - Missing `displayName` → fall back to `username` in header.
+  - Missing `avatarUrl` → render initials-based default avatar.
+  - Missing `bio` → “No bio yet”.
+  - Missing `location` or `showLocation=false` → hide location line entirely.
+
+### 6.2 Settings
+- **Settings load failure:**
+  - Show centered error card “Unable to load settings. Please try again.” + Retry button.
+- **Toggle update failure:**
+  - Optimistically flip toggle, then on error:
+    - Revert to previous state.
+    - Show toast “Something went wrong. Please try again.”
+
+### 6.3 Avatar Upload
+- **Invalid file type:**
+  - Show inline error “Please upload a JPG, PNG, GIF, or WebP image.”
+  - Do not call backend.
+- **File too large (>5MB):**
+  - Show inline error “Image must be under 5MB.”
+- **Upload URL request failure:**
+  - Show toast “Upload failed. Please try again.”
+- **Upload to storage failure:**
+  - Show inline error; do not call `confirmAvatar`.
+- **Confirm failure:**
+  - Show toast “Upload failed. Please try again.” and keep previous avatar active.
+- **Remove avatar failure:**
+  - Show toast “Could not remove photo. Please try again.” and keep avatar.
+
+### 6.4 Privacy & Data Exposure
+- Public profile containers must **never**:
+  - Display `email`, `legalName`, or any other account-only fields.
+  - Show location when `showLocation=false`.
+- Settings fields for email/legal name:
+  - Rendered read-only; clearly labeled as such.
+
+## 7) Implementation Order (Frontend)
+
+1. **API & Types**
+   - Add `profile.ts` and `settings.ts` types.
+   - Extend `apiClient` with `profile` and `settings` namespaces.
+2. **Layout & Nav**
+   - Implement `AppShell` and layout components (`HeaderBar`, `SideNav`, `BottomNav`).
+   - Implement `AppShellContainer` and wrap `/`, `/profile`, `/profile/edit`, `/settings`.
+3. **Profile View**
+   - Implement `ProfileHeader`, `ProfileStats`, `ProfileBio`, `IncompleteProfilePrompt`.
+   - Implement `MyProfilePageContainer` and `UserProfilePageContainer`.
+4. **Edit Profile & Avatar**
+   - Implement `AvatarUploader` and `EditProfileContainer` with avatar upload/remove.
+5. **Settings**
+   - Implement settings UI + `SettingsPageContainer` with auto-save toggles.
+6. **Polish & QA**
+   - Add skeleton loaders and toasts.
+   - Verify keyboard navigation, focus states, alt text/labels.
+
+## 8) Open Questions / Deviations to Confirm with Human
+
+- Route for other user profile:
+  - UI/UX doc specifies `/@[handle]`; current plan proposes `/u/[handle]` for practical routing reasons.
+  - We can switch to `/@[handle]` (e.g., `app/[slug]/page.tsx` with `@` parsing) once IA and routing conflicts (e.g., vs `/settings`) are resolved.
+- Avatar API payload details:
+  - Exact shape for `POST /profile/avatar/upload-url` and `POST /profile/avatar/confirm` (e.g., `avatarKey` vs `avatarUrl`) must match backend implementation; current types are **proposed** and will be adjusted if the integration doc differs.
+

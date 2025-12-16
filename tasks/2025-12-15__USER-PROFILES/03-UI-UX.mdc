@@ -1,0 +1,1114 @@
+# 03-UI-UX.mdc — User Profiles, Settings & Navigation
+
+**Task:** `2025-12-15__USER-PROFILES`  
+**Owner:** UI/UX Agent (proposal only; requires human approval)  
+**Status:** Draft  
+**Date:** December 15, 2025  
+
+---
+
+## 1. Screen Inventory
+
+| Screen | Route | Access | Purpose |
+|--------|-------|--------|---------|
+| My Profile | `/profile` | Authenticated | Self-view of user's own profile |
+| Other User Profile | `/@[handle]` | Public | Read-only view of another user's profile |
+| Edit Profile | `/profile/edit` | Authenticated | Form to update profile fields + avatar |
+| Settings | `/settings` | Authenticated | Account settings, privacy, notifications |
+
+---
+
+## 2. Layout & Navigation
+
+### 2.1 App Shell Structure
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                              APP SHELL                                   │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  DESKTOP (≥1024px)                                                      │
+│  ┌────────────────────────────────────────────────────────────────────┐│
+│  │ HEADER                                                              ││
+│  │ ┌──────────────────────────────────────────────────────────────┐   ││
+│  │ │  [Logo: NuttyFans]                        🔔  [User Avatar ▼] │   ││
+│  │ └──────────────────────────────────────────────────────────────┘   ││
+│  ├────────────────────────────────────────────────────────────────────┤│
+│  │ BODY                                                                ││
+│  │ ┌──────────┐ ┌────────────────────────────────────────────────────┐││
+│  │ │ SIDE NAV │ │ CONTENT AREA                                       │││
+│  │ │          │ │                                                    │││
+│  │ │ 🏠 Home  │ │  [Page content renders here]                       │││
+│  │ │ 👤 Profile│ │                                                    │││
+│  │ │ ⚙️ Settings││                                                    │││
+│  │ │          │ │                                                    │││
+│  │ │ ───────  │ │                                                    │││
+│  │ │ (future) │ │                                                    │││
+│  │ └──────────┘ └────────────────────────────────────────────────────┘││
+│  └────────────────────────────────────────────────────────────────────┘│
+│                                                                         │
+│  MOBILE (<1024px)                                                       │
+│  ┌────────────────────────────────────────────────────────────────────┐│
+│  │ TOP BAR                                                             ││
+│  │ ┌──────────────────────────────────────────────────────────────┐   ││
+│  │ │  [Logo]              [Page Title]              🔔  [Avatar]  │   ││
+│  │ └──────────────────────────────────────────────────────────────┘   ││
+│  ├────────────────────────────────────────────────────────────────────┤│
+│  │ CONTENT AREA                                                        ││
+│  │ ┌──────────────────────────────────────────────────────────────┐   ││
+│  │ │                                                              │   ││
+│  │ │  [Page content renders here]                                 │   ││
+│  │ │                                                              │   ││
+│  │ └──────────────────────────────────────────────────────────────┘   ││
+│  ├────────────────────────────────────────────────────────────────────┤│
+│  │ BOTTOM NAV                                                          ││
+│  │ ┌──────────────────────────────────────────────────────────────┐   ││
+│  │ │     🏠           👤           ⚙️                              │   ││
+│  │ │    Home       Profile     Settings                           │   ││
+│  │ └──────────────────────────────────────────────────────────────┘   ││
+│  └────────────────────────────────────────────────────────────────────┘│
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### 2.2 Navigation Specifications
+
+| Element | Desktop | Mobile |
+|---------|---------|--------|
+| **Primary Nav Location** | Left sidebar (persistent) | Bottom tab bar (fixed) |
+| **Nav Items** | Home, Profile, Settings | Home, Profile, Settings |
+| **Active State** | Filled icon + accent color (`#FF3366`) + left border | Filled icon + accent color + label bold |
+| **Inactive State** | Outline icon + muted text (`#737373`) | Outline icon + muted text |
+| **Header** | Logo left, notifications + avatar right | Logo left, page title center, avatar right |
+| **Avatar in Header** | Clickable → dropdown menu | Clickable → profile page |
+
+### 2.3 Header Avatar Dropdown (Desktop Only)
+
+```
+┌─────────────────────┐
+│ ○ Display Name      │
+│   @handle           │
+├─────────────────────┤
+│ 👤 View Profile     │
+│ ✏️ Edit Profile     │
+│ ⚙️ Settings         │
+├─────────────────────┤
+│ 🚪 Log Out          │
+└─────────────────────┘
+```
+
+### 2.4 Back/Close Patterns
+
+| Context | Desktop | Mobile |
+|---------|---------|--------|
+| Edit Profile | Cancel button (text) | ← Back arrow in top bar |
+| Modal/Dialog | X close button top-right | X close or swipe down |
+| Settings sub-page | Breadcrumb or back link | ← Back arrow in top bar |
+
+---
+
+## 3. Screen Definitions
+
+### 3.1 My Profile (Self-View)
+
+**Route:** `/profile`  
+**Access:** Authenticated users only  
+
+#### Wireframe
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        MY PROFILE                                │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────────┐│
+│  │                    PROFILE HEADER                            ││
+│  │  ┌────────────┐                                              ││
+│  │  │            │   Display Name                               ││
+│  │  │   AVATAR   │   @handle                                    ││
+│  │  │   (120px)  │   📍 Location (if shown)                     ││
+│  │  │            │   📅 Joined January 2025                     ││
+│  │  └────────────┘                                              ││
+│  │                                                              ││
+│  │  ┌─────────────────────────────────────────────────────────┐││
+│  │  │  [Edit Profile]                                         │││
+│  │  └─────────────────────────────────────────────────────────┘││
+│  └─────────────────────────────────────────────────────────────┘│
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────────┐│
+│  │                       STATS ROW                              ││
+│  │  ┌─────────────┐  ┌─────────────┐                           ││
+│  │  │    1,234    │  │     567     │                           ││
+│  │  │  Followers  │  │  Following  │                           ││
+│  │  └─────────────┘  └─────────────┘                           ││
+│  └─────────────────────────────────────────────────────────────┘│
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────────┐│
+│  │                        BIO SECTION                           ││
+│  │                                                              ││
+│  │  "User bio text goes here. This is a short description      ││
+│  │   about the user that they have written themselves."         ││
+│  │                                                              ││
+│  └─────────────────────────────────────────────────────────────┘│
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────────┐│
+│  │              FUTURE: POSTS/CONTENT TABS                      ││
+│  │              (Out of scope for this task)                    ││
+│  └─────────────────────────────────────────────────────────────┘│
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+#### Field Display
+
+| Field | Display Rule | Empty State |
+|-------|--------------|-------------|
+| Avatar | 120px circle, object-fit cover | Default avatar (initials or silhouette) |
+| Display Name | H2, primary text color | Username as fallback |
+| Handle | Body text, muted, prefixed with @ | Always present (required) |
+| Location | Body small, muted, with 📍 icon | Hidden if not set or `showLocation=false` |
+| Join Date | Caption, muted, with 📅 icon | "Joined [Month Year]" format |
+| Followers/Following | Large number + label below | Show "0" if none |
+| Bio | Body text, max 3 lines with "more" expand | Placeholder: "No bio yet" |
+
+#### Actions
+
+| Action | Trigger | Behavior |
+|--------|---------|----------|
+| Edit Profile | Click "Edit Profile" button | Navigate to `/profile/edit` |
+| View Follower list | Click Followers count | Future feature (out of scope) |
+| View Following list | Click Following count | Future feature (out of scope) |
+
+---
+
+### 3.2 Other User Profile (Public View)
+
+**Route:** `/@[handle]`  
+**Access:** Public (no auth required)  
+
+#### Wireframe
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    @username PROFILE                             │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────────┐│
+│  │                    PROFILE HEADER                            ││
+│  │  ┌────────────┐                                              ││
+│  │  │            │   Display Name                               ││
+│  │  │   AVATAR   │   @handle                                    ││
+│  │  │   (120px)  │   📍 Location (if shown)                     ││
+│  │  │            │   📅 Joined January 2025                     ││
+│  │  └────────────┘                                              ││
+│  │                                                              ││
+│  │  ┌─────────────────────────────────────────────────────────┐││
+│  │  │  [Follow]  (or [Following ✓] if already following)      │││
+│  │  └─────────────────────────────────────────────────────────┘││
+│  └─────────────────────────────────────────────────────────────┘│
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────────┐│
+│  │                       STATS ROW                              ││
+│  │  ┌─────────────┐  ┌─────────────┐                           ││
+│  │  │    1,234    │  │     567     │                           ││
+│  │  │  Followers  │  │  Following  │                           ││
+│  │  └─────────────┘  └─────────────┘                           ││
+│  └─────────────────────────────────────────────────────────────┘│
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────────┐│
+│  │                        BIO SECTION                           ││
+│  │                                                              ││
+│  │  "User bio text..."                                          ││
+│  │                                                              ││
+│  └─────────────────────────────────────────────────────────────┘│
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+#### Differences from Self-View
+
+| Aspect | Self-View | Other User View |
+|--------|-----------|-----------------|
+| Primary Action | "Edit Profile" button | "Follow" / "Following" button |
+| Private Fields | All visible | Only public fields shown |
+| Location | Always shown if set | Only if `showLocation=true` |
+| Navigation | Standard nav | Back button to previous page |
+
+#### Public Fields Only
+
+- Avatar
+- Display Name
+- Handle
+- Bio
+- Location (if `showLocation=true`)
+- Join Date
+- Follower/Following counts
+
+**Never shown:** Email, legal name, notification settings, privacy settings.
+
+---
+
+### 3.3 Edit Profile
+
+**Route:** `/profile/edit`  
+**Access:** Authenticated users only  
+
+#### Wireframe
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  ← Back                    Edit Profile              [Save]     │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────────┐│
+│  │                    AVATAR SECTION                            ││
+│  │                                                              ││
+│  │            ┌────────────────┐                                ││
+│  │            │                │                                ││
+│  │            │    AVATAR      │                                ││
+│  │            │    (120px)     │                                ││
+│  │            │                │                                ││
+│  │            └────────────────┘                                ││
+│  │                                                              ││
+│  │     [Upload Photo]    [Remove] (if avatar exists)            ││
+│  │                                                              ││
+│  │  ℹ️ Avatars must follow community guidelines and may be       ││
+│  │    reviewed for policy compliance.                           ││
+│  │                                                              ││
+│  └─────────────────────────────────────────────────────────────┘│
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────────┐│
+│  │                    PROFILE FIELDS                            ││
+│  │                                                              ││
+│  │  Display Name *                                              ││
+│  │  ┌─────────────────────────────────────────────────────────┐││
+│  │  │ Sarah Connor                                            │││
+│  │  └─────────────────────────────────────────────────────────┘││
+│  │  Max 50 characters                                          ││
+│  │                                                              ││
+│  │  Username                                                    ││
+│  │  ┌─────────────────────────────────────────────────────────┐││
+│  │  │ @sarahconnor                                   (locked) │││
+│  │  └─────────────────────────────────────────────────────────┘││
+│  │  Username cannot be changed                                  ││
+│  │                                                              ││
+│  │  Bio                                                         ││
+│  │  ┌─────────────────────────────────────────────────────────┐││
+│  │  │ Fighting machines since 1984.                           │││
+│  │  │                                                         │││
+│  │  │                                                         │││
+│  │  └─────────────────────────────────────────────────────────┘││
+│  │  0/160 characters                                           ││
+│  │                                                              ││
+│  │  Location                                                    ││
+│  │  ┌─────────────────────────────────────────────────────────┐││
+│  │  │ Los Angeles, CA                                         │││
+│  │  └─────────────────────────────────────────────────────────┘││
+│  │  Optional                                                   ││
+│  │                                                              ││
+│  └─────────────────────────────────────────────────────────────┘│
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────────┐│
+│  │                   PRIVACY TOGGLES                            ││
+│  │                                                              ││
+│  │  Profile Discoverability                          [ON/OFF]  ││
+│  │  Allow others to find your profile in search                 ││
+│  │                                                              ││
+│  │  Show Location                                    [ON/OFF]  ││
+│  │  Display location on your public profile                     ││
+│  │                                                              ││
+│  └─────────────────────────────────────────────────────────────┘│
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+#### Field Specifications
+
+| Field | Type | Required | Validation | Editable |
+|-------|------|----------|------------|----------|
+| Avatar | Image upload | No | JPG, PNG, GIF, WebP; max 5MB | Yes |
+| Display Name | Text input | Yes | 1-50 characters | Yes |
+| Username/Handle | Text (disabled) | Yes | N/A (read-only) | No |
+| Bio | Textarea | No | 0-160 characters | Yes |
+| Location | Text input | No | 0-100 characters | Yes |
+| Discoverability | Toggle switch | Yes | Boolean | Yes |
+| Show Location | Toggle switch | Yes | Boolean | Yes |
+
+#### Avatar Upload Flow
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    AVATAR UPLOAD FLOW                            │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  1. USER CLICKS [Upload Photo]                                  │
+│     │                                                           │
+│     ▼                                                           │
+│  2. FILE PICKER OPENS                                           │
+│     - Accept: .jpg, .jpeg, .png, .gif, .webp                   │
+│     │                                                           │
+│     ▼                                                           │
+│  3. CLIENT-SIDE VALIDATION                                      │
+│     ├─ File type valid? ──No──▶ Error: "Please upload a JPG,   │
+│     │                           PNG, GIF, or WebP image"        │
+│     │                                                           │
+│     ├─ File size ≤5MB? ──No──▶ Error: "Image must be under 5MB"│
+│     │                                                           │
+│     ▼                                                           │
+│  4. PREVIEW SHOWN                                               │
+│     - Show image preview in avatar circle                       │
+│     - Show loading spinner during upload                        │
+│     │                                                           │
+│     ▼                                                           │
+│  5. UPLOAD TO STORAGE                                           │
+│     ├─ Success ──▶ Avatar updated, show checkmark briefly      │
+│     │                                                           │
+│     └─ Failure ──▶ Error: "Upload failed. Please try again."   │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+#### Avatar Copy Guidelines
+
+| State | Copy |
+|-------|------|
+| Upload prompt | "Upload Photo" |
+| Remove action | "Remove" (only shown if avatar exists) |
+| Guidelines note | "Avatars must follow community guidelines and may be reviewed for policy compliance." |
+| File type error | "Please upload a JPG, PNG, GIF, or WebP image." |
+| File size error | "Image must be under 5MB." |
+| Upload in progress | Show spinner, no text change |
+| Upload success | Brief checkmark animation, then normal state |
+| Upload failure | "Upload failed. Please try again." |
+| Remove confirmation | "Remove your profile photo?" with [Cancel] [Remove] buttons |
+
+#### Form Actions
+
+| Action | Location | Behavior |
+|--------|----------|----------|
+| Back/Cancel | Top-left (mobile) or Cancel button | Discard changes, return to `/profile` |
+| Save | Top-right button (primary style) | Validate → Submit → Show feedback |
+
+---
+
+### 3.4 Settings
+
+**Route:** `/settings`  
+**Access:** Authenticated users only  
+
+#### Wireframe
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  ← Back                      Settings                           │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────────┐│
+│  │  ACCOUNT                                                     ││
+│  ├─────────────────────────────────────────────────────────────┤│
+│  │                                                              ││
+│  │  Email                                                       ││
+│  │  ┌─────────────────────────────────────────────────────────┐││
+│  │  │ sarah@example.com                              (locked) │││
+│  │  └─────────────────────────────────────────────────────────┘││
+│  │  Contact support to change email                            ││
+│  │                                                              ││
+│  │  Legal Name (if present)                                    ││
+│  │  ┌─────────────────────────────────────────────────────────┐││
+│  │  │ Sarah Jane Connor                              (locked) │││
+│  │  └─────────────────────────────────────────────────────────┘││
+│  │  From identity verification                                 ││
+│  │                                                              ││
+│  └─────────────────────────────────────────────────────────────┘│
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────────┐│
+│  │  NOTIFICATIONS                                               ││
+│  ├─────────────────────────────────────────────────────────────┤│
+│  │                                                              ││
+│  │  Email Notifications                              [ON/OFF]  ││
+│  │  Receive important updates via email                        ││
+│  │                                                              ││
+│  │  Marketing Emails                                 [ON/OFF]  ││
+│  │  News, features, and promotional content                    ││
+│  │                                                              ││
+│  │  Platform Updates                                 [ON/OFF]  ││
+│  │  Product announcements and policy changes                   ││
+│  │                                                              ││
+│  └─────────────────────────────────────────────────────────────┘│
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────────┐│
+│  │  PRIVACY                                                     ││
+│  ├─────────────────────────────────────────────────────────────┤│
+│  │                                                              ││
+│  │  Profile Discoverability                          [ON/OFF]  ││
+│  │  Allow others to find your profile in search                 ││
+│  │                                                              ││
+│  │  Show Location                                    [ON/OFF]  ││
+│  │  Display location on your public profile                     ││
+│  │                                                              ││
+│  └─────────────────────────────────────────────────────────────┘│
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────────┐│
+│  │  ACCOUNT ACTIONS                                             ││
+│  ├─────────────────────────────────────────────────────────────┤│
+│  │                                                              ││
+│  │  [Log Out]                                                   ││
+│  │                                                              ││
+│  │  [Delete Account]                                 (danger)   ││
+│  │  Permanently delete your account and all data               ││
+│  │                                                              ││
+│  └─────────────────────────────────────────────────────────────┘│
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+#### Section Breakdown
+
+| Section | Fields | Behavior |
+|---------|--------|----------|
+| **Account** | Email (read-only), Legal Name (read-only, if present) | Display only; cannot edit |
+| **Notifications** | Email Notifications, Marketing Emails, Platform Updates | Toggle switches; auto-save on change |
+| **Privacy** | Profile Discoverability, Show Location | Toggle switches; auto-save on change |
+| **Account Actions** | Log Out, Delete Account | Buttons with confirmation flows |
+
+#### Field Specifications
+
+| Field | Type | Editable | Notes |
+|-------|------|----------|-------|
+| Email | Text (disabled) | No | Shows verified email; "Contact support to change email" |
+| Legal Name | Text (disabled) | No | Only shown if KYC completed; "From identity verification" |
+| Email Notifications | Toggle | Yes | Auto-save; controls transactional emails |
+| Marketing Emails | Toggle | Yes | Auto-save; opt-in/out for marketing |
+| Platform Updates | Toggle | Yes | Auto-save; product announcements |
+| Discoverability | Toggle | Yes | Auto-save; same as in Edit Profile |
+| Show Location | Toggle | Yes | Auto-save; same as in Edit Profile |
+
+#### Account Actions
+
+| Action | Style | Confirmation |
+|--------|-------|--------------|
+| Log Out | Secondary button | No confirmation; immediate redirect to login |
+| Delete Account | Danger/destructive text link | Modal confirmation required (see below) |
+
+#### Delete Account Confirmation Modal
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    Delete Account?                    [X]       │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  This action is permanent and cannot be undone.                 │
+│                                                                 │
+│  All your data, including your profile, settings, and any      │
+│  content you've created, will be permanently deleted.          │
+│                                                                 │
+│  To confirm, type "DELETE" below:                              │
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────────┐│
+│  │                                                             ││
+│  └─────────────────────────────────────────────────────────────┘│
+│                                                                 │
+│  ┌─────────────────┐  ┌─────────────────────────────────────┐  │
+│  │     Cancel      │  │    Delete My Account (disabled)    │  │
+│  └─────────────────┘  └─────────────────────────────────────┘  │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+- "Delete My Account" button only enables when user types "DELETE"
+- Button uses danger/destructive styling (red background)
+
+---
+
+## 4. Empty States & Incomplete Profiles
+
+### 4.1 Missing Avatar
+
+```
+┌────────────────┐
+│                │
+│    ┌────┐      │
+│    │ SC │      │    ← Initials (first letter of display name or handle)
+│    └────┘      │    ← Neutral background (#E5E5E5)
+│                │    ← Primary text color for initials
+└────────────────┘
+```
+
+**Fallback logic:**
+1. If display name exists → Use first letter(s) of display name
+2. Else → Use first letter of handle
+
+### 4.2 Missing Bio
+
+**On Profile View:**
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  BIO SECTION                                                    │
+│                                                                 │
+│  (empty state - muted text)                                     │
+│  "No bio yet"                                                   │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**On Own Profile (with prompt):**
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  BIO SECTION                                                    │
+│                                                                 │
+│  "No bio yet"                                                   │
+│  [Add a bio →]  ← Link to Edit Profile                         │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 4.3 Missing Location
+
+- Simply hidden from view (not shown as empty)
+- No placeholder text needed
+
+### 4.4 Incomplete Profile Prompt (Self-View Only)
+
+When avatar OR bio is missing, show a gentle prompt card:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  ┌───────────────────────────────────────────────────────────┐  │
+│  │  💡 Complete your profile                                 │  │
+│  │                                                           │  │
+│  │  Add a photo and bio to help others get to know you.     │  │
+│  │                                                           │  │
+│  │  [Complete Profile →]                                     │  │
+│  └───────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+- Show above the bio section
+- Dismissible (X button top-right of card)
+- Once dismissed, don't show again for 7 days
+- Link navigates to `/profile/edit`
+
+---
+
+## 5. Success & Error Feedback
+
+### 5.1 Toast Notifications
+
+| Event | Type | Message | Duration |
+|-------|------|---------|----------|
+| Profile saved | Success | "Profile updated" | 3s |
+| Avatar uploaded | Success | "Photo uploaded" | 3s |
+| Avatar removed | Success | "Photo removed" | 3s |
+| Settings saved | Success | "Settings saved" | 3s |
+| Validation error | Error | Specific error message | 5s |
+| Network error | Error | "Something went wrong. Please try again." | 5s |
+| Upload failed | Error | "Upload failed. Please try again." | 5s |
+
+### 5.2 Toast Positioning
+
+```
+DESKTOP                              MOBILE
+┌───────────────────────┐           ┌───────────────────────┐
+│                       │           │                       │
+│                       │           │                       │
+│                       │           │                       │
+│                       │           │                       │
+│                       │           │                       │
+│    ┌────────────┐     │           │                       │
+│    │ ✓ Profile  │     │           │                       │
+│    │   updated  │     │           │                       │
+│    └────────────┘     │           │    ┌────────────┐     │
+│ Bottom-right corner   │           │    │ ✓ Profile  │     │
+└───────────────────────┘           │    │   updated  │     │
+                                    │    └────────────┘     │
+                                    │ Bottom-center         │
+                                    └───────────────────────┘
+```
+
+### 5.3 Inline Validation Errors
+
+Show below the field with error styling:
+
+```
+Display Name *
+┌─────────────────────────────────────────────────────────────────┐
+│                                                      (error)    │
+└─────────────────────────────────────────────────────────────────┘
+⚠️ Display name is required                  ← Red text (#EF4444)
+```
+
+| Field | Validation | Error Message |
+|-------|------------|---------------|
+| Display Name | Required, 1-50 chars | "Display name is required" / "Display name must be under 50 characters" |
+| Bio | Max 160 chars | "Bio must be under 160 characters" |
+| Location | Max 100 chars | "Location must be under 100 characters" |
+
+### 5.4 Form States
+
+| State | Save Button | Fields |
+|-------|-------------|--------|
+| Clean (no changes) | Disabled, muted | Normal |
+| Dirty (has changes) | Enabled, primary | Normal |
+| Submitting | Disabled, spinner | Disabled |
+| Error | Enabled, primary | Error fields highlighted |
+| Success | Brief success state, then reset | Normal |
+
+---
+
+## 6. Accessibility Requirements
+
+### 6.1 Keyboard Navigation
+
+| Screen | Tab Order |
+|--------|-----------|
+| My Profile | Edit Profile button → Stats (followers, following) → Bio expand link |
+| Other Profile | Follow button → Stats → Bio expand link |
+| Edit Profile | Avatar upload → Display name → Bio → Location → Discoverability toggle → Show location toggle → Save button |
+| Settings | Account section → Notification toggles → Privacy toggles → Log out → Delete account |
+
+### 6.2 Focus States
+
+All interactive elements must have visible focus indicators:
+
+```css
+/* Focus ring specification */
+:focus-visible {
+  outline: 2px solid var(--accent-primary); /* #FF3366 */
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+```
+
+### 6.3 Screen Reader Labels
+
+| Element | aria-label / alt text |
+|---------|----------------------|
+| Avatar image | "[Display name]'s profile photo" or "Default profile photo" |
+| Edit Profile button | "Edit your profile" |
+| Follow button | "Follow [display name]" |
+| Following button | "Unfollow [display name]" |
+| Followers count | "[count] followers" |
+| Following count | "Following [count] users" |
+| Upload photo button | "Upload profile photo" |
+| Remove photo button | "Remove profile photo" |
+| Toggle switches | "[Setting name], currently [on/off]" |
+| Locked fields | "[Field name], read-only" |
+
+### 6.4 Form Accessibility
+
+| Requirement | Implementation |
+|-------------|----------------|
+| Labels | All inputs have visible `<label>` elements |
+| Required fields | Marked with asterisk (*) and `aria-required="true"` |
+| Error states | `aria-invalid="true"` and `aria-describedby` pointing to error message |
+| Help text | Associated via `aria-describedby` |
+| Character counts | Live region updates: `aria-live="polite"` |
+
+### 6.5 Color Contrast
+
+Per WCAG 2.1 AA (as specified in UI/UX Blueprint):
+
+| Element | Foreground | Background | Ratio |
+|---------|------------|------------|-------|
+| Primary text | #0A0A0A | #FFFFFF | 21:1 ✓ |
+| Secondary text | #737373 | #FFFFFF | 4.84:1 ✓ |
+| Muted text | #A3A3A3 | #FFFFFF | 2.68:1 ⚠️ (decorative only) |
+| Error text | #EF4444 | #FFFFFF | 4.53:1 ✓ |
+| Accent on white | #FF3366 | #FFFFFF | 4.51:1 ✓ |
+
+### 6.6 Motion & Reduced Motion
+
+- All animations respect `prefers-reduced-motion: reduce`
+- When reduced motion is preferred:
+  - Toast slides → instant appear/disappear
+  - Avatar upload spinner → static "Uploading..." text
+  - Button press animations → disabled
+
+---
+
+## 7. Component Reuse
+
+### 7.1 From Existing Design System (`src/components/ui`)
+
+| Component | Usage |
+|-----------|-------|
+| `Button` | Primary (Save), Secondary (Cancel, Follow), Ghost (Edit, Remove), Danger (Delete) |
+| `Input` | Display name, Location fields |
+| `Textarea` | Bio field |
+| `Avatar` | Profile photos (sizes: SM for nav, MD for cards, LG for profile header) |
+| `Badge` | Verified badge (future), Live badge (future) |
+| `Card` | Profile sections, Settings sections |
+| `Dialog` | Delete account confirmation |
+| `Toast` | Success/error feedback |
+| `Skeleton` | Loading states |
+| `Separator` | Section dividers in Settings |
+| `Label` | Form field labels |
+| `Tabs` | Future: Posts/Media tabs on profile |
+
+### 7.2 New Domain Components Needed
+
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| `ProfileHeader` | `src/components/profile/` | Avatar + name + handle + meta + action button |
+| `ProfileStats` | `src/components/profile/` | Followers/following count display |
+| `ProfileBio` | `src/components/profile/` | Bio with expand/collapse for long text |
+| `AvatarUploader` | `src/components/profile/` | Upload, preview, remove avatar with validation |
+| `SettingsSection` | `src/components/settings/` | Section wrapper with title |
+| `SettingsToggle` | `src/components/settings/` | Toggle row with label and description |
+| `AppShell` | `src/components/layout/` | Desktop sidebar + mobile bottom nav layout |
+| `SideNav` | `src/components/layout/` | Desktop navigation sidebar |
+| `BottomNav` | `src/components/layout/` | Mobile bottom tab bar |
+| `HeaderBar` | `src/components/layout/` | Top header with logo, actions, avatar |
+
+### 7.3 Component Hierarchy
+
+```
+AppShell
+├── HeaderBar
+│   ├── Logo
+│   ├── PageTitle (mobile only)
+│   ├── NotificationBell
+│   └── Avatar (with dropdown on desktop)
+├── SideNav (desktop only)
+│   └── NavItem[] (Home, Profile, Settings)
+├── BottomNav (mobile only)
+│   └── NavItem[] (Home, Profile, Settings)
+└── ContentArea
+    └── [Page Content]
+
+ProfilePage
+├── ProfileHeader
+│   ├── Avatar (LG)
+│   ├── DisplayName
+│   ├── Handle
+│   ├── Location (optional)
+│   ├── JoinDate
+│   └── ActionButton (Edit/Follow)
+├── ProfileStats
+│   ├── FollowersCount
+│   └── FollowingCount
+├── IncompleteProfilePrompt (self-view, conditional)
+└── ProfileBio
+
+EditProfilePage
+├── AvatarUploader
+│   ├── Avatar (LG)
+│   ├── UploadButton
+│   ├── RemoveButton
+│   └── GuidelinesNote
+├── Form
+│   ├── Input (Display Name)
+│   ├── Input (Handle, disabled)
+│   ├── Textarea (Bio)
+│   ├── Input (Location)
+│   ├── Toggle (Discoverability)
+│   └── Toggle (Show Location)
+└── FormActions
+    ├── CancelButton
+    └── SaveButton
+
+SettingsPage
+├── SettingsSection (Account)
+│   ├── SettingsField (Email, disabled)
+│   └── SettingsField (Legal Name, disabled, conditional)
+├── SettingsSection (Notifications)
+│   ├── SettingsToggle (Email Notifications)
+│   ├── SettingsToggle (Marketing Emails)
+│   └── SettingsToggle (Platform Updates)
+├── SettingsSection (Privacy)
+│   ├── SettingsToggle (Discoverability)
+│   └── SettingsToggle (Show Location)
+└── SettingsSection (Account Actions)
+    ├── LogOutButton
+    └── DeleteAccountLink
+```
+
+---
+
+## 8. Responsive Behavior
+
+### 8.1 Breakpoints (from UI/UX Blueprint)
+
+| Token | Width | Layout |
+|-------|-------|--------|
+| mobile | < 640px | Single column, bottom nav |
+| tablet | 640-1024px | Single column, bottom nav |
+| desktop | 1024-1440px | Sidebar + content, side nav |
+| wide | > 1440px | Sidebar + centered content (max 1400px) |
+
+### 8.2 Profile Page Adaptations
+
+| Element | Mobile (<1024px) | Desktop (≥1024px) |
+|---------|------------------|-------------------|
+| Avatar size | 96px | 120px |
+| Profile header | Stacked (avatar above text) | Side-by-side (avatar left of text) |
+| Stats row | Below header, centered | Inline with header section |
+| Edit/Follow button | Full-width below avatar | Inline, right-aligned |
+| Bio section | Full-width | Max-width 600px |
+
+### 8.3 Edit Profile Adaptations
+
+| Element | Mobile | Desktop |
+|---------|--------|---------|
+| Header | "← Back" + "Save" in top bar | Cancel/Save buttons at bottom of form |
+| Form width | Full-width with 16px padding | Max-width 480px, centered |
+| Avatar section | Centered | Left-aligned with form |
+| Toggles | Full-width rows | Same |
+
+### 8.4 Settings Adaptations
+
+| Element | Mobile | Desktop |
+|---------|--------|---------|
+| Sections | Full-width cards, stacked | Max-width 600px, centered |
+| Section spacing | 24px gap | 32px gap |
+| Toggle rows | Label and toggle on same line | Same |
+
+---
+
+## 9. Interaction Patterns
+
+### 9.1 Navigation Active States
+
+**Desktop Side Nav:**
+```
+┌──────────────────────┐
+│                      │
+│  🏠 Home             │  ← Inactive: outline icon, muted text
+│                      │
+│ ▌👤 Profile          │  ← Active: left accent border, filled icon, primary text
+│                      │
+│  ⚙️ Settings         │  ← Inactive
+│                      │
+└──────────────────────┘
+```
+
+**Mobile Bottom Nav:**
+```
+┌──────────────────────────────────────────────┐
+│                                              │
+│     🏠          👤          ⚙️              │
+│    Home      Profile    Settings            │
+│   (muted)   (accent)    (muted)             │
+│              ● dot                          │
+│                                              │
+└──────────────────────────────────────────────┘
+```
+
+Active indicator: Dot below icon + accent color on icon and label
+
+### 9.2 Button States
+
+| State | Primary Button | Secondary Button | Danger Button |
+|-------|----------------|------------------|---------------|
+| Default | `#FF3366` bg, white text | Transparent, border, primary text | Transparent, red text |
+| Hover | `#E6295C` bg | Light gray bg | Light red bg |
+| Active/Pressed | `#CC2352` bg, scale(0.98) | Darker gray bg | Darker red bg |
+| Disabled | `#A3A3A3` bg, muted text | Muted border, muted text | Muted red text |
+| Loading | Spinner, disabled | Spinner, disabled | N/A |
+
+### 9.3 Toggle Switch Behavior
+
+```
+OFF State                    ON State
+┌──────────────────┐        ┌──────────────────┐
+│ ○────────────    │   →    │    ────────────● │
+│ Gray bg          │        │ Accent bg (#FF3366) │
+└──────────────────┘        └──────────────────┘
+
+Transition: 150ms ease-out
+```
+
+- Toggles auto-save on change (no explicit save button needed)
+- Brief spinner on toggle during save
+- Revert to previous state if save fails
+
+### 9.4 Avatar Upload Interaction
+
+```
+1. Hover on avatar area (desktop)
+   ┌────────────────┐
+   │                │
+   │   [Camera     │  ← Semi-transparent overlay appears
+   │    icon]      │
+   │                │
+   └────────────────┘
+
+2. Click → File picker opens
+
+3. During upload
+   ┌────────────────┐
+   │                │
+   │   [Spinner]   │  ← Previous avatar shown blurred
+   │                │
+   └────────────────┘
+
+4. Success
+   ┌────────────────┐
+   │                │
+   │   [Checkmark] │  ← Brief (1s) then shows new avatar
+   │                │
+   └────────────────┘
+```
+
+### 9.5 Page Transitions
+
+| Transition | Animation | Duration |
+|------------|-----------|----------|
+| Navigate to Edit Profile | Slide in from right | 200ms |
+| Navigate back from Edit | Slide out to right | 200ms |
+| Modal open | Fade + scale up | 150ms |
+| Modal close | Fade + scale down | 150ms |
+| Toast appear | Slide up + fade in | 200ms |
+| Toast dismiss | Slide down + fade out | 150ms |
+
+---
+
+## 10. Copy Guidelines
+
+### 10.1 Profile Copy
+
+| Context | Copy |
+|---------|------|
+| Page title (self) | "Profile" |
+| Page title (other) | "@[handle]" |
+| Edit button | "Edit Profile" |
+| Follow button | "Follow" |
+| Following button | "Following" (with checkmark) |
+| Unfollow (on hover) | "Unfollow" |
+| Followers label | "Followers" |
+| Following label | "Following" |
+| Join date format | "Joined [Month] [Year]" (e.g., "Joined December 2025") |
+| Empty bio (other) | "No bio yet" |
+| Empty bio (self) | "No bio yet" + "[Add a bio →]" |
+
+### 10.2 Edit Profile Copy
+
+| Context | Copy |
+|---------|------|
+| Page title | "Edit Profile" |
+| Avatar upload button | "Upload Photo" |
+| Avatar remove button | "Remove" |
+| Avatar guidelines | "Avatars must follow community guidelines and may be reviewed for policy compliance." |
+| Display name label | "Display Name" |
+| Display name placeholder | "Your name" |
+| Display name helper | "Max 50 characters" |
+| Handle label | "Username" |
+| Handle helper | "Username cannot be changed" |
+| Bio label | "Bio" |
+| Bio placeholder | "Tell people about yourself" |
+| Bio helper | "0/160 characters" (updates as user types) |
+| Location label | "Location" |
+| Location placeholder | "City, Country" |
+| Location helper | "Optional" |
+| Discoverability label | "Profile Discoverability" |
+| Discoverability helper | "Allow others to find your profile in search" |
+| Show location label | "Show Location" |
+| Show location helper | "Display location on your public profile" |
+| Cancel button | "Cancel" |
+| Save button | "Save" |
+
+### 10.3 Settings Copy
+
+| Context | Copy |
+|---------|------|
+| Page title | "Settings" |
+| Account section | "Account" |
+| Email label | "Email" |
+| Email helper | "Contact support to change email" |
+| Legal name label | "Legal Name" |
+| Legal name helper | "From identity verification" |
+| Notifications section | "Notifications" |
+| Email notifications label | "Email Notifications" |
+| Email notifications helper | "Receive important updates via email" |
+| Marketing emails label | "Marketing Emails" |
+| Marketing emails helper | "News, features, and promotional content" |
+| Platform updates label | "Platform Updates" |
+| Platform updates helper | "Product announcements and policy changes" |
+| Privacy section | "Privacy" |
+| Account actions section | "Account Actions" |
+| Log out button | "Log Out" |
+| Delete account link | "Delete Account" |
+| Delete account helper | "Permanently delete your account and all data" |
+
+### 10.4 Feedback Copy
+
+| Event | Copy |
+|-------|------|
+| Profile saved | "Profile updated" |
+| Avatar uploaded | "Photo uploaded" |
+| Avatar removed | "Photo removed" |
+| Settings saved | "Settings saved" |
+| Required field error | "[Field] is required" |
+| Max length error | "[Field] must be under [X] characters" |
+| File type error | "Please upload a JPG, PNG, GIF, or WebP image" |
+| File size error | "Image must be under 5MB" |
+| Upload failed | "Upload failed. Please try again." |
+| Network error | "Something went wrong. Please try again." |
+| Delete confirmation title | "Delete Account?" |
+| Delete confirmation body | "This action is permanent and cannot be undone. All your data, including your profile, settings, and any content you've created, will be permanently deleted." |
+| Delete confirmation prompt | "To confirm, type \"DELETE\" below:" |
+| Delete button | "Delete My Account" |
+
+---
+
+## 11. Assumptions
+
+| ID | Assumption | Source |
+|----|------------|--------|
+| A1 | Username/handle is immutable after registration | 02-ARCHITECTURE-REVIEW |
+| A2 | NSFW avatars allowed; moderation is a future task | 02-ARCHITECTURE-REVIEW |
+| A3 | Avatar max size is 5MB | Standard practice |
+| A4 | Bio max length is 160 characters | Common social platform standard |
+| A5 | Location is free-text, not structured | 01-PM-RESEARCH |
+| A6 | Follower/following counts are read-only displays | 01-PM-RESEARCH |
+| A7 | Settings toggles auto-save on change | UX best practice |
+| A8 | Email change requires support contact (no self-service) | 02-ARCHITECTURE-REVIEW |
+| A9 | Delete account is a placeholder flow (full implementation separate) | 00-TASK-OVERVIEW |
+
+---
+
+## 12. Design Decisions (Resolved)
+
+| ID | Question | Decision | Rationale |
+|----|----------|----------|-----------|
+| Q1 | Profile completeness: percentage vs prompt card? | **Simple prompt card** | Less cognitive load, cleaner premium aesthetic, avoids gamification. Industry standard (Twitter/X, Instagram). |
+| Q2 | Incomplete profile prompt dismissibility? | **Temporarily (7 days)** | Balances user autonomy with gentle re-engagement. Permanent dismissal risks incomplete profiles forever. |
+| Q3 | Preview mode in Edit Profile? | **No** | Form fields show real-time input; avatar has upload preview. Adding preview adds complexity without clear value for simple text fields. |
+| Q4 | Allow handle/username changes? | **No (immutable)** | Per architecture decision. Prevents URL breakage, identity confusion, and simplifies system. Support contact for exceptional cases. |
+| Q5 | Location field autocomplete? | **No for MVP** | Requires geocoding API, adds scope. Free-text sufficient for MVP. Can be enhanced in future iteration. |
+
+---
+
+## 13. Out of Scope (Confirmed)
+
+Per 00-TASK-OVERVIEW and 02-ARCHITECTURE-REVIEW:
+
+- Creator-specific profile customization
+- Monetization and payout settings
+- Admin views and moderation tooling
+- Detailed notification preference matrix
+- Payment and subscription settings
+- Follower/following list pages
+- Posts/content tabs on profile (placeholders only)
+- Avatar moderation/NSFW detection
+
+---
+
+## 14. Approvals Required
+
+- [ ] Human approval of this UI/UX specification
+- [x] Design decisions resolved (Section 12) — based on UX best practices
+
+**After approval:**
+- Frontend Agent may proceed with implementation per this spec
+- Backend Agent may proceed with API implementation per 02-ARCHITECTURE-REVIEW
+
+---
+
+## 15. Revision History
+
+| Date | Version | Author | Changes |
+|------|---------|--------|---------|
+| 2025-12-15 | 1.0 | UI/UX Agent | Initial draft |
+| 2025-12-15 | 1.1 | UI/UX Agent | Resolved open questions with UX best-practice decisions |
+

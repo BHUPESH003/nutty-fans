@@ -1,0 +1,117 @@
+# PM Research: Messaging System
+
+**Task:** `2025-12-16__MESSAGING-SYSTEM`  
+**Prepared By:** Product Operations Agent  
+**Date:** December 16, 2025  
+**Status:** ✅ Complete
+
+---
+
+## Executive Summary
+
+This task implements the direct messaging system, allowing fans and creators to communicate privately. It includes support for text, media, and paid (PPV) messages.
+
+---
+
+## Feature Scope
+
+| Feature | Priority | PRD Reference |
+|---------|----------|---------------|
+| Conversations | P0 | U-033 |
+| Real-time Messaging | P0 | U-033 |
+| Media Support | P0 | U-033 |
+| Paid Messages | P0 | U-034, C-023 |
+| Read Receipts | P1 | — |
+| Blocking | P0 | C-040 |
+
+---
+
+## User Stories
+
+### Fan Stories
+- U-033: Send/receive messages with creators
+- U-034: Unlock paid messages from creators
+- U-035: Block users to prevent harassment
+
+### Creator Stories
+- C-023: Send paid messages to subscribers (mass DM or individual)
+- C-040: Block abusive fans
+
+---
+
+## Technical Requirements
+
+### Real-time Architecture
+
+**Option A: Polling (MVP)**
+- Simple `SWR` or `React Query` polling every 3-5s
+- Pros: Easy to implement, no extra infrastructure
+- Cons: Higher server load, latency
+
+**Option B: WebSockets (Pusher/Ably)**
+- Real-time events
+- Pros: Instant, efficient
+- Cons: Cost, complexity
+
+**Decision:** Start with **Polling (Option A)** for MVP simplicity, upgrade to WebSockets later if needed.
+
+### Paid Messages Flow
+
+1. Creator sends message with `price > 0`
+2. Recipient sees "Locked Message" placeholder
+3. Recipient clicks "Unlock" → Payment Flow (Wallet/Card)
+4. On success → Message content revealed
+
+---
+
+## API Endpoints (10 Total)
+
+### Conversations
+- GET `/api/conversations` - List inbox
+- POST `/api/conversations` - Start new conversation
+- GET `/api/conversations/[id]` - Get details
+- DELETE `/api/conversations/[id]` - Delete/Hide
+
+### Messages
+- GET `/api/conversations/[id]/messages` - List messages
+- POST `/api/conversations/[id]/messages` - Send message
+- DELETE `/api/messages/[id]` - Unsend (if allowed)
+
+### Engagement
+- POST `/api/conversations/[id]/read` - Mark as read
+- POST `/api/users/[id]/block` - Block user
+- GET `/api/users/blocked` - List blocked users
+
+---
+
+## UI Pages (3)
+
+| Page | Route | Purpose |
+|------|-------|---------|
+| Inbox | `/messages` | List of conversations |
+| Chat View | `/messages/[id]` | Active chat window |
+| New Message | `/messages/new` | Start conversation |
+
+---
+
+## Database Tables (Already Defined)
+
+| Table | Purpose | Schema Status |
+|-------|---------|---------------|
+| `conversations` | Chat sessions | ✅ Defined |
+| `messages` | Individual messages | ✅ Defined |
+| `blocks` | User blocking | ✅ Defined |
+
+---
+
+## Dependencies
+
+- ✅ Auth System
+- ✅ User Profiles
+- ✅ Subscriptions/Payments (for paid DMs)
+
+---
+
+## Next Phase
+
+→ Architecture Review by Engineering Lead

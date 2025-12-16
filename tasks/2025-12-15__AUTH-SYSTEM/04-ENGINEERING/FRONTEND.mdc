@@ -1,0 +1,244 @@
+Task: 2025-12-15__AUTH-SYSTEM
+Owner: Frontend Agent (proposal only; requires human approval)
+Status: Draft for review
+
+## 1) Scope of Frontend Work (Per BRD/PRD/UI-UX/PM Research)
+- Implement **auth and age UI flows** for fans (not creator KYC):
+  - Email/password registration and login.
+  - Social login (Google, Apple) hooks into NextAuth UI.
+  - Email verification states (pending, verified, expired, invalid).
+  - Password reset (request + confirm).
+  - Age-gate and age verification status surfaces (pending/passed/failed/denied/locked).
+- **Strict separation of concerns**:
+  - `app/` → pages, layouts, routing, simple view composition.
+  - `src/components/containers` → smart components: call `apiClient`, orchestrate local state.
+  - `src/components/ui` → dumb presentational components only (already created).
+  - `src/services/apiClient.ts` → single networking entry point (to be extended later).
+- **No business logic in components**: validation rules, account state transitions, token semantics, and age-provider orchestration remain backend-owned; frontend only:
+  - Collects user input.
+  - Calls typed API methods.
+  - Renders success/error/loading/empty states.
+
+## 2) Routes & Screens (Next.js App Router)
+
+### 2.1 Auth Route Structure
+- `app/(auth)/layout.tsx`
+  - Shared chrome for all auth-related pages:
+    - Centered card with logo/branding.
+    - Consistent typography and spacing using design-system tokens.
+    - Optional background gradient or editorial image (later).
+  - No data fetching; pure layout.
+
+- `app/(auth)/login/page.tsx`
+  - Renders **LoginContainer**.
+  - Server component wrapping client container; no inline fetch.
+
+- `app/(auth)/register/page.tsx`
+  - Renders **RegisterContainer**.
+
+- `app/(auth)/forgot-password/page.tsx`
+  - Renders **ForgotPasswordContainer**.
+
+- `app/(auth)/reset-password/page.tsx`
+  - Handles `token` query param (from email) and renders **ResetPasswordContainer**.
+
+- `app/(auth)/verify-email/page.tsx`
+  - Handles `token` query param and state screens:
+    - Verifying…
+    - Success → CTA to log in / continue.
+    - Expired/invalid → explain and show **resend** UI.
+  - Renders **VerifyEmailContainer**.
+
+- `app/(auth)/age-gate/page.tsx`
+  - Simple pre-auth age gate per PRD & UI-UX:
+    - Prompt: “Are you 18+?” with **Yes** / **No**.
+    - **Yes** → continue to registration/login.
+    - **No** → blocked page with copy and exit CTA.
+  - This is a **UX gate only**; real age verification is separate (see below).
+
+- `app/(auth)/age-verification/page.tsx`
+  - Surfaces **age verification lifecycle** tied to provider (e.g., Veriff):
+    - `age_pending`: show explanation + “Continue verification” button.
+    - `age_in_progress`: show spinner/text and polling or provider redirect.
+    - `age_passed`: show success state; CTA to proceed to feed.
+    - `age_denied`: show failure message, retry CTA (if allowed), and support link.
+    - `locked/suspended`: read-only explanation; no actions.
+  - Renders **AgeVerificationContainer**.
+
+> Note: Actual account state and age-provider URLs/tokens come from backend/API; frontend only reflects and triggers actions.
+
+## 3) Containers & Hooks
+
+### 3.1 Shared Types & Utilities
+- `src/types/auth.ts` (to be created if/when needed):
+  - `AuthUser`, `AuthTokens`, `AccountState`, `AgeVerificationStatus`.
+  - Typed shapes matching `docs/05-API-SPECIFICATION.md` (e.g., `/auth/register`, `/auth/login`, `/users/me`).
+- Reuse existing `cn` and UI primitives (`Button`, `Input`, `Card`, `Dialog`, `Toast`, `Tabs`, etc.).
+
+### 3.2 Containers
+
+- `src/components/containers/LoginContainer.tsx` (client)
+  - Responsibilities:
+    - Local form state for email + password.
+    - Handle submit → call `apiClient.auth.login` (to be defined).
+    - Show inline validation errors (required fields, format) **only as UX**; backend still validates.
+    - Show backend error messages mapped from error codes (e.g., `AUTH_001`, `AUTH_002` from PRD).
+    - Render social login buttons that delegate to NextAuth client functions (no direct OAuth implementation here).
+  - UI:
+    - Email + password fields.
+    - “Forgot password?” link.
+    - “Continue with Google/Apple” buttons.
+    - Terms/Privacy links.
+
+- `src/components/containers/RegisterContainer.tsx` (client)
+  - Responsibilities:
+    - Local form state for:
+      - Email
+      - Password + confirm password
+      - Display name
+      - Date of birth
+      - Country selection
+      - Terms acceptance checkbox
+    - Password UX hints that reflect policy (min 12 chars, upper+lower+digit+symbol) but **do not enforce business rules client-only**; backend is source of truth.
+    - On submit → call `apiClient.auth.register`.
+    - On success → show “Verification email sent” state + CTA to open inbox or resend later.
+  - Security/Compliance:
+    - Do **not** reveal if email is already taken beyond generic error mapping from backend.
+    - Generic error copy: “Something went wrong. Please check your details or try again.”
+
+- `src/components/containers/ForgotPasswordContainer.tsx` (client)
+  - Responsibilities:
+    - Single email field form.
+    - On submit → call `apiClient.auth.requestPasswordReset`.
+    - Always show generic “If an account exists, we’ve sent a reset email” message.
+    - Handle loading + debounced submit.
+
+- `src/components/containers/ResetPasswordContainer.tsx` (client)
+  - Props:
+    - `token` string (from search params; validated by backend).
+  - Responsibilities:
+    - New password + confirm form.
+    - UX-driven password guidance (same as register).
+    - On submit → call `apiClient.auth.confirmPasswordReset({ token, newPassword })`.
+    - Handle:
+      - Success → show “Password updated” + CTA to log in.
+      - Expired/invalid token → show error with link back to “Forgot password”.
+
+- `src/components/containers/VerifyEmailContainer.tsx` (client)
+  - Props:
+    - `token` (optional, from search params).
+  - Responsibilities:
+    - If `token` present:
+      - Immediately call `apiClient.auth.verifyEmail({ token })` on mount.
+      - Show spinner while verifying.
+      - On success → success state.
+      - On error (expired/invalid) → show explicit messaging and a **Resend verification email** CTA.
+    - If no token:
+      - Show explanation and **resend** form.
+    - All resend actions:
+      - Call `apiClient.auth.resendVerification` with rate-limit feedback (e.g., show cooldown from backend).
+    - Avoid revealing account existence in error messages (use generic copy).
+
+- `src/components/containers/AgeVerificationContainer.tsx` (client)
+  - Responsibilities:
+    - Fetch current age verification status via `apiClient.age.getStatus()` (or `GET /users/me` if embedded).
+    - Render distinct views:
+      - `pending` → explanation, “Continue verification” (calls `apiClient.age.start()` to get provider session/link; then redirect to provider).
+      - `in_progress` → show waiting state; optionally allow “Refresh status” to re-poll.
+      - `passed/verified` → success UX, CTA to continue using platform.
+      - `failed/denied` → show failure message, optional “Retry verification” if backend allows.
+      - `locked` → read-only explanation; no retry.
+    - Do not store or render any PII from provider responses beyond what backend exposes as safe metadata.
+  - Security/Compliance:
+    - Clearly state that age verification uses a third-party provider and link to privacy wording (from legal).
+    - No client-side tampering with status; everything comes from backend.
+
+### 3.3 Hooks (Optional Abstractions)
+- `src/hooks/useAuthForm.ts`
+  - Shared logic for auth forms (dirty state, submission, generic error mapping).
+  - No direct API calls; receives submit function as dependency.
+
+- `src/hooks/useAgeVerificationStatus.ts`
+  - Wraps `apiClient.age` calls; exposes `{ status, isLoading, error, refresh }`.
+  - Used by `AgeVerificationContainer`.
+
+## 4) API Client Extensions (Frontend Contracts Only)
+
+> NOTE: Implementation of these methods will live in `src/services/apiClient.ts` and call the actual backend/NextAuth/REST endpoints. Here we only define **shape and usage** from frontend perspective.
+
+- `apiClient.auth.register(payload)`
+  - Maps to backend `/auth/register` (or NextAuth credentials sign-up flow).
+  - Input: `{ email, password, displayName, dateOfBirth, country, acceptTerms }`.
+  - Output: `{ user, message }` (e.g., “Verification email sent”).
+
+- `apiClient.auth.login(payload)`
+  - Maps to `/auth/login` or NextAuth signIn wrapper.
+  - Input: `{ email, password }`.
+  - Output: `{ user, accessToken?, refreshToken? }` or rely on cookies; container only needs success/failure and redirect.
+
+- `apiClient.auth.requestPasswordReset(payload)`
+  - Input: `{ email }`.
+  - Output: `{ message }` (generic).
+
+- `apiClient.auth.confirmPasswordReset(payload)`
+  - Input: `{ token, newPassword }`.
+  - Output: `{ message }`.
+
+- `apiClient.auth.verifyEmail(payload)`
+  - Input: `{ token }`.
+  - Output: `{ message }` or `{ status: 'verified' }`.
+
+- `apiClient.auth.resendVerification()`
+  - No input (uses current user) or email if unauthenticated; to be finalized with backend.
+
+- `apiClient.age.getStatus()`
+  - Output minimal status flags:
+    - `{ accountState: 'email_unverified' | 'age_pending' | 'age_denied' | 'active' | 'locked', ageStatus?: 'pending' | 'passed' | 'failed' | 'needs_review' }`.
+
+- `apiClient.age.start()`
+  - Output: `{ redirectUrl }` or `{ providerSessionId, url }` for Veriff.
+
+## 5) Security, Privacy, and Compliance Alignment
+
+- **No account enumeration**:
+  - Forgot/reset and verification resend flows always use generic success messaging.
+  - Detailed error codes are logged backend-side; frontend only shows user-safe messages.
+
+- **Password policy surfaced but not enforced solely client-side**:
+  - UI hints, strength meter, and validation messages guide the user.
+  - Backend validation errors are shown if policy is not met.
+
+- **Age verification transparency**:
+  - Clear, non-technical copy explaining:
+    - Why age verification is required (adult content, compliance).
+    - That a third-party verifies ID documents/selfies.
+    - High-level data handling (no long-term storage of sensitive docs on NuttyFans).
+
+- **Accessibility**:
+  - All forms and flows:
+    - Proper labels (`Label` component + `Input`/`Textarea`).
+    - Keyboard-accessible focus order and visible focus ring (using `ring` token).
+    - Error messages associated with fields (e.g., `aria-describedby`).
+
+## 6) Out of Scope for This Task (Frontend)
+- Creator KYC onboarding and document upload flows.
+- Admin consoles for age verification review.
+- MFA/2FA setup screens.
+- Domain-specific dashboards and feed UI (beyond redirects after auth).
+- Mobile-native UX or platform-specific deep linking.
+
+## 7) Validation Plan (Frontend)
+- Automated:
+  - `pnpm lint`, `pnpm typecheck` after implementation.
+  - Add basic component tests for containers where feasible (e.g., rendering states).
+- Manual:
+  - Walk through:
+    - Register → verify email → login.
+    - Login error handling (invalid credentials, locked).
+    - Forgot password → reset password, including invalid/expired token UX.
+    - Age-gate (18+ prompt) and age verification status page.
+  - Check copy and states against:
+    - BRD §11 (Legal & Compliance).
+    - PRD §3.1 / §4.1 for auth flows.
+    - PM Research `01-PM-RESEARCH.mdc` §3.5–3.6 for age + safety.
+

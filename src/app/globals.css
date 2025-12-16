@@ -4,44 +4,95 @@
 
 @layer base {
   :root {
+    /* Colors (light) */
     --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --foreground: 222 84% 4.9%;
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --card-foreground: 222 84% 4.9%;
     --muted: 210 40% 96%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted-foreground: 215 16% 46%;
     --accent: 210 40% 96%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
+    --accent-foreground: 222 47% 11%;
+    --accent-primary: 340 100% 60%; /* #ff3366 */
+    --accent-primary-hover: 340 100% 55%;
+    --accent-error: 0 84% 60%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-    --radius: 0.5rem;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 340 100% 60%;
+
+    /* Typography */
+    --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+    --text-display: 48px;
+    --text-display-line-height: 56px;
+    --text-display-weight: 700;
+    --text-h1: 32px;
+    --text-h1-line-height: 40px;
+    --text-h1-weight: 700;
+    --text-h2: 28px;
+    --text-h2-line-height: 36px;
+    --text-h2-weight: 600;
+    --text-h3: 24px;
+    --text-h3-line-height: 32px;
+    --text-h3-weight: 600;
+    --text-h4: 20px;
+    --text-h4-line-height: 28px;
+    --text-h4-weight: 600;
+    --text-body-lg: 18px;
+    --text-body-lg-line-height: 28px;
+    --text-body-lg-weight: 400;
+    --text-body: 16px;
+    --text-body-line-height: 24px;
+    --text-body-weight: 400;
+    --text-body-sm: 14px;
+    --text-body-sm-line-height: 20px;
+    --text-body-sm-weight: 400;
+    --text-caption: 12px;
+    --text-caption-line-height: 16px;
+    --text-caption-weight: 400;
+
+    /* Spacing (px scale mapped in Tailwind) */
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 20px;
+    --space-6: 24px;
+    --space-8: 32px;
+    --space-10: 40px;
+    --space-12: 48px;
+    --space-16: 64px;
+    --space-20: 80px;
+    --space-24: 96px;
+
+    /* Radius (8px default) */
+    --radius: 0.5rem; /* 8px */
+
+    /* Shadows */
+    --shadow-card: 0 10px 30px rgba(15, 23, 42, 0.08);
+    --shadow-popover: 0 12px 40px rgba(15, 23, 42, 0.14);
+    --shadow-modal: 0 18px 60px rgba(15, 23, 42, 0.18);
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
+    /* Colors (dark) */
+    --background: 222 47% 5%;
     --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
+    --card: 222 47% 7%;
     --card-foreground: 210 40% 98%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
+    --muted: 217 33% 18%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 217 33% 18%;
     --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
+    --accent-primary: 340 100% 70%; /* slightly brighter on dark */
+    --accent-primary-hover: 340 100% 65%;
+    --accent-error: 0 84% 65%;
+    --destructive: 0 62% 35%;
     --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --border: 217 33% 18%;
+    --input: 217 33% 18%;
+    --ring: 340 100% 70%;
   }
 }
 
@@ -49,7 +100,9 @@
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-sans);
   }
 }
