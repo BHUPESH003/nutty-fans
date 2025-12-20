@@ -70,7 +70,7 @@ export const authOptions: NextAuthOptions = {
       profile(profile) {
         return {
           id: profile.sub,
-          displayName: profile.name,
+          displayName: profile.name ?? profile.email?.split('@')[0] ?? 'User',
           username: profile.email?.split('@')[0] ?? `user_${Date.now()}`,
           email: profile.email,
           emailVerified: profile.email_verified ? new Date() : null,

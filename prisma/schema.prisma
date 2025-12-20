@@ -211,8 +211,8 @@ model User {
   email            String     @unique @db.VarChar(255)
   emailVerified    DateTime?  @map("email_verified")
   passwordHash     String?    @map("password_hash") @db.VarChar(255)
-  displayName      String     @map("display_name") @db.VarChar(50)
-  username         String     @unique @db.VarChar(30)
+  displayName      String?    @map("display_name") @db.VarChar(50)
+  username         String?    @unique @db.VarChar(30)
   avatarUrl        String?    @map("avatar_url") @db.Text
   bio              String?    @db.VarChar(160)
   location         String?    @db.VarChar(100)
