@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 
 import { authOptions } from '@/lib/auth/authOptions';
+import { AppError, ErrorCode, handleAsyncRoute } from '@/lib/errors/errorHandler';
 import { CreatorRepository } from '@/repositories/creatorRepository';
 import { PayoutRepository } from '@/repositories/payoutRepository';
 import { UserRepository } from '@/repositories/userRepository';
@@ -34,8 +35,15 @@ export class CreatorController {
       );
     }
 
-    try {
+    return handleAsyncRoute(async () => {
       const body = await req.json();
+      if (!body.displayName || !body.categoryId) {
+        throw new AppError(
+          ErrorCode.VALIDATION_MISSING_FIELD,
+          'Display name and category are required',
+          400
+        );
+      }
       const result = await creatorService.apply(userId, {
         displayName: body.displayName,
         bio: body.bio,
@@ -43,10 +51,7 @@ export class CreatorController {
         subscriptionPrice: body.subscriptionPrice,
       });
       return NextResponse.json(result, { status: 201 });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unable to submit application';
-      return NextResponse.json({ error: { code: 'APPLICATION_ERROR', message } }, { status: 400 });
-    }
+    });
   }
 
   /**
@@ -110,14 +115,11 @@ export class CreatorController {
       );
     }
 
-    try {
+    return handleAsyncRoute(async () => {
       const body = await req.json();
       const updated = await creatorService.updateProfile(userId, body);
       return NextResponse.json(updated);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unable to update profile';
-      return NextResponse.json({ error: { code: 'UPDATE_ERROR', message } }, { status: 400 });
-    }
+    });
   }
 
   /**
@@ -133,14 +135,11 @@ export class CreatorController {
       );
     }
 
-    try {
+    return handleAsyncRoute(async () => {
       const body = await req.json();
       const updated = await creatorService.updatePricing(userId, body);
       return NextResponse.json(updated);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unable to update pricing';
-      return NextResponse.json({ error: { code: 'UPDATE_ERROR', message } }, { status: 400 });
-    }
+    });
   }
 
   /**
@@ -157,13 +156,10 @@ export class CreatorController {
       );
     }
 
-    try {
+    return handleAsyncRoute(async () => {
       const result = await kycService.startVerification(userId, displayName);
       return NextResponse.json(result);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unable to start KYC';
-      return NextResponse.json({ error: { code: 'KYC_ERROR', message } }, { status: 400 });
-    }
+    });
   }
 
   /**
@@ -208,14 +204,11 @@ export class CreatorController {
       );
     }
 
-    try {
+    return handleAsyncRoute(async () => {
       const { url, state } = await paymentService.getConnectUrl(userId);
       // In production, store state in session
       return NextResponse.json({ url, state });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unable to get connect URL';
-      return NextResponse.json({ error: { code: 'CONNECT_ERROR', message } }, { status: 400 });
-    }
+    });
   }
 
   /**
@@ -231,21 +224,20 @@ export class CreatorController {
       );
     }
 
-    const period = (req.nextUrl.searchParams.get('period') ?? '30d') as
-      | '7d'
-      | '30d'
-      | '90d'
-      | 'all';
-    const metrics = await dashboardService.getMetrics(userId, period);
+    return handleAsyncRoute(async () => {
+      const period = (req.nextUrl.searchParams.get('period') ?? '30d') as
+        | '7d'
+        | '30d'
+        | '90d'
+        | 'all';
+      const metrics = await dashboardService.getMetrics(userId, period);
 
-    if (!metrics) {
-      return NextResponse.json(
-        { error: { code: 'NOT_FOUND', message: 'Creator profile not found' } },
-        { status: 404 }
-      );
-    }
+      if (!metrics) {
+        throw new AppError(ErrorCode.RESOURCE_NOT_FOUND, 'Creator profile not found', 404);
+      }
 
-    return NextResponse.json(metrics);
+      return NextResponse.json(metrics);
+    });
   }
 
   /**
@@ -261,13 +253,10 @@ export class CreatorController {
       );
     }
 
-    try {
+    return handleAsyncRoute(async () => {
       const result = await paymentService.getPayouts(userId);
       return NextResponse.json(result);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unable to get payouts';
-      return NextResponse.json({ error: { code: 'PAYOUT_ERROR', message } }, { status: 400 });
-    }
+    });
   }
 }
 

@@ -1,4 +1,5 @@
 import { formatDistanceToNow } from 'date-fns';
+import { AlertCircle, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -10,15 +11,40 @@ import { Conversation } from '@/types/messaging';
 interface ConversationListProps {
   conversations: Conversation[];
   selectedId?: string;
+  isLoading?: boolean;
+  isError?: boolean;
   // eslint-disable-next-line no-unused-vars
   onSelect?: (_id: string) => void;
 }
 
-export function ConversationList({ conversations }: ConversationListProps) {
+export function ConversationList({ conversations, isLoading, isError }: ConversationListProps) {
   const pathname = usePathname();
 
+  if (isLoading) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="flex h-full flex-col items-center justify-center p-4 text-center text-muted-foreground">
+        <AlertCircle className="mb-2 h-6 w-6" />
+        <p className="text-sm">Failed to load conversations</p>
+        <p className="mt-1 text-xs">Please try refreshing the page</p>
+      </div>
+    );
+  }
+
   if (conversations.length === 0) {
-    return <div className="p-4 text-center text-muted-foreground">No conversations yet.</div>;
+    return (
+      <div className="flex h-full flex-col items-center justify-center p-4 text-center text-muted-foreground">
+        <p className="text-sm">No conversations yet.</p>
+        <p className="mt-1 text-xs">Click the + button to start a new conversation</p>
+      </div>
+    );
   }
 
   return (

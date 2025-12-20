@@ -1,0 +1,131 @@
+# Backend Engineering: Explore/Search System
+
+**Task:** `2025-12-16__EXPLORE-SEARCH-SYSTEM`  
+**Date:** December 16, 2025  
+**Status:** ✅ Complete
+
+---
+
+## Implementation Summary
+
+### Service Layer
+
+**File:** `src/services/search/searchService.ts`
+
+**Methods:**
+- `search()` - General search (creators + posts)
+- `searchCreators()` - Search creators only with optional category filter
+- `getTrendingCreators()` - Get trending creators (verified, sorted by subscribers)
+- `getTrendingPosts()` - Get trending posts (last 7 days, sorted by likes)
+
+### Controller Layer
+
+**File:** `src/app/api/_controllers/searchController.ts`
+
+- `search()` - General search endpoint
+- `searchCreators()` - Creator search endpoint
+- `getTrendingCreators()` - Trending creators endpoint
+- `getTrendingPosts()` - Trending posts endpoint
+
+**Error Handling:**
+- Uses standardized error handler
+- Input validation (limit between 1-100)
+- Proper error codes and messages
+
+### API Routes
+
+1. **GET /api/search**
+   - General search (creators + posts)
+   - Query params: `q` (required), `limit` (optional, default 20)
+
+2. **GET /api/search/creators**
+   - Search creators only
+   - Query params: `q` (required), `categoryId` (optional), `limit` (optional)
+
+3. **GET /api/search/trending/creators**
+   - Get trending creators
+   - Query params: `limit` (optional, default 10)
+
+4. **GET /api/search/trending/posts**
+   - Get trending posts
+   - Query params: `limit` (optional, default 20)
+
+---
+
+## Search Algorithm
+
+### Creator Search
+- Searches `username` and `displayName` fields
+- Case-insensitive matching
+- Uses Prisma `contains` with `mode: 'insensitive'`
+- Results sorted by `subscriberCount` (descending)
+- Can filter by `categoryId`
+
+### Post Search
+- Searches `content` field
+- Also searches creator `username` and `displayName`
+- Only returns published, free-access posts
+- Results sorted by `createdAt` (descending)
+
+### Trending Algorithms
+
+**Trending Creators:**
+- Only verified creators
+- Sorted by `subscriberCount` (descending)
+- Simple algorithm - can be enhanced with growth rate, engagement metrics
+
+**Trending Posts:**
+- Posts from last 7 days
+- Only free-access, published posts
+- Sorted by `likeCount` (descending)
+- Simple algorithm - can be enhanced with engagement rate, recency weighting
+
+---
+
+## Architecture Compliance
+
+✅ Follows Service → Controller pattern  
+✅ No business logic in routes  
+✅ Proper error handling  
+✅ Input validation  
+✅ Uses existing repositories where possible  
+
+---
+
+## Performance Considerations
+
+- **Indexes:** Uses existing indexes on `username`, `displayName`, `subscriberCount`, `likeCount`
+- **Limits:** Enforced (1-100) to prevent excessive queries
+- **Pagination:** Can be added for large result sets
+- **Caching:** Can be added for trending results
+
+---
+
+## Security
+
+- ✅ Input validation
+- ✅ SQL injection protection (Prisma)
+- ✅ Rate limiting (via middleware)
+- ✅ No sensitive data exposed
+
+---
+
+## Known Limitations
+
+1. **Search Algorithm:** Simple text matching - not full-text search
+2. **Trending Algorithm:** Basic - doesn't consider growth rate or engagement
+3. **No Autocomplete:** Requires exact username match
+4. **No Search History:** Not implemented
+5. **No Advanced Filters:** Date range, content type, etc. not available
+
+---
+
+## Future Enhancements
+
+1. Integrate Meilisearch for full-text search
+2. Enhanced trending algorithm with engagement metrics
+3. Search autocomplete/suggestions
+4. Search history
+5. Advanced search filters
+6. Search analytics
+7. Search result ranking improvements

@@ -8,6 +8,7 @@ export interface Profile {
   joinDate: string;
   followersCount: number;
   followingCount: number;
+  postsCount: number;
   isDiscoverable: boolean;
   showLocation: boolean;
 }

@@ -3,9 +3,9 @@ import type { ReactNode } from 'react';
 
 export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+    <div className="flex min-h-screen items-center justify-center bg-background px-4 py-4">
       <div className="w-full max-w-md">
-        <div className="mb-8 text-center">
+        <div className="text-center lg:mb-8">
           <Link href="/" className="inline-flex items-center justify-center gap-2">
             <span className="inline-flex size-8 items-center justify-center rounded-full bg-[hsl(var(--accent-primary))] text-sm font-semibold text-primary-foreground">
               NF

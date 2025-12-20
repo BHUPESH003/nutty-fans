@@ -1,6 +1,8 @@
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
+import { successResponse } from '@/lib/api/response';
+import { AppError, ErrorCode, handleAsyncRoute } from '@/lib/errors/errorHandler';
 import { UserRepository } from '@/repositories/userRepository';
 import { VerificationTokenRepository } from '@/repositories/verificationTokenRepository';
 import { AuthService } from '@/services/auth/authService';
@@ -13,14 +15,14 @@ const emailService = new EmailService();
 
 export class AuthController {
   async register(req: NextRequest): Promise<NextResponse> {
-    const body = await req.json();
+    return handleAsyncRoute(async () => {
+      const body = await req.json();
 
-    const { email, password, displayName, username, dateOfBirth, country } = body ?? {};
-    if (!email || !displayName || !username || !dateOfBirth || !country) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
-    }
+      const { email, password, displayName, username, dateOfBirth, country } = body ?? {};
+      if (!email || !displayName || !username || !dateOfBirth || !country) {
+        throw new AppError(ErrorCode.VALIDATION_MISSING_FIELD, 'Missing required fields', 400);
+      }
 
-    try {
       const user = await authService.register({
         email,
         password: password ?? null,
@@ -41,15 +43,12 @@ export class AuthController {
 
       await emailService.sendVerificationEmail({ email: user.email, token });
 
-      return NextResponse.json({ id: user.id, email: user.email }, { status: 201 });
-    } catch (error) {
-      if (error instanceof Error) {
-        // Do not leak existence details beyond generic error for privacy;
-        // specific mapping will be handled by frontend per API spec.
-        return NextResponse.json({ error: 'Unable to register user' }, { status: 400 });
-      }
-      return NextResponse.json({ error: 'Unknown error' }, { status: 500 });
-    }
+      return successResponse(
+        { id: user.id, email: user.email },
+        'User registered successfully',
+        201
+      );
+    });
   }
 }
 

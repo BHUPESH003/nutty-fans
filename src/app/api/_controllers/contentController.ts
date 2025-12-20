@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 
+import { AppError, ErrorCode, handleAsyncRoute } from '@/lib/errors/errorHandler';
 import { BookmarkRepository } from '@/repositories/bookmarkRepository';
 import { LikeRepository } from '@/repositories/likeRepository';
 import { PostRepository } from '@/repositories/postRepository';
@@ -28,75 +29,82 @@ export const contentController = {
   // ============================================
 
   async createPost(creatorId: string, body: CreatePostInput) {
-    try {
+    return handleAsyncRoute(async () => {
+      if (!creatorId) {
+        throw new AppError(ErrorCode.VALIDATION_MISSING_FIELD, 'Creator ID is required', 400);
+      }
       const post = await postService.create(creatorId, body);
       return NextResponse.json(post, { status: 201 });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to create post';
-      return NextResponse.json({ error: { message } }, { status: 400 });
-    }
+    });
   },
 
   async getPost(postId: string, viewerId?: string) {
-    try {
+    return handleAsyncRoute(async () => {
+      if (!postId) {
+        throw new AppError(ErrorCode.VALIDATION_MISSING_FIELD, 'Post ID is required', 400);
+      }
       const post = await postService.getById(postId, viewerId);
       if (!post) {
-        return NextResponse.json({ error: { message: 'Post not found' } }, { status: 404 });
+        throw new AppError(ErrorCode.RESOURCE_NOT_FOUND, 'Post not found', 404);
       }
       return NextResponse.json(post);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to get post';
-      return NextResponse.json({ error: { message } }, { status: 500 });
-    }
+    });
   },
 
   async updatePost(postId: string, creatorId: string, body: UpdatePostInput) {
-    try {
+    return handleAsyncRoute(async () => {
+      if (!postId) {
+        throw new AppError(ErrorCode.VALIDATION_MISSING_FIELD, 'Post ID is required', 400);
+      }
+      if (!creatorId) {
+        throw new AppError(ErrorCode.VALIDATION_MISSING_FIELD, 'Creator ID is required', 400);
+      }
       const post = await postService.update(postId, creatorId, body);
       return NextResponse.json(post);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to update post';
-      const status = message === 'Unauthorized' ? 403 : message === 'Post not found' ? 404 : 400;
-      return NextResponse.json({ error: { message } }, { status });
-    }
+    });
   },
 
   async deletePost(postId: string, creatorId: string) {
-    try {
+    return handleAsyncRoute(async () => {
+      if (!postId) {
+        throw new AppError(ErrorCode.VALIDATION_MISSING_FIELD, 'Post ID is required', 400);
+      }
+      if (!creatorId) {
+        throw new AppError(ErrorCode.VALIDATION_MISSING_FIELD, 'Creator ID is required', 400);
+      }
       await postService.delete(postId, creatorId);
       return NextResponse.json({ success: true });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to delete post';
-      const status = message === 'Unauthorized' ? 403 : message === 'Post not found' ? 404 : 400;
-      return NextResponse.json({ error: { message } }, { status });
-    }
+    });
   },
 
   async publishPost(postId: string, creatorId: string) {
-    try {
+    return handleAsyncRoute(async () => {
+      if (!postId) {
+        throw new AppError(ErrorCode.VALIDATION_MISSING_FIELD, 'Post ID is required', 400);
+      }
+      if (!creatorId) {
+        throw new AppError(ErrorCode.VALIDATION_MISSING_FIELD, 'Creator ID is required', 400);
+      }
       const post = await postService.publish(postId, creatorId);
       return NextResponse.json(post);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to publish post';
-      return NextResponse.json({ error: { message } }, { status: 400 });
-    }
+    });
   },
 
   async listCreatorPosts(
     creatorId: string,
     filters: { status?: string; cursor?: string; limit?: number }
   ) {
-    try {
+    return handleAsyncRoute(async () => {
+      if (!creatorId) {
+        throw new AppError(ErrorCode.VALIDATION_MISSING_FIELD, 'Creator ID is required', 400);
+      }
       const result = await postService.listByCreator(creatorId, {
         status: filters.status as 'draft' | 'published' | 'scheduled' | undefined,
         cursor: filters.cursor,
         limit: filters.limit,
       });
       return NextResponse.json(result);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to list posts';
-      return NextResponse.json({ error: { message } }, { status: 500 });
-    }
+    });
   },
 
   // ============================================
@@ -152,23 +160,20 @@ export const contentController = {
   // ============================================
 
   async getSubscribedFeed(userId: string, cursor?: string, limit = 20) {
-    try {
+    return handleAsyncRoute(async () => {
+      if (!userId) {
+        throw new AppError(ErrorCode.VALIDATION_MISSING_FIELD, 'User ID is required', 400);
+      }
       const feed = await feedService.getSubscribedFeed(userId, cursor, limit);
       return NextResponse.json(feed);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to get feed';
-      return NextResponse.json({ error: { message } }, { status: 500 });
-    }
+    });
   },
 
   async getExploreFeed(cursor?: string, limit = 20, userId?: string) {
-    try {
+    return handleAsyncRoute(async () => {
       const feed = await feedService.getExploreFeed(cursor, limit, userId);
       return NextResponse.json(feed);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to get explore feed';
-      return NextResponse.json({ error: { message } }, { status: 500 });
-    }
+    });
   },
 
   // ============================================

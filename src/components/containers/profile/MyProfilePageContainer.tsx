@@ -2,9 +2,8 @@
 
 import * as React from 'react';
 
-import { ProfileBio } from '@/components/profile/ProfileBio';
 import { ProfileHeader } from '@/components/profile/ProfileHeader';
-import { ProfileStats } from '@/components/profile/ProfileStats';
+import { ProfileTabs } from '@/components/profile/ProfileTabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { apiClient, ApiError } from '@/services/apiClient';
@@ -75,13 +74,17 @@ export function MyProfilePageContainer() {
   }
 
   return (
-    <div className="space-y-4">
-      <ProfileHeader profile={profile} isSelf />
-      <ProfileStats
-        followersCount={profile.followersCount}
-        followingCount={profile.followingCount}
+    <div className="min-h-screen bg-background pb-20">
+      <ProfileHeader
+        profile={profile}
+        isSelf
+        stats={{
+          followers: profile.followersCount,
+          following: profile.followingCount,
+          posts: profile.postsCount || 0,
+        }}
       />
-      <ProfileBio bio={profile.bio} isSelf />
+      <ProfileTabs />
     </div>
   );
 }

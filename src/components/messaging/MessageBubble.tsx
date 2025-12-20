@@ -2,6 +2,7 @@ import { Check, CheckCheck, Loader2, Lock } from 'lucide-react';
 import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 import { cn, formatCurrency } from '@/lib/utils';
 import { Message } from '@/types/messaging';
 
@@ -14,14 +15,25 @@ interface MessageBubbleProps {
 
 export function MessageBubble({ message, isSelf, onUnlock }: MessageBubbleProps) {
   const [unlocking, setUnlocking] = useState(false);
+  const { toast } = useToast();
 
   const handleUnlock = async () => {
     if (!onUnlock || !message.id) return;
     try {
       setUnlocking(true);
       await onUnlock(message.id);
-    } catch {
-      // console.error(error);
+      toast({
+        title: 'Message unlocked',
+        description: 'You can now view this message.',
+      });
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: 'Failed to unlock message',
+        description:
+          error instanceof Error ? error.message : 'Insufficient balance or an error occurred',
+        variant: 'destructive',
+      });
     } finally {
       setUnlocking(false);
     }

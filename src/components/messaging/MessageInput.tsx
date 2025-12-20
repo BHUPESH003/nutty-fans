@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/hooks/use-toast';
 
 interface MessageInputProps {
   // eslint-disable-next-line no-unused-vars
@@ -19,6 +20,7 @@ export function MessageInput({ onSend, isCreator, disabled: _disabled }: Message
   const [content, setContent] = useState('');
   const [price, setPrice] = useState<number>(0);
   const [sending, setSending] = useState(false);
+  const { toast } = useToast();
 
   // MVP: No real media upload yet, just placeholder logic
   // In real app: Use MediaUpload component to get mediaId
@@ -33,6 +35,12 @@ export function MessageInput({ onSend, isCreator, disabled: _disabled }: Message
       setPrice(0);
     } catch (error) {
       console.error(error);
+      toast({
+        title: 'Failed to send message',
+        description:
+          error instanceof Error ? error.message : 'An error occurred while sending your message',
+        variant: 'destructive',
+      });
     } finally {
       setSending(false);
     }

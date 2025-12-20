@@ -1,5 +1,6 @@
 import { PrismaAdapter } from '@next-auth/prisma-adapter';
 import { type NextAuthOptions, type Session } from 'next-auth';
+import { type AdapterAccount } from 'next-auth/adapters';
 import AppleProvider from 'next-auth/providers/apple';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import GoogleProvider from 'next-auth/providers/google';
@@ -11,7 +12,33 @@ import { AuthService } from '@/services/auth/authService';
 const authService = new AuthService(new UserRepository());
 
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma),
+  adapter: {
+    ...PrismaAdapter(prisma),
+    linkAccount: (account: AdapterAccount) => {
+      // Map snake_case fields from provider to camelCase fields in Prisma schema
+      const mappedAccount = {
+        ...account,
+        accessToken: account['access_token'] as string | undefined,
+        refreshToken: account['refresh_token'] as string | undefined,
+        expiresAt: account['expires_at'] as number | undefined,
+        tokenType: account['token_type'] as string | undefined,
+        idToken: account['id_token'] as string | undefined,
+        sessionState: account['session_state'] as string | undefined,
+      };
+
+      // Remove snake_case fields to avoid "Unknown argument" errors
+      const cleanedAccount = { ...mappedAccount } as Record<string, unknown>;
+      delete cleanedAccount['access_token'];
+      delete cleanedAccount['refresh_token'];
+      delete cleanedAccount['expires_at'];
+      delete cleanedAccount['token_type'];
+      delete cleanedAccount['id_token'];
+      delete cleanedAccount['session_state'];
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return PrismaAdapter(prisma).linkAccount(cleanedAccount as any);
+    },
+  },
   secret: process.env['NEXTAUTH_SECRET'],
   providers: [
     CredentialsProvider({
@@ -38,10 +65,27 @@ export const authOptions: NextAuthOptions = {
     GoogleProvider({
       clientId: process.env['GOOGLE_CLIENT_ID'] ?? '',
       clientSecret: process.env['GOOGLE_CLIENT_SECRET'] ?? '',
+      profile(profile) {
+        return {
+          id: profile.sub,
+          displayName: profile.name,
+          username: profile.email?.split('@')[0] ?? `user_${Date.now()}`,
+          email: profile.email,
+          avatarUrl: profile.picture,
+        };
+      },
     }),
     AppleProvider({
       clientId: process.env['APPLE_CLIENT_ID'] ?? '',
       clientSecret: process.env['APPLE_CLIENT_SECRET'] ?? '',
+      profile(profile) {
+        return {
+          id: profile.sub,
+          displayName: profile.email ? profile.email.split('@')[0] : 'Apple User',
+          username: profile.email ? profile.email.split('@')[0] : `user_${Date.now()}`,
+          email: profile.email,
+        };
+      },
     }),
   ],
   callbacks: {

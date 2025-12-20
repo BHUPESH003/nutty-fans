@@ -1,0 +1,185 @@
+# Backend Engineering: Notifications System
+
+**Task:** `2025-12-16__NOTIFICATIONS-SYSTEM`  
+**Date:** December 16, 2025  
+**Status:** ✅ Complete
+
+---
+
+## Implementation Summary
+
+### Repository Layer
+
+**File:** `src/repositories/notificationRepository.ts`
+
+- `create()` - Create new notification
+- `list()` - List notifications with pagination
+- `getUnreadCount()` - Get unread notification count
+- `markAsRead()` - Mark single notification as read
+- `markAllAsRead()` - Mark all notifications as read
+
+### Service Layer
+
+**File:** `src/services/notifications/notificationService.ts`
+
+- `create()` - Create notification with validation
+- `list()` - List notifications
+- `getUnreadCount()` - Get unread count
+- `markAsRead()` - Mark as read
+- `markAllAsRead()` - Mark all as read
+
+**Helper Methods:**
+- `notifyNewPost()` - Notify about new creator post
+- `notifyNewSubscriber()` - Notify creator about new subscriber
+- `notifyNewMessage()` - Notify about new DM
+- `notifyPaymentReceived()` - Notify about payment
+- `notifyTipReceived()` - Notify creator about tip
+
+### Controller Layer
+
+**File:** `src/app/api/_controllers/notificationController.ts`
+
+- `list()` - List notifications endpoint
+- `getUnreadCount()` - Get unread count endpoint
+- `markAsRead()` - Mark notification as read
+- `markAllAsRead()` - Mark all as read
+
+**Error Handling:**
+- Uses standardized error handler
+- Proper validation
+- User-friendly error messages
+
+### API Routes
+
+1. **GET /api/notifications**
+   - List notifications with pagination
+   - Query params: `cursor`, `limit`
+
+2. **GET /api/notifications/unread-count**
+   - Get unread notification count
+   - Returns: `{ count: number }`
+
+3. **POST /api/notifications/[id]/read**
+   - Mark notification as read
+   - Returns: Updated notification
+
+4. **POST /api/notifications/read-all**
+   - Mark all notifications as read
+   - Returns: `{ count: number }`
+
+---
+
+## Notification Types
+
+| Type | Description | Trigger |
+|------|-------------|---------|
+| `new_post` | New post from creator | Creator publishes post |
+| `new_subscriber` | New subscriber | Fan subscribes |
+| `subscription_expiring` | Subscription expiring | 3 days before expiry |
+| `payment_received` | Payment received | Tip/PPV/subscription |
+| `new_message` | New DM | Message received |
+| `kyc_approved` | KYC approved | Veriff callback |
+| `payout_sent` | Payout processed | Weekly payout |
+| `tip_received` | Tip received | Fan sends tip |
+| `comment_reply` | Comment reply | Reply to comment |
+
+---
+
+## Database Schema
+
+Uses existing `notifications` table:
+- `id` (UUID)
+- `userId` (UUID, FK to users)
+- `type` (VARCHAR 50)
+- `title` (VARCHAR 255)
+- `body` (TEXT, nullable)
+- `data` (JSONB)
+- `isRead` (BOOLEAN)
+- `readAt` (TIMESTAMP, nullable)
+- `actionUrl` (TEXT, nullable)
+- `createdAt` (TIMESTAMP)
+
+**Indexes:**
+- `userId`
+- `isRead`
+- `createdAt` (DESC)
+- Composite: `userId, isRead, createdAt`
+
+---
+
+## Architecture Compliance
+
+✅ Follows Repository → Service → Controller pattern  
+✅ No business logic in routes  
+✅ No DB access in controllers  
+✅ Proper error handling  
+✅ Input validation  
+
+---
+
+## Integration Points
+
+### Where Notifications Are Created
+
+1. **Post Service** - `notifyNewPost()` when creator publishes
+2. **Subscription Service** - `notifyNewSubscriber()` when fan subscribes
+3. **Message Service** - `notifyNewMessage()` when DM received
+4. **Payment Service** - `notifyPaymentReceived()` / `notifyTipReceived()`
+5. **KYC Service** - `notifyKycApproved()` when KYC approved
+6. **Payout Service** - `notifyPayoutSent()` when payout processed
+
+**Note:** Integration with other services is pending - infrastructure is ready.
+
+---
+
+## Performance Considerations
+
+- **Pagination:** Cursor-based for efficient loading
+- **Indexes:** Optimized for common queries
+- **Polling:** 30s for list, 10s for badge (MVP)
+- **Future:** WebSocket for instant updates
+
+---
+
+## Security
+
+- ✅ Users can only access their own notifications
+- ✅ Authorization checks in all endpoints
+- ✅ Input validation
+- ✅ SQL injection protection (Prisma)
+
+---
+
+## Testing Notes
+
+### Unit Tests Needed
+- Repository methods
+- Service methods
+- Helper methods
+
+### Integration Tests Needed
+- API endpoints
+- Error handling
+- Authorization
+
+---
+
+## Known Limitations
+
+1. **Email Delivery:** Infrastructure ready, service integration pending
+2. **Push Notifications:** Infrastructure ready, service integration pending
+3. **Real-time:** Using polling - can upgrade to WebSocket
+4. **Notification Grouping:** Not implemented
+5. **Notification Filtering:** Not implemented
+
+---
+
+## Future Enhancements
+
+1. Email notification delivery (SendGrid/Resend)
+2. Push notifications (Firebase/OneSignal)
+3. WebSocket for real-time updates
+4. Notification filtering by type
+5. Notification grouping
+6. Notification sound effects
+7. Rich notifications with images

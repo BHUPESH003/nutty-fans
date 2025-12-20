@@ -1,3 +1,4 @@
+import type { ApiResponse } from '@/lib/api/response';
 import type {
   AuthUser,
   ForgotPasswordPayload,
@@ -26,14 +27,6 @@ const API_BASE_URL = process.env['NEXT_PUBLIC_API_BASE_URL'] ?? '';
 
 type HttpMethod = 'GET' | 'POST' | 'PATCH' | 'DELETE';
 
-interface ApiErrorPayload {
-  error?: {
-    code?: string;
-    message?: string;
-    details?: unknown;
-  };
-}
-
 class ApiError extends Error {
   code?: string;
   status: number;
@@ -47,6 +40,8 @@ class ApiError extends Error {
     this.details = details;
   }
 }
+
+// ... (imports)
 
 async function request<TResponse>(
   path: string,
@@ -64,26 +59,33 @@ async function request<TResponse>(
     signal,
   });
 
-  let parsed: ApiErrorPayload | TResponse | null = null;
+  let parsed: ApiResponse<TResponse> | null = null;
   const hasBody = response.status !== 204;
 
   if (hasBody) {
     try {
-      parsed = (await response.json()) as ApiErrorPayload | TResponse;
+      parsed = (await response.json()) as ApiResponse<TResponse>;
     } catch {
       parsed = null;
     }
   }
 
-  if (!response.ok) {
-    const errPayload = parsed as ApiErrorPayload | null;
-    const code = errPayload?.error?.code;
-    const message = errPayload?.error?.message || 'Something went wrong. Please try again later.';
-
-    throw new ApiError(response.status, code, message, errPayload?.error?.details);
+  // Handle network/server errors that don't return our standard format
+  if (!response.ok && !parsed) {
+    throw new ApiError(
+      response.status,
+      'UNKNOWN_ERROR',
+      'Something went wrong. Please try again later.'
+    );
   }
 
-  return parsed as TResponse;
+  // Handle standardized errors (even if HTTP status is 200, though usually it matches)
+  if (parsed && (parsed.code < 200 || parsed.code >= 300)) {
+    throw new ApiError(parsed.code, 'API_ERROR', parsed.message, parsed.data);
+  }
+
+  // Return the data payload directly
+  return parsed?.data as TResponse;
 }
 
 async function getCurrentUser(): Promise<AuthUser> {
@@ -209,6 +211,200 @@ export const apiClient = {
       return request<{ redirectUrl: string }>('/age/verify/initiate', {
         method: 'POST',
       });
+    },
+  },
+  creator: {
+    apply(payload: { bio: string; categoryId: string; subscriptionPrice: number }) {
+      return request<{ creatorProfileId: string; status: string; nextStep: string }>(
+        '/api/creator/apply',
+        {
+          method: 'POST',
+          body: payload,
+        }
+      );
+    },
+    getStatus() {
+      return request<{
+        status: 'pending_kyc' | 'kyc_in_progress' | 'pending_payout_setup' | 'active';
+        kycStatus: string;
+        isSquareConnected: boolean;
+        isVerified: boolean;
+        nextStep: string | null;
+      } | null>('/api/creator/status');
+    },
+    startKyc() {
+      return request<{ sessionUrl: string; sessionId: string }>('/api/creator/kyc/start', {
+        method: 'POST',
+      });
+    },
+    getDashboard() {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return request<any>('/api/creator/dashboard');
+    },
+  },
+  common: {
+    getCategories() {
+      return request<{ id: string; name: string; slug: string; icon: string | null }[]>(
+        '/api/categories'
+      );
+    },
+  },
+  content: {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    createPost(data: any) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return request<any>('/api/posts', {
+        method: 'POST',
+        body: data,
+      });
+    },
+    getFeed(params?: { cursor?: string; limit?: number }) {
+      const searchParams = new URLSearchParams();
+      if (params?.cursor) searchParams.append('cursor', params.cursor);
+      if (params?.limit) searchParams.append('limit', params.limit.toString());
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return request<any>(`/api/posts/feed?${searchParams.toString()}`);
+    },
+    getPost(id: string) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return request<any>(`/api/posts/${id}`);
+    },
+    getUploadUrl(filename: string, contentType: string, size: number) {
+      return request<{ uploadUrl: string; mediaId: string; key: string }>('/api/media/upload-url', {
+        method: 'POST',
+        body: { filename, contentType, size },
+      });
+    },
+    confirmUpload(mediaId: string, key: string) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return request<any>(`/api/media/confirm/${mediaId}`, {
+        method: 'POST',
+        body: { key },
+      });
+    },
+  },
+  messaging: {
+    listConversations(cursor?: string) {
+      const searchParams = new URLSearchParams();
+      if (cursor) searchParams.append('cursor', cursor);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return request<{ items: any[]; nextCursor?: string }>(
+        `/api/conversations${searchParams.toString() ? `?${searchParams.toString()}` : ''}`
+      );
+    },
+    getConversation(id: string) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return request<any>(`/api/conversations/${id}`);
+    },
+    createConversation(participantId: string) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return request<any>('/api/conversations', {
+        method: 'POST',
+        body: { participantId },
+      });
+    },
+    listMessages(conversationId: string, cursor?: string) {
+      const searchParams = new URLSearchParams();
+      if (cursor) searchParams.append('cursor', cursor);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return request<{ items: any[]; nextCursor?: string }>(
+        `/api/conversations/${conversationId}/messages${searchParams.toString() ? `?${searchParams.toString()}` : ''}`
+      );
+    },
+    sendMessage(conversationId: string, content: string | null, mediaId?: string, price?: number) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return request<any>(`/api/conversations/${conversationId}/messages`, {
+        method: 'POST',
+        body: { content, mediaId, price },
+      });
+    },
+    unlockMessage(messageId: string) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return request<any>(`/api/messages/${messageId}/unlock`, {
+        method: 'POST',
+      });
+    },
+    markConversationRead(conversationId: string) {
+      return request<{ success: boolean }>(`/api/conversations/${conversationId}/read`, {
+        method: 'POST',
+      });
+    },
+  },
+  notifications: {
+    list(cursor?: string) {
+      const searchParams = new URLSearchParams();
+      if (cursor) searchParams.append('cursor', cursor);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return request<{ items: any[]; nextCursor?: string }>(
+        `/api/notifications${searchParams.toString() ? `?${searchParams.toString()}` : ''}`
+      );
+    },
+    getUnreadCount() {
+      return request<{ count: number }>('/api/notifications/unread-count');
+    },
+    markAsRead(notificationId: string) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return request<any>(`/api/notifications/${notificationId}/read`, {
+        method: 'POST',
+      });
+    },
+    markAllAsRead() {
+      return request<{ count: number }>('/api/notifications/read-all', {
+        method: 'POST',
+      });
+    },
+  },
+  search: {
+    search(query: string, limit?: number) {
+      const searchParams = new URLSearchParams();
+      searchParams.append('q', query);
+      if (limit) searchParams.append('limit', limit.toString());
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return request<{ creators: any[]; posts: any[] }>(`/api/search?${searchParams.toString()}`);
+    },
+    searchCreators(query: string, categoryId?: string, limit?: number) {
+      const searchParams = new URLSearchParams();
+      searchParams.append('q', query);
+      if (categoryId) searchParams.append('categoryId', categoryId);
+      if (limit) searchParams.append('limit', limit.toString());
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return request<{ creators: any[] }>(`/api/search/creators?${searchParams.toString()}`);
+    },
+    getTrendingCreators(limit?: number) {
+      const searchParams = new URLSearchParams();
+      if (limit) searchParams.append('limit', limit.toString());
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return request<{ creators: any[] }>(
+        `/api/search/trending/creators?${searchParams.toString() || '?'}`
+      );
+    },
+    getTrendingPosts(limit?: number) {
+      const searchParams = new URLSearchParams();
+      if (limit) searchParams.append('limit', limit.toString());
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return request<{ posts: any[] }>(
+        `/api/search/trending/posts?${searchParams.toString() || '?'}`
+      );
+    },
+  },
+  explore: {
+    getFeed(cursor?: string, limit?: number) {
+      const searchParams = new URLSearchParams();
+      if (cursor) searchParams.append('cursor', cursor);
+      if (limit) searchParams.append('limit', limit.toString());
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return request<any>(`/api/feed/explore?${searchParams.toString() || '?'}`);
+    },
+  },
+  push: {
+    async subscribe(subscription: { endpoint: string; keys: { p256dh: string; auth: string } }) {
+      return apiClient.post<{ success: boolean }>('/push/subscribe', subscription);
+    },
+    async unsubscribe(endpoint: string) {
+      return apiClient.post<{ success: boolean }>('/push/unsubscribe', { endpoint });
+    },
+    async getVapidKey() {
+      return apiClient.get<{ publicKey: string }>('/push/vapid-key');
     },
   },
 };

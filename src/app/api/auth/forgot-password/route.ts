@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server';
 import { withRateLimit } from '@/lib/middleware/rateLimit';
 import { UserRepository } from '@/repositories/userRepository';
 import { VerificationTokenRepository } from '@/repositories/verificationTokenRepository';
+import { EmailService } from '@/services/auth/emailService';
 import { TokenService } from '@/services/auth/tokenService';
 
 async function handler(req: NextRequest): Promise<NextResponse> {
@@ -21,7 +22,7 @@ async function handler(req: NextRequest): Promise<NextResponse> {
 
   if (user) {
     const tokenService = new TokenService(new VerificationTokenRepository());
-    await tokenService.createToken({
+    const token = await tokenService.createToken({
       userId: user.id,
       type: 'password_reset',
       ttlMs: 60 * 60 * 1000, // 1 hour
@@ -29,9 +30,12 @@ async function handler(req: NextRequest): Promise<NextResponse> {
       userAgent: req.headers.get('user-agent'),
     });
 
-    // TODO: send reset email via emailService; omitted here but token is ready.
-    // Email content must be generic and avoid account enumeration.
-    console.warn('Password reset requested for:', email);
+    // Send reset email via emailService
+    const emailService = new EmailService();
+    await emailService.sendPasswordResetEmail({
+      email: user.email,
+      token: token.token,
+    });
   }
 
   // Response is always generic to prevent account enumeration

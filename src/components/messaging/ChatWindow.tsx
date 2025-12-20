@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useConversation as useConversationHook } from '@/hooks/useConversations';
 import { useMessages } from '@/hooks/useMessages';
+import { apiClient } from '@/services/apiClient';
 import { Message } from '@/types/messaging';
 
 import { MessageBubble } from './MessageBubble';
@@ -36,7 +37,7 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
   // Mark as read on mount
   useEffect(() => {
     if (conversationId) {
-      void fetch(`/api/conversations/${conversationId}/read`, { method: 'POST' });
+      void apiClient.messaging.markConversationRead(conversationId).catch(console.error);
     }
   }, [conversationId, messages]);
 
@@ -49,7 +50,14 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
   }
 
   if (!conversation) {
-    return <div className="p-4">Conversation not found</div>;
+    return (
+      <div className="flex h-full flex-col items-center justify-center p-4 text-center text-muted-foreground">
+        <p>Conversation not found</p>
+        <p className="mt-1 text-xs">
+          This conversation may have been deleted or you don&apos;t have access to it.
+        </p>
+      </div>
+    );
   }
 
   const isCreator = session?.user?.id === conversation.otherUser.id ? false : true;

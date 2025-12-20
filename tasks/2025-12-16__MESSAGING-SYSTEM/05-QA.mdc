@@ -1,0 +1,250 @@
+# QA Test Plan: Messaging System
+
+**Task:** `2025-12-16__MESSAGING-SYSTEM`  
+**Date:** December 16, 2025  
+**Status:** ⬜ Pending Execution
+
+---
+
+## Test Coverage
+
+### 1. Conversations
+
+#### 1.1 Create Conversation
+- **Test:** User can start a new conversation
+- **Steps:**
+  1. Navigate to `/messages`
+  2. Click "+" button
+  3. Enter username
+  4. Click "Start Conversation"
+- **Expected:** Conversation created, navigated to chat
+- **Edge Cases:**
+  - Invalid username → Error message shown
+  - User doesn't exist → Error message shown
+  - Conversation already exists → Navigate to existing conversation
+
+#### 1.2 List Conversations
+- **Test:** Conversations list displays correctly
+- **Steps:**
+  1. Navigate to `/messages`
+  2. View sidebar
+- **Expected:** All conversations listed with unread counts
+- **Edge Cases:**
+  - No conversations → Empty state shown
+  - Many conversations → Pagination works
+  - Real-time updates → New conversations appear
+
+#### 1.3 Get Conversation
+- **Test:** Individual conversation loads
+- **Steps:**
+  1. Click on conversation in list
+  2. View conversation details
+- **Expected:** Messages load, conversation header shows correct user
+- **Edge Cases:**
+  - Conversation not found → Error message
+  - Unauthorized access → 401 error
+
+### 2. Messages
+
+#### 2.1 Send Text Message
+- **Test:** User can send text message
+- **Steps:**
+  1. Open conversation
+  2. Type message
+  3. Press Enter or click Send
+- **Expected:** Message appears in chat, sent to recipient
+- **Edge Cases:**
+  - Empty message → Cannot send
+  - Very long message → Handled correctly
+  - Network error → Error toast shown
+
+#### 2.2 Send Paid Message (Creator)
+- **Test:** Creator can send paid message
+- **Steps:**
+  1. As creator, open conversation
+  2. Click $ icon
+  3. Set price
+  4. Type message
+  5. Send
+- **Expected:** Message sent as locked, price displayed
+- **Edge Cases:**
+  - Invalid price → Validation error
+  - Negative price → Validation error
+
+#### 2.3 Unlock Paid Message (Fan)
+- **Test:** Fan can unlock paid message
+- **Steps:**
+  1. Receive locked message
+  2. Click "Unlock" button
+  3. Confirm purchase
+- **Expected:** Message unlocked, transaction created, balance deducted
+- **Edge Cases:**
+  - Insufficient balance → Error message
+  - Already purchased → No charge, message unlocked
+  - Network error → Error toast shown
+
+#### 2.4 List Messages
+- **Test:** Messages load correctly
+- **Steps:**
+  1. Open conversation
+  2. View messages
+- **Expected:** Messages displayed in chronological order
+- **Edge Cases:**
+  - No messages → Empty state
+  - Many messages → Pagination works
+  - Real-time updates → New messages appear
+
+#### 2.5 Mark as Read
+- **Test:** Messages marked as read
+- **Steps:**
+  1. Open conversation with unread messages
+  2. View messages
+- **Expected:** Messages marked as read, unread count decreases
+- **Edge Cases:**
+  - Already read → No duplicate marking
+  - Network error → Graceful handling
+
+### 3. Real-time Updates
+
+#### 3.1 Message Polling
+- **Test:** New messages appear automatically
+- **Steps:**
+  1. Open conversation
+  2. Wait for new message from other user
+- **Expected:** New message appears within 3 seconds
+- **Edge Cases:**
+  - Network interruption → Polling resumes
+  - Multiple new messages → All appear
+
+#### 3.2 Conversation List Polling
+- **Test:** Conversation list updates automatically
+- **Steps:**
+  1. View conversation list
+  2. Receive new message in different conversation
+- **Expected:** Unread count updates within 10 seconds
+- **Edge Cases:**
+  - New conversation created → Appears in list
+  - Network interruption → Polling resumes
+
+### 4. Error Handling
+
+#### 4.1 Network Errors
+- **Test:** Network errors handled gracefully
+- **Steps:**
+  1. Disconnect network
+  2. Try to send message
+- **Expected:** Error toast shown, user informed
+- **Edge Cases:**
+  - Partial network → Retry works
+  - Timeout → Clear error message
+
+#### 4.2 Validation Errors
+- **Test:** Invalid input handled
+- **Steps:**
+  1. Try to send empty message
+  2. Try to unlock with insufficient balance
+- **Expected:** Validation errors shown clearly
+- **Edge Cases:**
+  - Multiple validation errors → All shown
+  - Edge case inputs → Handled correctly
+
+### 5. UI/UX
+
+#### 5.1 Loading States
+- **Test:** Loading states display correctly
+- **Steps:**
+  1. Navigate to messages page
+  2. Open conversation
+- **Expected:** Loading spinners shown during data fetch
+- **Edge Cases:**
+  - Slow network → Loading states persist
+  - Quick load → No flash of loading state
+
+#### 5.2 Empty States
+- **Test:** Empty states display correctly
+- **Steps:**
+  1. Navigate to messages with no conversations
+  2. Open conversation with no messages
+- **Expected:** Helpful empty state messages shown
+- **Edge Cases:**
+  - After deleting all → Empty state shown
+  - After filtering → Appropriate message
+
+#### 5.3 Responsive Design
+- **Test:** Works on mobile and desktop
+- **Steps:**
+  1. Test on mobile device
+  2. Test on desktop
+- **Expected:** Layout adapts correctly
+- **Edge Cases:**
+  - Tablet view → Works correctly
+  - Very small screen → No overflow
+
+---
+
+## Performance Tests
+
+### 1. Load Time
+- **Target:** Messages page loads in < 2 seconds
+- **Test:** Measure time to interactive
+
+### 2. Polling Performance
+- **Target:** Polling doesn't impact performance
+- **Test:** Monitor CPU/memory during polling
+
+### 3. Large Conversation
+- **Target:** Handles 1000+ messages
+- **Test:** Load conversation with many messages
+
+---
+
+## Security Tests
+
+### 1. Authorization
+- **Test:** Users can only access their conversations
+- **Steps:**
+  1. Try to access another user's conversation ID
+- **Expected:** 401 Unauthorized error
+
+### 2. Paid Message Security
+- **Test:** Locked content never sent until purchased
+- **Steps:**
+  1. Inspect network requests for locked message
+- **Expected:** Content not in response until purchased
+
+### 3. Input Validation
+- **Test:** XSS and injection attempts blocked
+- **Steps:**
+  1. Try to send script tags in message
+- **Expected:** Content sanitized or blocked
+
+---
+
+## Test Results
+
+| Test Case | Status | Notes |
+|-----------|--------|-------|
+| Create Conversation | ⬜ | |
+| List Conversations | ⬜ | |
+| Send Text Message | ⬜ | |
+| Send Paid Message | ⬜ | |
+| Unlock Paid Message | ⬜ | |
+| Real-time Updates | ⬜ | |
+| Error Handling | ⬜ | |
+| UI/UX | ⬜ | |
+
+---
+
+## Bugs Found
+
+| Bug ID | Description | Severity | Status |
+|--------|-------------|----------|--------|
+| | | | |
+
+---
+
+## Sign-off
+
+- **QA Engineer:** TBD
+- **Date:** TBD
+- **Status:** ⬜ Pending

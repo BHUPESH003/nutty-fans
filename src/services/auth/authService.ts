@@ -71,6 +71,11 @@ export class AuthService {
       return null;
     }
 
+    const accountState = authState['accountState'] as string | undefined;
+    if (accountState === 'email_unverified') {
+      throw new Error('Please verify your email address before logging in.');
+    }
+
     const ok = await verifyPassword(password, user.passwordHash);
     if (!ok) {
       const failedAttempts = (authState['failedLoginAttempts'] as number | undefined) ?? 0;

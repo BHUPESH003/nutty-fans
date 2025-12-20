@@ -62,7 +62,9 @@ export class ProfileRepository {
     });
   }
 
-  async getStats(userId: string): Promise<{ followersCount: number; followingCount: number }> {
+  async getStats(
+    userId: string
+  ): Promise<{ followersCount: number; followingCount: number; postsCount: number }> {
     // Followers: users following this user as creator.
     const followersCount = await prisma.follow.count({
       where: { creator: { userId } },
@@ -73,7 +75,17 @@ export class ProfileRepository {
       where: { followerId: userId },
     });
 
-    return { followersCount, followingCount };
+    // Posts: number of published posts by this user (as creator)
+    const postsCount = await prisma.post.count({
+      where: {
+        creator: {
+          userId,
+        },
+        status: 'published',
+      },
+    });
+
+    return { followersCount, followingCount, postsCount };
   }
 
   async updateAvatarUrl(userId: string, avatarUrl: string | null) {

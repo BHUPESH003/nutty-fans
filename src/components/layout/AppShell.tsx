@@ -2,9 +2,11 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import React from 'react';
 
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+
+import { Button } from '../ui';
 
 interface UserSummary {
   displayName?: string;
@@ -39,34 +41,34 @@ export function AppShell({ children, user }: AppShellProps) {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-background text-foreground">
-      {/* Header */}
-      <header className="border-b border-border">
-        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
-          <Link href="/" className="flex items-center gap-2">
-            <span className="inline-flex size-7 items-center justify-center rounded-full bg-[hsl(var(--accent-primary))] text-xs font-semibold text-primary-foreground">
+    <div className="flex min-h-screen flex-col bg-background text-foreground selection:bg-primary/30">
+      {/* Glassmorphism Header */}
+      <header className="sticky top-0 z-40 w-full border-b border-white/5 bg-background/80 backdrop-blur-md">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+          <Link href="/" className="flex items-center gap-2 transition-opacity hover:opacity-80">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-primary to-purple-600 text-xs font-bold text-white shadow-lg shadow-primary/20">
               NF
-            </span>
-            <span className="text-sm font-semibold tracking-tight">NuttyFans</span>
+            </div>
+            <span className="text-lg font-bold tracking-tight">NuttyFans</span>
           </Link>
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" aria-label="Notifications">
-              🔔
-            </Button>
+          <div className="flex items-center gap-4">
+            <NotificationBell />
             <Link href="/profile" aria-label="Your profile">
-              <Avatar className="size-8">
+              <Avatar className="h-9 w-9 ring-2 ring-white/10 transition-all hover:ring-primary/50">
                 {user?.avatarUrl ? <AvatarImage src={user.avatarUrl} alt="" /> : null}
-                <AvatarFallback>{getInitials() || 'NF'}</AvatarFallback>
+                <AvatarFallback className="bg-muted text-xs">
+                  {getInitials() || 'NF'}
+                </AvatarFallback>
               </Avatar>
             </Link>
           </div>
         </div>
       </header>
 
-      <div className="mx-auto flex w-full max-w-6xl flex-1 px-4">
-        {/* Side nav (desktop) */}
-        <aside className="hidden w-52 border-r border-border py-4 pr-4 md:block">
-          <nav className="space-y-1 text-sm">
+      <div className="mx-auto flex w-full max-w-7xl flex-1 items-start gap-8 px-4 sm:px-6 lg:px-8">
+        {/* Side nav (desktop) - Slim & Clean */}
+        <aside className="sticky top-20 hidden w-64 shrink-0 md:block">
+          <nav className="space-y-2">
             {navItems.map((item) => {
               const active = pathname === item.href;
               return (
@@ -74,29 +76,50 @@ export function AppShell({ children, user }: AppShellProps) {
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    'flex items-center gap-2 rounded-md px-3 py-2 transition-colors',
+                    'group flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all',
                     active
-                      ? 'border-l-2 border-[hsl(var(--accent-primary))] bg-muted font-medium text-foreground'
-                      : 'text-muted-foreground hover:bg-muted'
+                      ? 'bg-primary/10 text-primary'
+                      : 'text-muted-foreground hover:bg-white/5 hover:text-foreground'
                   )}
                 >
-                  <span>{item.icon}</span>
+                  <span
+                    className={cn(
+                      'text-xl transition-transform group-hover:scale-110',
+                      active ? 'scale-110' : ''
+                    )}
+                  >
+                    {item.icon}
+                  </span>
                   <span>{item.label}</span>
+                  {active && (
+                    <div className="ml-auto h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_8px_rgba(255,51,102,0.8)]" />
+                  )}
                 </Link>
               );
             })}
           </nav>
+
+          {/* Creator CTA Placeholder */}
+          <div className="mt-8 rounded-2xl border border-white/5 bg-gradient-to-br from-purple-900/20 to-primary/10 p-4">
+            <h3 className="mb-1 text-sm font-semibold text-white">Become a Creator</h3>
+            <p className="mb-3 text-xs text-muted-foreground">
+              Start earning from your content today.
+            </p>
+            <Button size="sm" className="w-full text-xs" variant="secondary">
+              Apply Now
+            </Button>
+          </div>
         </aside>
 
         {/* Main content */}
-        <main className="flex-1 py-4 md:pl-6">
-          <div className="pb-16 md:pb-0">{children}</div>
+        <main className="flex-1 py-6">
+          <div className="pb-24 md:pb-0">{children}</div>
         </main>
       </div>
 
-      {/* Bottom nav (mobile) */}
-      <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-background md:hidden">
-        <div className="mx-auto flex max-w-6xl items-center justify-around px-4 py-2 text-xs">
+      {/* Floating Bottom Nav (Mobile) - Island Style */}
+      <nav className="fixed bottom-6 left-1/2 z-50 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 rounded-full border border-white/10 bg-background/80 p-2 shadow-2xl backdrop-blur-xl md:hidden">
+        <div className="flex items-center justify-around">
           {navItems.map((item) => {
             const active = pathname === item.href;
             return (
@@ -104,12 +127,13 @@ export function AppShell({ children, user }: AppShellProps) {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  'flex flex-col items-center gap-0.5',
-                  active ? 'text-[hsl(var(--accent-primary))]' : 'text-muted-foreground'
+                  'flex h-12 w-12 flex-col items-center justify-center rounded-full transition-all',
+                  active
+                    ? 'bg-primary text-white shadow-lg shadow-primary/30'
+                    : 'text-muted-foreground hover:bg-white/5 hover:text-foreground'
                 )}
               >
-                <span>{item.icon}</span>
-                <span>{item.label}</span>
+                <span className="text-xl">{item.icon}</span>
               </Link>
             );
           })}

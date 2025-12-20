@@ -1,3 +1,4 @@
+import { cacheService, cacheKeys } from '@/lib/cache/cacheService';
 import { BookmarkRepository } from '@/repositories/bookmarkRepository';
 import { LikeRepository } from '@/repositories/likeRepository';
 import { PostRepository } from '@/repositories/postRepository';
@@ -18,44 +19,62 @@ export class FeedService {
    * Get feed from subscribed creators
    */
   async getSubscribedFeed(userId: string, cursor?: string, limit = 20): Promise<FeedResult> {
-    const posts = await this.postRepo.getSubscribedFeed(userId, cursor, limit);
+    // Cache feed for 30 seconds (short cache for real-time feel)
+    const cacheKey = cacheKeys.postFeed(userId, cursor);
 
-    const hasMore = posts.length > limit;
-    const items = hasMore ? posts.slice(0, limit) : posts;
-    const formattedPosts = items.map((p) => this.formatPost(p));
+    return cacheService.getOrSet(
+      cacheKey,
+      async () => {
+        const posts = await this.postRepo.getSubscribedFeed(userId, cursor, limit);
 
-    // Batch load engagement status
-    if (formattedPosts.length > 0) {
-      await this.addEngagementStatus(formattedPosts, userId);
-    }
+        const hasMore = posts.length > limit;
+        const items = hasMore ? posts.slice(0, limit) : posts;
+        const formattedPosts = items.map((p) => this.formatPost(p));
 
-    return {
-      posts: formattedPosts,
-      nextCursor: hasMore && items.length > 0 ? items[items.length - 1]!.id : null,
-      hasMore,
-    };
+        // Batch load engagement status
+        if (formattedPosts.length > 0) {
+          await this.addEngagementStatus(formattedPosts, userId);
+        }
+
+        return {
+          posts: formattedPosts,
+          nextCursor: hasMore && items.length > 0 ? items[items.length - 1]!.id : null,
+          hasMore,
+        };
+      },
+      30 * 1000 // 30 seconds cache
+    );
   }
 
   /**
    * Get explore feed (public content)
    */
   async getExploreFeed(cursor?: string, limit = 20, userId?: string): Promise<FeedResult> {
-    const posts = await this.postRepo.getExploreFeed(cursor, limit);
+    // Cache explore feed for 1 minute
+    const cacheKey = cacheKeys.exploreFeed(cursor);
 
-    const hasMore = posts.length > limit;
-    const items = hasMore ? posts.slice(0, limit) : posts;
-    const formattedPosts = items.map((p) => this.formatPost(p));
+    return cacheService.getOrSet(
+      cacheKey,
+      async () => {
+        const posts = await this.postRepo.getExploreFeed(cursor, limit);
 
-    // Add engagement status if user is logged in
-    if (userId && formattedPosts.length > 0) {
-      await this.addEngagementStatus(formattedPosts, userId);
-    }
+        const hasMore = posts.length > limit;
+        const items = hasMore ? posts.slice(0, limit) : posts;
+        const formattedPosts = items.map((p) => this.formatPost(p));
 
-    return {
-      posts: formattedPosts,
-      nextCursor: hasMore && items.length > 0 ? items[items.length - 1]!.id : null,
-      hasMore,
-    };
+        // Add engagement status if user is logged in
+        if (userId && formattedPosts.length > 0) {
+          await this.addEngagementStatus(formattedPosts, userId);
+        }
+
+        return {
+          posts: formattedPosts,
+          nextCursor: hasMore && items.length > 0 ? items[items.length - 1]!.id : null,
+          hasMore,
+        };
+      },
+      60 * 1000 // 1 minute cache
+    );
   }
 
   /**

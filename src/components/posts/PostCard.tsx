@@ -6,7 +6,6 @@ import Link from 'next/link';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import type { PostWithCreator } from '@/types/content';
 
 interface PostCardProps {
@@ -22,12 +21,12 @@ export function PostCard({ post, showCreator = true, onLike, onBookmark }: PostC
   const isLocked = !post.hasAccess && post.accessLevel !== 'free';
 
   return (
-    <Card className="overflow-hidden transition-shadow hover:shadow-md">
-      {/* Creator Header */}
+    <div className="group relative mb-8 overflow-hidden rounded-2xl bg-card/40 transition-all hover:bg-card/60">
+      {/* Creator Header - Overlay on top of media if possible, or clean top bar */}
       {showCreator && (
-        <div className="flex items-center gap-3 border-b p-4">
-          <Link href={`/c/${post.creator.handle}`}>
-            <div className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-primary/20 to-primary/10">
+        <div className="flex items-center gap-3 p-4">
+          <Link href={`/c/${post.creator.handle}`} className="relative z-10">
+            <div className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-full ring-2 ring-background/50">
               {post.creator.avatarUrl ? (
                 <Image
                   src={post.creator.avatarUrl}
@@ -36,58 +35,87 @@ export function PostCard({ post, showCreator = true, onLike, onBookmark }: PostC
                   fill
                 />
               ) : (
-                <span className="text-lg font-semibold text-primary">
+                <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary to-purple-600 text-white">
                   {post.creator.displayName[0]}
-                </span>
+                </div>
               )}
             </div>
           </Link>
           <div className="flex-1">
             <Link
               href={`/c/${post.creator.handle}`}
-              className="font-semibold transition-colors hover:text-primary"
+              className="font-semibold text-foreground hover:text-primary"
             >
               {post.creator.displayName}
             </Link>
-            <p className="text-sm text-muted-foreground">
-              @{post.creator.handle} ·{' '}
-              {formatDistanceToNow(new Date(post.publishedAt || post.createdAt), {
-                addSuffix: true,
-              })}
-            </p>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span>@{post.creator.handle}</span>
+              <span>•</span>
+              <span>
+                {formatDistanceToNow(new Date(post.publishedAt || post.createdAt), {
+                  addSuffix: true,
+                })}
+              </span>
+            </div>
           </div>
           {post.creator.isVerified && (
-            <Badge variant="secondary" className="ml-auto">
-              ✓ Verified
+            <Badge
+              variant="secondary"
+              className="bg-blue-500/10 text-blue-400 hover:bg-blue-500/20"
+            >
+              Verified
             </Badge>
           )}
         </div>
       )}
 
-      {/* Content */}
+      {/* Content Text */}
       {post.content && (
-        <CardContent className="pt-4">
-          <p className="whitespace-pre-wrap">{post.content}</p>
-        </CardContent>
+        <div className="px-4 pb-3">
+          <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/90">
+            {post.content}
+          </p>
+        </div>
       )}
 
       {/* Media Preview */}
       {primaryMedia && (
-        <div className="relative">
+        <div className="relative w-full overflow-hidden bg-black/20">
           {isLocked ? (
-            <div className="flex aspect-video items-center justify-center bg-gradient-to-br from-muted to-muted/50">
-              <div className="p-6 text-center">
-                <div className="mb-2 text-4xl">🔒</div>
-                <p className="font-semibold">
-                  {post.accessLevel === 'ppv' ? `Unlock for $${post.ppvPrice}` : 'Subscribers Only'}
+            <div className="relative aspect-[4/5] w-full overflow-hidden sm:aspect-video">
+              {/* Blurred Background Image */}
+              <div className="absolute inset-0 scale-110 blur-2xl filter">
+                <Image
+                  src={primaryMedia.processedUrl || primaryMedia.originalUrl}
+                  alt="Locked content"
+                  className="object-cover opacity-50"
+                  fill
+                />
+              </div>
+
+              {/* Lock Overlay */}
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 p-6 text-center backdrop-blur-sm">
+                <div className="mb-4 rounded-full bg-white/10 p-4 backdrop-blur-md">
+                  <span className="text-3xl">🔒</span>
+                </div>
+                <h3 className="mb-2 text-xl font-bold text-white">
+                  {post.accessLevel === 'ppv' ? 'Premium Content' : 'Subscribers Only'}
+                </h3>
+                <p className="mb-6 max-w-xs text-sm text-white/80">
+                  {post.accessLevel === 'ppv'
+                    ? `Unlock this post for $${post.ppvPrice}`
+                    : 'Subscribe to view this exclusive content'}
                 </p>
-                <Button className="mt-3" size="sm">
-                  {post.accessLevel === 'ppv' ? 'Purchase' : 'Subscribe'}
+                <Button
+                  size="lg"
+                  className="w-full max-w-[200px] font-semibold shadow-xl shadow-primary/20"
+                >
+                  {post.accessLevel === 'ppv' ? `Unlock for $${post.ppvPrice}` : 'Subscribe Now'}
                 </Button>
               </div>
             </div>
           ) : primaryMedia.mediaType === 'video' ? (
-            <div className="aspect-video bg-black">
+            <div className="aspect-[4/5] w-full bg-black sm:aspect-video">
               <video
                 src={primaryMedia.processedUrl || primaryMedia.originalUrl}
                 poster={primaryMedia.thumbnailUrl || undefined}
@@ -96,7 +124,7 @@ export function PostCard({ post, showCreator = true, onLike, onBookmark }: PostC
               />
             </div>
           ) : (
-            <div className="relative aspect-video w-full">
+            <div className="relative aspect-[4/5] w-full sm:aspect-video">
               <Image
                 src={primaryMedia.processedUrl || primaryMedia.originalUrl}
                 alt="Post media"
@@ -104,7 +132,9 @@ export function PostCard({ post, showCreator = true, onLike, onBookmark }: PostC
                 fill
               />
               {hasMultipleMedia && (
-                <Badge className="absolute right-2 top-2">+{post.media.length - 1}</Badge>
+                <div className="absolute right-3 top-3 rounded-full bg-black/60 px-2 py-1 text-xs font-medium text-white backdrop-blur-md">
+                  +{post.media.length - 1}
+                </div>
               )}
             </div>
           )}
@@ -112,32 +142,43 @@ export function PostCard({ post, showCreator = true, onLike, onBookmark }: PostC
       )}
 
       {/* Stats & Actions */}
-      <div className="flex items-center gap-6 border-t p-4">
-        <button
-          onClick={() => onLike?.(post.id)}
-          className={`flex items-center gap-1.5 transition-colors ${post.isLiked ? 'text-red-500' : 'text-muted-foreground hover:text-red-500'}`}
-        >
-          <span className="text-lg">{post.isLiked ? '❤️' : '🤍'}</span>
-          <span className="text-sm font-medium">{post.likeCount}</span>
-        </button>
+      <div className="flex items-center justify-between p-4">
+        <div className="flex items-center gap-6">
+          <button
+            onClick={() => onLike?.(post.id)}
+            className={`group flex items-center gap-2 transition-colors ${
+              post.isLiked ? 'text-primary' : 'text-muted-foreground hover:text-primary'
+            }`}
+          >
+            <span
+              className={`text-xl transition-transform group-active:scale-75 ${post.isLiked ? 'scale-110' : ''}`}
+            >
+              {post.isLiked ? '❤️' : '🤍'}
+            </span>
+            <span className="text-sm font-medium">{post.likeCount}</span>
+          </button>
 
-        <Link
-          href={`/post/${post.id}`}
-          className="flex items-center gap-1.5 text-muted-foreground transition-colors hover:text-primary"
-        >
-          <span className="text-lg">💬</span>
-          <span className="text-sm font-medium">{post.commentCount}</span>
-        </Link>
+          <Link
+            href={`/post/${post.id}`}
+            className="group flex items-center gap-2 text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <span className="text-xl">💬</span>
+            <span className="text-sm font-medium">{post.commentCount}</span>
+          </Link>
+        </div>
 
-        <button
-          onClick={() => onBookmark?.(post.id)}
-          className={`flex items-center gap-1.5 transition-colors ${post.isBookmarked ? 'text-primary' : 'text-muted-foreground hover:text-primary'}`}
-        >
-          <span className="text-lg">{post.isBookmarked ? '🔖' : '📑'}</span>
-        </button>
-
-        <span className="ml-auto text-sm text-muted-foreground">{post.viewCount} views</span>
+        <div className="flex items-center gap-4">
+          <span className="text-xs text-muted-foreground">{post.viewCount} views</span>
+          <button
+            onClick={() => onBookmark?.(post.id)}
+            className={`transition-colors ${
+              post.isBookmarked ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <span className="text-xl">{post.isBookmarked ? '🔖' : '📑'}</span>
+          </button>
+        </div>
       </div>
-    </Card>
+    </div>
   );
 }

@@ -18,7 +18,7 @@ export class UserRepository {
   async create(data: {
     email: string;
     passwordHash: string | null;
-    displayName: string;
+    displayName?: string;
     username: string;
     dateOfBirth: Date;
     country: string;

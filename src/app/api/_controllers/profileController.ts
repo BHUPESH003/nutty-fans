@@ -2,6 +2,7 @@ import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 
+import { errorResponse, successResponse } from '@/lib/api/response';
 import { authOptions } from '@/lib/auth/authOptions';
 import { ProfileRepository } from '@/repositories/profileRepository';
 import { ProfileService } from '@/services/profileService';
@@ -13,43 +14,31 @@ export class ProfileController {
     const session = await getServerSession(authOptions);
     const userId = session?.user?.id as string | undefined;
     if (!userId) {
-      return NextResponse.json(
-        { error: { code: 'AUTH_REQUIRED', message: 'Authentication required.' } },
-        { status: 401 }
-      );
+      return errorResponse('Authentication required.', 401, { code: 'AUTH_REQUIRED' });
     }
 
     const profile = await profileService.getSelfProfile(userId);
     if (!profile) {
-      return NextResponse.json(
-        { error: { code: 'PROFILE_NOT_FOUND', message: 'Profile not found.' } },
-        { status: 404 }
-      );
+      return errorResponse('Profile not found.', 404, { code: 'PROFILE_NOT_FOUND' });
     }
 
-    return NextResponse.json(profile);
+    return successResponse(profile);
   }
 
   async byHandle(_req: NextRequest, handle: string): Promise<NextResponse> {
     const profile = await profileService.getPublicProfile(handle);
     if (!profile) {
-      return NextResponse.json(
-        { error: { code: 'PROFILE_NOT_FOUND', message: 'Profile not found.' } },
-        { status: 404 }
-      );
+      return errorResponse('Profile not found.', 404, { code: 'PROFILE_NOT_FOUND' });
     }
 
-    return NextResponse.json(profile);
+    return successResponse(profile);
   }
 
   async update(req: NextRequest): Promise<NextResponse> {
     const session = await getServerSession(authOptions);
     const userId = session?.user?.id as string | undefined;
     if (!userId) {
-      return NextResponse.json(
-        { error: { code: 'AUTH_REQUIRED', message: 'Authentication required.' } },
-        { status: 401 }
-      );
+      return errorResponse('Authentication required.', 401, { code: 'AUTH_REQUIRED' });
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -62,25 +51,16 @@ export class ProfileController {
         isDiscoverable: body.isDiscoverable,
         showLocation: body.showLocation,
       });
-      return NextResponse.json(updated);
+      return successResponse(updated);
     } catch (error) {
       if (error instanceof Error && 'details' in error) {
         const details = (error as Error & { details?: unknown }).details;
-        return NextResponse.json(
-          {
-            error: {
-              code: 'VALIDATION_ERROR',
-              message: 'One or more fields are invalid.',
-              details,
-            },
-          },
-          { status: 400 }
-        );
+        return errorResponse('One or more fields are invalid.', 400, {
+          code: 'VALIDATION_ERROR',
+          details,
+        });
       }
-      return NextResponse.json(
-        { error: { code: 'UNKNOWN_ERROR', message: 'Unable to update profile.' } },
-        { status: 500 }
-      );
+      return errorResponse('Unable to update profile.', 500, { code: 'UNKNOWN_ERROR' });
     }
   }
 }

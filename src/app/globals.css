@@ -4,53 +4,48 @@
 
 @layer base {
   :root {
-    /* Colors (light) */
-    --background: 0 0% 100%;
-    --foreground: 222 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222 84% 4.9%;
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 46%;
-    --accent: 210 40% 96%;
-    --accent-foreground: 222 47% 11%;
-    --accent-primary: 340 100% 60%; /* #ff3366 */
-    --accent-primary-hover: 340 100% 55%;
-    --accent-error: 0 84% 60%;
+    /* Default to Dark Mode values for "Cinematic Intimacy" */
+    /* We are making dark mode the default, but keeping variables for consistency */
+
+    /* Colors (Dark-First) */
+    --background: 0 0% 2%; /* #050505 */
+    --foreground: 0 0% 93%; /* #EDEDED */
+
+    --card: 0 0% 7%; /* #121212 */
+    --card-foreground: 0 0% 93%; /* #EDEDED */
+
+    --popover: 0 0% 7%; /* #121212 */
+    --popover-foreground: 0 0% 93%; /* #EDEDED */
+
+    --primary: 340 100% 60%; /* #ff3366 */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 260 50% 15%; /* Deep Purple for exclusive feel */
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 0 0% 12%; /* #1E1E1E */
+    --muted-foreground: 240 5% 65%; /* #A1A1AA */
+
+    --accent: 0 0% 12%; /* #1E1E1E */
+    --accent-foreground: 0 0% 93%;
+
     --destructive: 0 84% 60%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 0 0% 12%; /* Subtle borders */
+    --input: 0 0% 12%;
     --ring: 340 100% 60%;
 
+    /* Custom Accents */
+    --accent-primary: 340 100% 60%;
+    --accent-primary-hover: 340 100% 55%;
+    --accent-error: 0 84% 60%;
+
     /* Typography */
-    --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
-    --text-display: 48px;
-    --text-display-line-height: 56px;
-    --text-display-weight: 700;
-    --text-h1: 32px;
-    --text-h1-line-height: 40px;
-    --text-h1-weight: 700;
-    --text-h2: 28px;
-    --text-h2-line-height: 36px;
-    --text-h2-weight: 600;
-    --text-h3: 24px;
-    --text-h3-line-height: 32px;
-    --text-h3-weight: 600;
-    --text-h4: 20px;
-    --text-h4-line-height: 28px;
-    --text-h4-weight: 600;
-    --text-body-lg: 18px;
-    --text-body-lg-line-height: 28px;
-    --text-body-lg-weight: 400;
-    --text-body: 16px;
-    --text-body-line-height: 24px;
-    --text-body-weight: 400;
-    --text-body-sm: 14px;
-    --text-body-sm-line-height: 20px;
-    --text-body-sm-weight: 400;
-    --text-caption: 12px;
-    --text-caption-line-height: 16px;
-    --text-caption-weight: 400;
+    --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+    /* Radius (Softer feel) */
+    --radius: 0.75rem; /* 12px */
 
     /* Spacing (px scale mapped in Tailwind) */
     --space-1: 4px;
@@ -66,33 +61,34 @@
     --space-20: 80px;
     --space-24: 96px;
 
-    /* Radius (8px default) */
-    --radius: 0.5rem; /* 8px */
-
     /* Shadows */
-    --shadow-card: 0 10px 30px rgba(15, 23, 42, 0.08);
-    --shadow-popover: 0 12px 40px rgba(15, 23, 42, 0.14);
-    --shadow-modal: 0 18px 60px rgba(15, 23, 42, 0.18);
+    --shadow-card: 0 10px 30px rgba(0, 0, 0, 0.5);
+    --shadow-popover: 0 12px 40px rgba(0, 0, 0, 0.6);
+    --shadow-modal: 0 18px 60px rgba(0, 0, 0, 0.7);
+    --header-h: 104px;
   }
 
   .dark {
-    /* Colors (dark) */
-    --background: 222 47% 5%;
-    --foreground: 210 40% 98%;
-    --card: 222 47% 7%;
-    --card-foreground: 210 40% 98%;
-    --muted: 217 33% 18%;
-    --muted-foreground: 215 20% 65%;
-    --accent: 217 33% 18%;
-    --accent-foreground: 210 40% 98%;
-    --accent-primary: 340 100% 70%; /* slightly brighter on dark */
-    --accent-primary-hover: 340 100% 65%;
-    --accent-error: 0 84% 65%;
-    --destructive: 0 62% 35%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217 33% 18%;
-    --input: 217 33% 18%;
-    --ring: 340 100% 70%;
+    /* Ensure dark class uses the same values since we are dark-first */
+    --background: 0 0% 2%;
+    --foreground: 0 0% 93%;
+    --card: 0 0% 7%;
+    --card-foreground: 0 0% 93%;
+    --popover: 0 0% 7%;
+    --popover-foreground: 0 0% 93%;
+    --primary: 340 100% 60%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 260 50% 15%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 0 0% 12%;
+    --muted-foreground: 240 5% 65%;
+    --accent: 0 0% 12%;
+    --accent-foreground: 0 0% 93%;
+    --destructive: 0 62% 30%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 12%;
+    --input: 0 0% 12%;
+    --ring: 340 100% 60%;
   }
 }
 

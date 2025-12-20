@@ -1,3 +1,4 @@
+import { cacheService, cacheKeys } from '@/lib/cache/cacheService';
 import { ProfileRepository } from '@/repositories/profileRepository';
 
 type PublicProfile = {
@@ -9,6 +10,7 @@ type PublicProfile = {
   joinDate: string;
   followersCount: number;
   followingCount: number;
+  postsCount: number;
 };
 
 type SelfProfile = PublicProfile & {
@@ -29,45 +31,65 @@ export class ProfileService {
   constructor(private readonly repo: ProfileRepository) {}
 
   async getSelfProfile(userId: string): Promise<SelfProfile | null> {
-    const user = await this.repo.findById(userId);
-    if (!user) return null;
+    // Cache profile for 2 minutes
+    const cacheKey = cacheKeys.userProfile(userId);
 
-    const stats = await this.repo.getStats(user.id);
-    return {
-      displayName: user.displayName,
-      username: user.username,
-      avatarUrl: user.avatarUrl,
-      bio: user.bio ?? null,
-      location: user.location ?? null,
-      isDiscoverable: user.isDiscoverable,
-      showLocation: user.showLocation,
-      joinDate: user.createdAt.toISOString(),
-      followersCount: stats.followersCount,
-      followingCount: stats.followingCount,
-    };
+    return cacheService.getOrSet(
+      cacheKey,
+      async () => {
+        const user = await this.repo.findById(userId);
+        if (!user) return null;
+
+        const stats = await this.repo.getStats(user.id);
+        return {
+          displayName: user.displayName,
+          username: user.username,
+          avatarUrl: user.avatarUrl,
+          bio: user.bio ?? null,
+          location: user.location ?? null,
+          isDiscoverable: user.isDiscoverable,
+          showLocation: user.showLocation,
+          joinDate: user.createdAt.toISOString(),
+          followersCount: stats.followersCount,
+          followingCount: stats.followingCount,
+          postsCount: stats.postsCount,
+        };
+      },
+      2 * 60 * 1000 // 2 minutes cache
+    );
   }
 
   async getPublicProfile(username: string): Promise<PublicProfile | null> {
-    const user = await this.repo.findByUsername(username);
-    if (!user) return null;
+    // Cache public profile for 5 minutes
+    const cacheKey = `profile:public:${username}`;
 
-    const stats = await this.repo.getStats(user.id);
+    return cacheService.getOrSet(
+      cacheKey,
+      async () => {
+        const user = await this.repo.findByUsername(username);
+        if (!user) return null;
 
-    const base: PublicProfile = {
-      displayName: user.displayName,
-      username: user.username,
-      avatarUrl: user.avatarUrl,
-      bio: user.bio ?? null,
-      joinDate: user.createdAt.toISOString(),
-      followersCount: stats.followersCount,
-      followingCount: stats.followingCount,
-    };
+        const stats = await this.repo.getStats(user.id);
 
-    if (user.showLocation && user.location) {
-      return { ...base, location: user.location };
-    }
+        const base: PublicProfile = {
+          displayName: user.displayName,
+          username: user.username,
+          avatarUrl: user.avatarUrl,
+          bio: user.bio ?? null,
+          joinDate: user.createdAt.toISOString(),
+          followersCount: stats.followersCount,
+          followingCount: stats.followingCount,
+          postsCount: stats.postsCount,
+        };
 
-    return base;
+        if (user.showLocation && user.location) {
+          return { ...base, location: user.location };
+        }
+
+        return base;
+      },
+      5 * 60 * 1000 // 5 minutes cache
+    );
   }
 
   async updateProfile(userId: string, input: UpdateProfileInput): Promise<SelfProfile> {
@@ -117,6 +139,7 @@ export class ProfileService {
       joinDate: updated.createdAt.toISOString(),
       followersCount: stats.followersCount,
       followingCount: stats.followingCount,
+      postsCount: stats.postsCount,
     };
   }
 }

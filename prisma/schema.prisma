@@ -218,8 +218,8 @@ model User {
   location         String?    @db.VarChar(100)
   isDiscoverable   Boolean    @default(true)  @map("is_discoverable")
   showLocation     Boolean    @default(false) @map("show_location")
-  dateOfBirth      DateTime   @map("date_of_birth") @db.Date
-  country          String     @db.VarChar(2)
+  dateOfBirth      DateTime?  @map("date_of_birth") @db.Date
+  country          String?    @db.VarChar(2)
   role             UserRole   @default(user)
   status           UserStatus @default(active)
   twoFactorEnabled Boolean    @default(false) @map("two_factor_enabled")
@@ -260,6 +260,7 @@ model User {
   bundlePurchases      BundlePurchase[]
   dmcaResolutions      DmcaRequest[]         @relation("DmcaResolver")
   notificationSettings UserNotificationSettings?
+  pushSubscriptions    PushSubscription[]
   verificationTokens   VerificationToken[]
   ageVerifications     AgeVerification[]
 
@@ -1251,6 +1252,7 @@ model UserNotificationSettings {
   platformUpdates     Boolean  @default(true)  @map("platform_updates")
   profileDiscoverable Boolean  @default(true)  @map("profile_discoverable")
   showLocation        Boolean  @default(false) @map("show_location")
+  pushNotifications   Boolean  @default(true)  @map("push_notifications")
   createdAt           DateTime @default(now()) @map("created_at")
   updatedAt           DateTime @default(now()) @updatedAt @map("updated_at")
 
@@ -1258,6 +1260,24 @@ model UserNotificationSettings {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_notification_settings")
+}
+
+/// PushSubscription - Web Push API subscriptions for push notifications
+model PushSubscription {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  endpoint  String   @db.Text
+  p256dh    String   @db.Text
+  auth      String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, endpoint])
+  @@index([userId])
+  @@map("push_subscriptions")
 }
 
 /// =============================================================================

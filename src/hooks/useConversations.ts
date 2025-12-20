@@ -1,12 +1,12 @@
 import useSWR from 'swr';
 
+import { apiClient } from '@/services/apiClient';
+
 export function useConversations() {
   const { data, error, isLoading, mutate } = useSWR(
     '/api/conversations',
-    async (url: string) => {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error('Failed to fetch conversations');
-      return res.json();
+    async () => {
+      return apiClient.messaging.listConversations();
     },
     {
       refreshInterval: 10000, // Poll every 10s
@@ -24,10 +24,8 @@ export function useConversations() {
 export function useConversation(id: string) {
   const { data, error, isLoading, mutate } = useSWR(
     id ? `/api/conversations/${id}` : null,
-    async (url: string) => {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error('Failed to fetch conversation');
-      return res.json();
+    async () => {
+      return apiClient.messaging.getConversation(id);
     }
   );
 

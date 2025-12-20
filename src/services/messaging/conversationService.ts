@@ -1,6 +1,7 @@
 import { Conversation } from '@prisma/client';
 
 import { prisma } from '@/lib/db/prisma';
+import { AppError, ErrorCode } from '@/lib/errors/errorHandler';
 
 export class ConversationService {
   async create(userId: string, participantId: string): Promise<Conversation> {
@@ -104,7 +105,11 @@ export class ConversationService {
 
     // Verify participation
     if (conversation.participant1 !== userId && conversation.participant2 !== userId) {
-      throw new Error('Unauthorized');
+      throw new AppError(
+        ErrorCode.RESOURCE_UNAUTHORIZED,
+        'Unauthorized access to conversation',
+        401
+      );
     }
 
     const otherUser =

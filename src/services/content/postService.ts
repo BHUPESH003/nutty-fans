@@ -44,7 +44,12 @@ export class PostService {
       commentsEnabled: input.commentsEnabled,
       scheduledAt: input.scheduledAt,
       expiresAt,
-      status: input.scheduledAt ? 'scheduled' : 'draft',
+      status:
+        input.status === 'published' || input.status === 'scheduled' || input.status === 'draft'
+          ? input.status
+          : input.scheduledAt
+            ? 'scheduled'
+            : 'draft',
     });
 
     // Attach media if provided

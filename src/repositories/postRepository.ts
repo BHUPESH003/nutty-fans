@@ -260,4 +260,30 @@ export class PostRepository {
       },
     });
   }
+
+  /**
+   * Count published posts by creator
+   */
+  async countPublishedPostsByCreator(creatorId: string): Promise<number> {
+    return prisma.post.count({
+      where: {
+        creatorId,
+        status: 'published',
+      },
+    });
+  }
+
+  /**
+   * Count published posts by user (via creator profile)
+   */
+  async countPublishedPostsByUser(userId: string): Promise<number> {
+    return prisma.post.count({
+      where: {
+        creator: {
+          userId,
+        },
+        status: 'published',
+      },
+    });
+  }
 }
