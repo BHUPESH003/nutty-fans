@@ -32,15 +32,15 @@ export class MeilisearchService {
       // Initialize creators index
       await this.creatorsIndex.updateSettings({
         searchableAttributes: ['username', 'displayName', 'bio'],
-        filterableAttributes: ['categoryId', 'isVerified', 'isActive'],
-        sortableAttributes: ['subscriberCount', 'createdAt'],
+        filterableAttributes: ['categoryId', 'isVerified', 'status'],
+        sortableAttributes: ['totalSubscribers', 'createdAt'],
         displayedAttributes: [
           'id',
           'username',
           'displayName',
           'avatarUrl',
           'bio',
-          'subscriberCount',
+          'totalSubscribers',
           'isVerified',
           'categoryName',
         ],
@@ -61,6 +61,7 @@ export class MeilisearchService {
           'likeCount',
           'commentCount',
           'createdAt',
+          'mediaCount',
         ],
       });
     } catch (error) {
@@ -81,6 +82,7 @@ export class MeilisearchService {
               username: true,
               displayName: true,
               avatarUrl: true,
+              status: true,
             },
           },
           category: {
@@ -91,7 +93,7 @@ export class MeilisearchService {
         },
       });
 
-      if (!creator || !creator.isActive) {
+      if (!creator || creator.user.status !== 'active') {
         // Remove from index if inactive
         await this.creatorsIndex.deleteDocument(creatorId);
         return;
@@ -104,11 +106,11 @@ export class MeilisearchService {
           displayName: creator.user.displayName,
           avatarUrl: creator.user.avatarUrl,
           bio: creator.bio,
-          subscriberCount: creator.subscriberCount,
+          totalSubscribers: creator.totalSubscribers,
           isVerified: creator.isVerified,
           categoryId: creator.categoryId,
           categoryName: creator.category?.name ?? null,
-          isActive: creator.isActive,
+          status: creator.user.status,
           createdAt: creator.createdAt.toISOString(),
         },
       ]);
@@ -136,6 +138,11 @@ export class MeilisearchService {
               },
             },
           },
+          media: {
+            select: {
+              id: true,
+            },
+          },
         },
       });
 
@@ -160,6 +167,7 @@ export class MeilisearchService {
           isNsfw: post.isNsfw,
           status: post.status,
           createdAt: post.createdAt.toISOString(),
+          mediaCount: post.media.length,
         },
       ]);
     } catch (error) {
@@ -207,7 +215,7 @@ export class MeilisearchService {
         searchOptions.filter = `categoryId = ${filters.categoryId}`;
       }
 
-      const results = await this.creatorsIndex.search(query, searchOptions);
+      const results = await this.creatorsIndex.search<CreatorHit>(query, searchOptions);
 
       interface CreatorHit {
         id: string;
@@ -221,7 +229,7 @@ export class MeilisearchService {
       }
 
       return {
-        creators: results.hits.map((hit: CreatorHit) => ({
+        creators: results.hits.map((hit) => ({
           id: hit.id,
           handle: hit.username,
           displayName: hit.displayName,
@@ -258,7 +266,7 @@ export class MeilisearchService {
         searchOptions.filter = `creatorId = ${filters.creatorId}`;
       }
 
-      const results = await this.postsIndex.search(query, searchOptions);
+      const results = await this.postsIndex.search<PostHit>(query, searchOptions);
 
       interface PostHit {
         id: string;
@@ -274,7 +282,7 @@ export class MeilisearchService {
       }
 
       return {
-        posts: results.hits.map((hit: PostHit) => ({
+        posts: results.hits.map((hit) => ({
           id: hit.id,
           content: hit.content,
           creatorId: hit.creatorId,
@@ -284,6 +292,7 @@ export class MeilisearchService {
           likeCount: hit.likeCount,
           commentCount: hit.commentCount,
           createdAt: new Date(hit.createdAt),
+          mediaCount: hit.mediaCount,
         })),
         total: results.estimatedTotalHits,
       };
@@ -300,13 +309,18 @@ export class MeilisearchService {
   async reindexAllCreators(): Promise<void> {
     try {
       const creators = await prisma.creatorProfile.findMany({
-        where: { isActive: true },
+        where: {
+          user: {
+            status: 'active',
+          },
+        },
         include: {
           user: {
             select: {
               username: true,
               displayName: true,
               avatarUrl: true,
+              status: true,
             },
           },
           category: {
@@ -324,11 +338,11 @@ export class MeilisearchService {
         displayName: creator.user.displayName,
         avatarUrl: creator.user.avatarUrl,
         bio: creator.bio,
-        subscriberCount: creator.subscriberCount,
+        totalSubscribers: creator.totalSubscribers,
         isVerified: creator.isVerified,
         categoryId: creator.categoryId,
         categoryName: creator.category?.name ?? null,
-        isActive: creator.isActive,
+        status: creator.user.status,
         createdAt: creator.createdAt.toISOString(),
       }));
 
@@ -357,6 +371,11 @@ export class MeilisearchService {
               },
             },
           },
+          media: {
+            select: {
+              id: true,
+            },
+          },
         },
         take: 1000, // Process in batches
       });
@@ -375,6 +394,7 @@ export class MeilisearchService {
         isNsfw: post.isNsfw,
         status: post.status,
         createdAt: post.createdAt.toISOString(),
+        mediaCount: post.media.length,
       }));
 
       await this.postsIndex.addDocuments(documents);

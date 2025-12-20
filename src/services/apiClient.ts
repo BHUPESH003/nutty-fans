@@ -398,13 +398,19 @@ export const apiClient = {
   },
   push: {
     async subscribe(subscription: { endpoint: string; keys: { p256dh: string; auth: string } }) {
-      return apiClient.post<{ success: boolean }>('/push/subscribe', subscription);
+      return request<{ success: boolean }>('/api/push/subscribe', {
+        method: 'POST',
+        body: subscription,
+      });
     },
     async unsubscribe(endpoint: string) {
-      return apiClient.post<{ success: boolean }>('/push/unsubscribe', { endpoint });
+      return request<{ success: boolean }>('/api/push/unsubscribe', {
+        method: 'POST',
+        body: { endpoint },
+      });
     },
     async getVapidKey() {
-      return apiClient.get<{ publicKey: string }>('/push/vapid-key');
+      return request<{ publicKey: string }>('/api/push/vapid-key');
     },
   },
 };

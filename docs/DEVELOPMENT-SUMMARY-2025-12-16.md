@@ -13,7 +13,7 @@ This document summarizes the development work completed on December 16, 2025, in
 **Created:** `src/lib/errors/errorHandler.ts`
 
 - **Standardized Error System:**
-  - `ErrorCode` enum with comprehensive error codes (AUTH*\*, VALID*_, RES\__, PAY\_\*, etc.)
+  - `ErrorCode` enum with comprehensive error codes (AUTH*\*, VALID*\_, RES\_\_, PAY\_\*, etc.)
   - `AppError` class for structured error handling
   - `createErrorResponse()` function for consistent API error responses
   - `handleAsyncRoute()` helper for async route error handling

@@ -1,4 +1,5 @@
 import * as ToastPrimitives from '@radix-ui/react-toast';
+import { cva, type VariantProps } from 'class-variance-authority';
 import { X } from 'lucide-react';
 import * as React from 'react';
 
@@ -21,16 +22,29 @@ const ToastViewport = React.forwardRef<
 ));
 ToastViewport.displayName = ToastPrimitives.Viewport.displayName;
 
+const toastVariants = cva(
+  'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:slide-in-from-bottom-2 pointer-events-auto flex w-full min-w-0 items-center gap-3 rounded-md border border-border bg-background px-4 py-3 text-sm text-foreground shadow-card ring-offset-background sm:w-96',
+  {
+    variants: {
+      variant: {
+        default: 'border-border bg-background text-foreground',
+        destructive:
+          'destructive group border-destructive bg-destructive text-destructive-foreground',
+      },
+    },
+    defaultVariants: {
+      variant: 'default',
+    },
+  }
+);
+
 const Toast = React.forwardRef<
   React.ElementRef<typeof ToastPrimitives.Root>,
-  React.ComponentPropsWithoutRef<typeof ToastPrimitives.Root>
->(({ className, ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof ToastPrimitives.Root> & VariantProps<typeof toastVariants>
+>(({ className, variant, ...props }, ref) => (
   <ToastPrimitives.Root
     ref={ref}
-    className={cn(
-      'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:slide-in-from-bottom-2 pointer-events-auto flex w-full min-w-0 items-center gap-3 rounded-md border border-border bg-background px-4 py-3 text-sm text-foreground shadow-card ring-offset-background sm:w-96',
-      className
-    )}
+    className={cn(toastVariants({ variant }), className)}
     {...props}
   />
 ));
@@ -75,5 +89,7 @@ const ToastClose = React.forwardRef<
 ToastClose.displayName = ToastPrimitives.Close.displayName;
 
 export type ToastActionElement = React.ReactElement<typeof ToastPrimitives.Action>;
+
+export type ToastProps = React.ComponentPropsWithoutRef<typeof Toast>;
 
 export { ToastProvider, ToastViewport, Toast, ToastTitle, ToastDescription, ToastClose };

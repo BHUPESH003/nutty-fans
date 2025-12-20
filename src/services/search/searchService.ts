@@ -53,8 +53,8 @@ export class SearchService {
     // Search creators
     const creators = await prisma.creatorProfile.findMany({
       where: {
-        isActive: true,
         user: {
+          status: 'active',
           OR: [
             { username: { contains: query.trim(), mode: 'insensitive' } },
             { displayName: { contains: query.trim(), mode: 'insensitive' } },
@@ -77,7 +77,7 @@ export class SearchService {
         },
       },
       orderBy: {
-        subscriberCount: 'desc',
+        totalSubscribers: 'desc',
       },
     });
 
@@ -131,7 +131,7 @@ export class SearchService {
         displayName: c.user.displayName,
         avatarUrl: c.user.avatarUrl,
         bio: c.bio,
-        subscriberCount: c.subscriberCount,
+        subscriberCount: c.totalSubscribers,
         isVerified: c.isVerified,
         categoryName: c.category?.name ?? null,
       })),
@@ -166,9 +166,9 @@ export class SearchService {
 
     const creators = await prisma.creatorProfile.findMany({
       where: {
-        isActive: true,
         ...(categoryId ? { categoryId } : {}),
         user: {
+          status: 'active',
           OR: [
             { username: { contains: query.trim(), mode: 'insensitive' } },
             { displayName: { contains: query.trim(), mode: 'insensitive' } },
@@ -191,7 +191,7 @@ export class SearchService {
         },
       },
       orderBy: {
-        subscriberCount: 'desc',
+        totalSubscribers: 'desc',
       },
     });
 
@@ -201,7 +201,7 @@ export class SearchService {
       displayName: c.user.displayName,
       avatarUrl: c.user.avatarUrl,
       bio: c.bio,
-      subscriberCount: c.subscriberCount,
+      subscriberCount: c.totalSubscribers,
       isVerified: c.isVerified,
       categoryName: c.category?.name ?? null,
     }));
@@ -221,8 +221,10 @@ export class SearchService {
 
         const creators = await prisma.creatorProfile.findMany({
           where: {
-            isActive: true,
             isVerified: true, // Only verified creators in trending
+            user: {
+              status: 'active',
+            },
           },
           take: limit,
           include: {
@@ -240,7 +242,7 @@ export class SearchService {
             },
           },
           orderBy: {
-            subscriberCount: 'desc',
+            totalSubscribers: 'desc',
           },
         });
 
@@ -250,7 +252,7 @@ export class SearchService {
           displayName: c.user.displayName,
           avatarUrl: c.user.avatarUrl,
           bio: c.bio,
-          subscriberCount: c.subscriberCount,
+          subscriberCount: c.totalSubscribers,
           isVerified: c.isVerified,
           categoryName: c.category?.name ?? null,
         }));

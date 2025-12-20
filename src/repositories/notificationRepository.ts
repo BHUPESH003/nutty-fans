@@ -1,4 +1,4 @@
-import { Notification } from '@prisma/client';
+import { Notification, Prisma } from '@prisma/client';
 
 import { prisma } from '@/lib/db/prisma';
 
@@ -17,7 +17,7 @@ export class NotificationRepository {
         type: data.type,
         title: data.title,
         body: data.body,
-        data: data.data || {},
+        data: (data.data || {}) as Prisma.InputJsonValue,
         actionUrl: data.actionUrl,
       },
     });

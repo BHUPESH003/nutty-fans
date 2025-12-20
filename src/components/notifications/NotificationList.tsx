@@ -34,7 +34,8 @@ export function NotificationList({ showHeader = false, limit = 10 }: Notificatio
     }
 
     if (notification.actionUrl) {
-      router.push(notification.actionUrl);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      router.push(notification.actionUrl! as any);
     }
   };
 

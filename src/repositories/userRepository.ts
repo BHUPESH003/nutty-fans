@@ -18,7 +18,7 @@ export class UserRepository {
   async create(data: {
     email: string;
     passwordHash: string | null;
-    displayName?: string;
+    displayName: string;
     username: string;
     dateOfBirth: Date;
     country: string;
@@ -32,7 +32,7 @@ export class UserRepository {
         username: data.username,
         dateOfBirth: data.dateOfBirth,
         country: data.country,
-        metadata: data.metadata ?? {},
+        metadata: (data.metadata ?? {}) as Prisma.InputJsonValue,
       },
     });
   }

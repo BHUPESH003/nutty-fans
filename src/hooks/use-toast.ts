@@ -15,6 +15,7 @@ type ToasterToast = {
   open?: boolean;
   // eslint-disable-next-line no-unused-vars
   onOpenChange?: (open: boolean) => void;
+  variant?: 'default' | 'destructive';
 };
 
 export const actionTypes = {

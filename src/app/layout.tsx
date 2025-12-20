@@ -3,7 +3,6 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import type { ReactNode } from 'react';
 
-
 import { SessionProvider } from '@/components/providers/SessionProvider';
 import './globals.css';
 

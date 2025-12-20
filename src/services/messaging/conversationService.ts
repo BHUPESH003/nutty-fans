@@ -34,9 +34,6 @@ export class ConversationService {
       take: limit + 1,
       cursor: cursor ? { id: cursor } : undefined,
       orderBy: { lastMessageAt: 'desc' },
-      include: {
-        lastMessage: true,
-      },
     });
 
     let nextCursor: string | undefined = undefined;

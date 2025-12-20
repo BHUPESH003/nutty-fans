@@ -39,7 +39,7 @@ export function MessageInput({ onSend, isCreator, disabled: _disabled }: Message
         title: 'Failed to send message',
         description:
           error instanceof Error ? error.message : 'An error occurred while sending your message',
-        variant: 'destructive',
+        variant: 'destructive' as const,
       });
     } finally {
       setSending(false);

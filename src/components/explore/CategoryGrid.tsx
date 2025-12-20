@@ -44,7 +44,8 @@ export function CategoryGrid({ categories, selectedCategory }: CategoryGridProps
           const isSelected =
             selectedCategory === category.id || pathname === `/explore/${category.slug}`;
           return (
-            <Link key={category.id} href={`/explore/${category.slug}`}>
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            <Link key={category.id} href={`/explore/${category.slug}` as any}>
               <Badge
                 variant={isSelected ? 'default' : 'outline'}
                 className={cn(

@@ -32,7 +32,7 @@ export function MessageBubble({ message, isSelf, onUnlock }: MessageBubbleProps)
         title: 'Failed to unlock message',
         description:
           error instanceof Error ? error.message : 'Insufficient balance or an error occurred',
-        variant: 'destructive',
+        variant: 'destructive' as const,
       });
     } finally {
       setUnlocking(false);

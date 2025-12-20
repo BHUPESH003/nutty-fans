@@ -82,22 +82,18 @@ self.addEventListener('notificationclick', (event) => {
 
   if (event.action === 'open' || !event.action) {
     event.waitUntil(
-      clients
-        .matchAll({ type: 'window', includeUncontrolled: true })
-        .then((clientList) => {
-          // If a window is already open, focus it
-          for (const client of clientList) {
-            if (client.url === actionUrl && 'focus' in client) {
-              return client.focus();
-            }
+      clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+        // If a window is already open, focus it
+        for (const client of clientList) {
+          if (client.url === actionUrl && 'focus' in client) {
+            return client.focus();
           }
-          // Otherwise, open a new window
-          if (clients.openWindow) {
-            return clients.openWindow(actionUrl);
-          }
-        })
+        }
+        // Otherwise, open a new window
+        if (clients.openWindow) {
+          return clients.openWindow(actionUrl);
+        }
+      })
     );
   }
 });
-
-
