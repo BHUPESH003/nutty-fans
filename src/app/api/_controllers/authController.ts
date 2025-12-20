@@ -2,7 +2,7 @@ import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
 import { successResponse } from '@/lib/api/response';
-import { AppError, ErrorCode, handleAsyncRoute } from '@/lib/errors/errorHandler';
+import { AppError, handleAsyncRoute, VALIDATION_MISSING_FIELD } from '@/lib/errors/errorHandler';
 import { UserRepository } from '@/repositories/userRepository';
 import { VerificationTokenRepository } from '@/repositories/verificationTokenRepository';
 import { AuthService } from '@/services/auth/authService';
@@ -20,7 +20,7 @@ export class AuthController {
 
       const { email, password, displayName, username, dateOfBirth, country } = body ?? {};
       if (!email || !displayName || !username || !dateOfBirth || !country) {
-        throw new AppError(ErrorCode.VALIDATION_MISSING_FIELD, 'Missing required fields', 400);
+        throw new AppError(VALIDATION_MISSING_FIELD, 'Missing required fields', 400);
       }
 
       const user = await authService.register({

@@ -93,11 +93,12 @@ export function createErrorResponse(error: unknown): NextResponse {
   if (error instanceof AppError) {
     return NextResponse.json(
       {
-        error: {
-          code: error.code,
-          message: error.message,
+        code: error.statusCode,
+        data: {
+          errorCode: error.code,
           details: error.details,
         },
+        message: error.message,
       },
       { status: error.statusCode }
     );
@@ -111,11 +112,12 @@ export function createErrorResponse(error: unknown): NextResponse {
       // Unique constraint violation
       return NextResponse.json(
         {
-          error: {
-            code: RESOURCE_ALREADY_EXISTS,
-            message: 'A resource with this value already exists',
+          code: 409,
+          data: {
+            errorCode: RESOURCE_ALREADY_EXISTS,
             details: prismaError.meta,
           },
+          message: 'A resource with this value already exists',
         },
         { status: 409 }
       );
@@ -125,11 +127,12 @@ export function createErrorResponse(error: unknown): NextResponse {
       // Record not found
       return NextResponse.json(
         {
-          error: {
-            code: RESOURCE_NOT_FOUND,
-            message: 'Resource not found',
+          code: 404,
+          data: {
+            errorCode: RESOURCE_NOT_FOUND,
             details: prismaError.meta,
           },
+          message: 'Resource not found',
         },
         { status: 404 }
       );
@@ -142,10 +145,9 @@ export function createErrorResponse(error: unknown): NextResponse {
     if (error.message.includes('Unauthorized') || error.message.includes('unauthorized')) {
       return NextResponse.json(
         {
-          error: {
-            code: RESOURCE_UNAUTHORIZED,
-            message: 'Unauthorized access',
-          },
+          code: 401,
+          data: { errorCode: RESOURCE_UNAUTHORIZED },
+          message: 'Unauthorized access',
         },
         { status: 401 }
       );
@@ -154,10 +156,9 @@ export function createErrorResponse(error: unknown): NextResponse {
     if (error.message.includes('Forbidden') || error.message.includes('forbidden')) {
       return NextResponse.json(
         {
-          error: {
-            code: RESOURCE_FORBIDDEN,
-            message: 'Access forbidden',
-          },
+          code: 403,
+          data: { errorCode: RESOURCE_FORBIDDEN },
+          message: 'Access forbidden',
         },
         { status: 403 }
       );
@@ -166,10 +167,9 @@ export function createErrorResponse(error: unknown): NextResponse {
     if (error.message.includes('Not found') || error.message.includes('not found')) {
       return NextResponse.json(
         {
-          error: {
-            code: RESOURCE_NOT_FOUND,
-            message: error.message,
-          },
+          code: 404,
+          data: { errorCode: RESOURCE_NOT_FOUND },
+          message: error.message,
         },
         { status: 404 }
       );
@@ -178,10 +178,9 @@ export function createErrorResponse(error: unknown): NextResponse {
     if (error.message.includes('Insufficient balance')) {
       return NextResponse.json(
         {
-          error: {
-            code: PAYMENT_INSUFFICIENT_BALANCE,
-            message: 'Insufficient balance. Please add funds to continue.',
-          },
+          code: 402,
+          data: { errorCode: PAYMENT_INSUFFICIENT_BALANCE },
+          message: 'Insufficient balance. Please add funds to continue.',
         },
         { status: 402 }
       );
@@ -194,16 +193,15 @@ export function createErrorResponse(error: unknown): NextResponse {
   // Default error response
   return NextResponse.json(
     {
-      error: {
-        code: INTERNAL_ERROR,
-        message: 'An unexpected error occurred. Please try again later.',
-      },
+      code: 500,
+      data: { errorCode: INTERNAL_ERROR },
+      message: 'An unexpected error occurred. Please try again later.',
     },
     { status: 500 }
   );
 }
 
-export function handleAsyncRoute<T>(handler: () => Promise<T>): Promise<NextResponse> {
+export function handleAsyncRoute(handler: () => Promise<NextResponse>): Promise<NextResponse> {
   return handler().catch((error) => {
     return createErrorResponse(error);
   });

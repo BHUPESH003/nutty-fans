@@ -1,6 +1,12 @@
 import { NextResponse } from 'next/server';
 
-import { AppError, ErrorCode, handleAsyncRoute } from '@/lib/errors/errorHandler';
+import { successResponse } from '@/lib/api/response';
+import {
+  AppError,
+  handleAsyncRoute,
+  VALIDATION_MISSING_FIELD,
+  RESOURCE_NOT_FOUND,
+} from '@/lib/errors/errorHandler';
 import { BookmarkRepository } from '@/repositories/bookmarkRepository';
 import { LikeRepository } from '@/repositories/likeRepository';
 import { PostRepository } from '@/repositories/postRepository';
@@ -31,62 +37,62 @@ export const contentController = {
   async createPost(creatorId: string, body: CreatePostInput) {
     return handleAsyncRoute(async () => {
       if (!creatorId) {
-        throw new AppError(ErrorCode.VALIDATION_MISSING_FIELD, 'Creator ID is required', 400);
+        throw new AppError(VALIDATION_MISSING_FIELD, 'Creator ID is required', 400);
       }
       const post = await postService.create(creatorId, body);
-      return NextResponse.json(post, { status: 201 });
+      return successResponse(post, 'Post created successfully', 201);
     });
   },
 
   async getPost(postId: string, viewerId?: string) {
     return handleAsyncRoute(async () => {
       if (!postId) {
-        throw new AppError(ErrorCode.VALIDATION_MISSING_FIELD, 'Post ID is required', 400);
+        throw new AppError(VALIDATION_MISSING_FIELD, 'Post ID is required', 400);
       }
       const post = await postService.getById(postId, viewerId);
       if (!post) {
-        throw new AppError(ErrorCode.RESOURCE_NOT_FOUND, 'Post not found', 404);
+        throw new AppError(RESOURCE_NOT_FOUND, 'Post not found', 404);
       }
-      return NextResponse.json(post);
+      return successResponse(post);
     });
   },
 
   async updatePost(postId: string, creatorId: string, body: UpdatePostInput) {
     return handleAsyncRoute(async () => {
       if (!postId) {
-        throw new AppError(ErrorCode.VALIDATION_MISSING_FIELD, 'Post ID is required', 400);
+        throw new AppError(VALIDATION_MISSING_FIELD, 'Post ID is required', 400);
       }
       if (!creatorId) {
-        throw new AppError(ErrorCode.VALIDATION_MISSING_FIELD, 'Creator ID is required', 400);
+        throw new AppError(VALIDATION_MISSING_FIELD, 'Creator ID is required', 400);
       }
       const post = await postService.update(postId, creatorId, body);
-      return NextResponse.json(post);
+      return successResponse(post);
     });
   },
 
   async deletePost(postId: string, creatorId: string) {
     return handleAsyncRoute(async () => {
       if (!postId) {
-        throw new AppError(ErrorCode.VALIDATION_MISSING_FIELD, 'Post ID is required', 400);
+        throw new AppError(VALIDATION_MISSING_FIELD, 'Post ID is required', 400);
       }
       if (!creatorId) {
-        throw new AppError(ErrorCode.VALIDATION_MISSING_FIELD, 'Creator ID is required', 400);
+        throw new AppError(VALIDATION_MISSING_FIELD, 'Creator ID is required', 400);
       }
       await postService.delete(postId, creatorId);
-      return NextResponse.json({ success: true });
+      return successResponse({ success: true });
     });
   },
 
   async publishPost(postId: string, creatorId: string) {
     return handleAsyncRoute(async () => {
       if (!postId) {
-        throw new AppError(ErrorCode.VALIDATION_MISSING_FIELD, 'Post ID is required', 400);
+        throw new AppError(VALIDATION_MISSING_FIELD, 'Post ID is required', 400);
       }
       if (!creatorId) {
-        throw new AppError(ErrorCode.VALIDATION_MISSING_FIELD, 'Creator ID is required', 400);
+        throw new AppError(VALIDATION_MISSING_FIELD, 'Creator ID is required', 400);
       }
       const post = await postService.publish(postId, creatorId);
-      return NextResponse.json(post);
+      return successResponse(post);
     });
   },
 
@@ -96,14 +102,14 @@ export const contentController = {
   ) {
     return handleAsyncRoute(async () => {
       if (!creatorId) {
-        throw new AppError(ErrorCode.VALIDATION_MISSING_FIELD, 'Creator ID is required', 400);
+        throw new AppError(VALIDATION_MISSING_FIELD, 'Creator ID is required', 400);
       }
       const result = await postService.listByCreator(creatorId, {
         status: filters.status as 'draft' | 'published' | 'scheduled' | undefined,
         cursor: filters.cursor,
         limit: filters.limit,
       });
-      return NextResponse.json(result);
+      return successResponse(result);
     });
   },
 
@@ -117,10 +123,10 @@ export const contentController = {
 
       if (mediaType === 'video') {
         const result = await mediaService.getVideoUploadUrl(creatorId, file);
-        return NextResponse.json(result);
+        return successResponse(result);
       } else {
         const result = await mediaService.getImageUploadUrl(creatorId, file);
-        return NextResponse.json(result);
+        return successResponse(result);
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to get upload URL';
@@ -138,7 +144,7 @@ export const contentController = {
         width: body.width,
         height: body.height,
       });
-      return NextResponse.json(media);
+      return successResponse(media);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to confirm upload';
       return NextResponse.json({ error: { message } }, { status: 400 });
@@ -148,7 +154,7 @@ export const contentController = {
   async getMediaStatus(mediaId: string) {
     try {
       const status = await mediaService.getStatus(mediaId);
-      return NextResponse.json(status);
+      return successResponse(status);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Media not found';
       return NextResponse.json({ error: { message } }, { status: 404 });
@@ -162,17 +168,17 @@ export const contentController = {
   async getSubscribedFeed(userId: string, cursor?: string, limit = 20) {
     return handleAsyncRoute(async () => {
       if (!userId) {
-        throw new AppError(ErrorCode.VALIDATION_MISSING_FIELD, 'User ID is required', 400);
+        throw new AppError(VALIDATION_MISSING_FIELD, 'User ID is required', 400);
       }
       const feed = await feedService.getSubscribedFeed(userId, cursor, limit);
-      return NextResponse.json(feed);
+      return successResponse(feed);
     });
   },
 
   async getExploreFeed(cursor?: string, limit = 20, userId?: string) {
     return handleAsyncRoute(async () => {
       const feed = await feedService.getExploreFeed(cursor, limit, userId);
-      return NextResponse.json(feed);
+      return successResponse(feed);
     });
   },
 
@@ -184,7 +190,7 @@ export const contentController = {
     try {
       const isLiked = await likeRepo.toggle(userId, postId);
       await postRepo.incrementLikeCount(postId, isLiked ? 1 : -1);
-      return NextResponse.json({ isLiked });
+      return successResponse({ isLiked });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to toggle like';
       return NextResponse.json({ error: { message } }, { status: 500 });
@@ -194,7 +200,7 @@ export const contentController = {
   async toggleBookmark(postId: string, userId: string) {
     try {
       const isBookmarked = await bookmarkRepo.toggle(userId, postId);
-      return NextResponse.json({ isBookmarked });
+      return successResponse({ isBookmarked });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to toggle bookmark';
       return NextResponse.json({ error: { message } }, { status: 500 });
@@ -207,7 +213,7 @@ export const contentController = {
       const hasMore = bookmarks.length > limit;
       const items = hasMore ? bookmarks.slice(0, limit) : bookmarks;
 
-      return NextResponse.json({
+      return successResponse({
         posts: items.map((b) => b.post),
         nextCursor: hasMore && items.length > 0 ? items[items.length - 1]!.id : null,
         hasMore,
@@ -225,7 +231,7 @@ export const contentController = {
   async getComments(postId: string, userId?: string, cursor?: string, limit = 20) {
     try {
       const comments = await commentService.getPostComments(postId, userId, cursor, limit);
-      return NextResponse.json(comments);
+      return successResponse(comments);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to get comments';
       return NextResponse.json({ error: { message } }, { status: 500 });
@@ -235,7 +241,7 @@ export const contentController = {
   async createComment(postId: string, userId: string, body: CreateCommentInput) {
     try {
       const comment = await commentService.create(postId, userId, body);
-      return NextResponse.json(comment, { status: 201 });
+      return successResponse(comment, 'Comment created successfully', 201);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to create comment';
       return NextResponse.json({ error: { message } }, { status: 400 });
@@ -245,7 +251,7 @@ export const contentController = {
   async deleteComment(commentId: string, userId: string) {
     try {
       await commentService.delete(commentId, userId);
-      return NextResponse.json({ success: true });
+      return successResponse({ success: true });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to delete comment';
       return NextResponse.json({ error: { message } }, { status: 400 });
@@ -255,7 +261,7 @@ export const contentController = {
   async toggleCommentLike(commentId: string, userId: string) {
     try {
       const isLiked = await commentService.toggleLike(commentId, userId);
-      return NextResponse.json({ isLiked });
+      return successResponse({ isLiked });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to toggle like';
       return NextResponse.json({ error: { message } }, { status: 500 });
@@ -271,7 +277,7 @@ export const contentController = {
       await mediaService.handleMuxWebhook(
         payload as Parameters<typeof mediaService.handleMuxWebhook>[0]
       );
-      return NextResponse.json({ received: true });
+      return successResponse({ received: true });
     } catch (error) {
       console.error('Mux webhook error:', error);
       return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 });

@@ -1,6 +1,7 @@
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
+import { successResponse } from '@/lib/api/response';
 import { CreatorRepository } from '@/repositories/creatorRepository';
 import { KycService } from '@/services/creator/kycService';
 import { squareClient } from '@/services/integrations/square/squareClient';
@@ -25,7 +26,7 @@ export class WebhookController {
     try {
       const webhookPayload = JSON.parse(payload);
       await kycService.processWebhook(webhookPayload);
-      return NextResponse.json({ received: true });
+      return successResponse({ received: true });
     } catch (error) {
       console.error('Error processing Veriff webhook:', error);
       return NextResponse.json({ error: 'Processing failed' }, { status: 500 });
@@ -63,7 +64,7 @@ export class WebhookController {
           console.warn('Webhook event processed:', event.type);
       }
 
-      return NextResponse.json({ received: true });
+      return successResponse({ received: true });
     } catch (error) {
       console.error('Error processing Square webhook:', error);
       return NextResponse.json({ error: 'Processing failed' }, { status: 500 });

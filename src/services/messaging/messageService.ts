@@ -1,7 +1,14 @@
 import { Message, MessageType } from '@prisma/client';
 
 import { prisma } from '@/lib/db/prisma';
-import { AppError, ErrorCode } from '@/lib/errors/errorHandler';
+import {
+  AppError,
+  RESOURCE_NOT_FOUND,
+  RESOURCE_UNAUTHORIZED,
+  RESOURCE_FORBIDDEN,
+  VALIDATION_ERROR,
+  PAYMENT_INSUFFICIENT_BALANCE,
+} from '@/lib/errors/errorHandler';
 
 export class MessageService {
   async send(
@@ -17,17 +24,13 @@ export class MessageService {
     });
 
     if (!conversation) {
-      throw new AppError(ErrorCode.RESOURCE_NOT_FOUND, 'Conversation not found', 404);
+      throw new AppError(RESOURCE_NOT_FOUND, 'Conversation not found', 404);
     }
     if (conversation.participant1 !== senderId && conversation.participant2 !== senderId) {
-      throw new AppError(
-        ErrorCode.RESOURCE_UNAUTHORIZED,
-        'Unauthorized access to conversation',
-        401
-      );
+      throw new AppError(RESOURCE_UNAUTHORIZED, 'Unauthorized access to conversation', 401);
     }
     if (conversation.isBlocked) {
-      throw new AppError(ErrorCode.RESOURCE_FORBIDDEN, 'Conversation is blocked', 403);
+      throw new AppError(RESOURCE_FORBIDDEN, 'Conversation is blocked', 403);
     }
 
     // Determine message type
@@ -73,14 +76,10 @@ export class MessageService {
     });
 
     if (!conversation) {
-      throw new AppError(ErrorCode.RESOURCE_NOT_FOUND, 'Conversation not found', 404);
+      throw new AppError(RESOURCE_NOT_FOUND, 'Conversation not found', 404);
     }
     if (conversation.participant1 !== userId && conversation.participant2 !== userId) {
-      throw new AppError(
-        ErrorCode.RESOURCE_UNAUTHORIZED,
-        'Unauthorized access to conversation',
-        401
-      );
+      throw new AppError(RESOURCE_UNAUTHORIZED, 'Unauthorized access to conversation', 401);
     }
 
     const messages = await prisma.message.findMany({
@@ -132,10 +131,10 @@ export class MessageService {
 
     if (!message) throw new Error('Message not found');
     if (!message.isPaid) {
-      throw new AppError(ErrorCode.VALIDATION_ERROR, 'Message is not paid content', 400);
+      throw new AppError(VALIDATION_ERROR, 'Message is not paid content', 400);
     }
     if (!message.ppvPrice || message.ppvPrice.lessThanOrEqualTo(0)) {
-      throw new AppError(ErrorCode.VALIDATION_ERROR, 'Invalid message price', 400);
+      throw new AppError(VALIDATION_ERROR, 'Invalid message price', 400);
     }
 
     // Check if already purchased
@@ -157,12 +156,12 @@ export class MessageService {
     });
 
     if (!user) {
-      throw new AppError(ErrorCode.RESOURCE_NOT_FOUND, 'User not found', 404);
+      throw new AppError(RESOURCE_NOT_FOUND, 'User not found', 404);
     }
 
     if (user.walletBalance.lessThan(message.ppvPrice)) {
       throw new AppError(
-        ErrorCode.PAYMENT_INSUFFICIENT_BALANCE,
+        PAYMENT_INSUFFICIENT_BALANCE,
         'Insufficient balance. Please add funds to continue.',
         402
       );

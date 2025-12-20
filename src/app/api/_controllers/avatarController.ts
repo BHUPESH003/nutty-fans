@@ -1,7 +1,7 @@
 import type { NextRequest } from 'next/server';
-import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 
+import { successResponse, errorResponse } from '@/lib/api/response';
 import { authOptions } from '@/lib/auth/authOptions';
 import { ProfileRepository } from '@/repositories/profileRepository';
 import { AvatarService } from '@/services/avatarService';
@@ -9,14 +9,11 @@ import { AvatarService } from '@/services/avatarService';
 const avatarService = new AvatarService(new ProfileRepository());
 
 export class AvatarController {
-  async uploadUrl(req: NextRequest): Promise<NextResponse> {
+  async uploadUrl(req: NextRequest) {
     const session = await getServerSession(authOptions);
     const userId = session?.user?.id as string | undefined;
     if (!userId) {
-      return NextResponse.json(
-        { error: { code: 'AUTH_REQUIRED', message: 'Authentication required.' } },
-        { status: 401 }
-      );
+      return errorResponse('Authentication required.', 401, { code: 'AUTH_REQUIRED' });
     }
 
     const body = (await req.json()) ?? {};
@@ -28,68 +25,47 @@ export class AvatarController {
         fileSize,
         mimeType,
       });
-      return NextResponse.json(result);
+      return successResponse(result);
     } catch (error) {
       if (error instanceof Error && 'details' in error) {
         const details = (error as Error & { details?: unknown }).details;
-        return NextResponse.json(
-          {
-            error: {
-              code: 'INVALID_AVATAR_FILE',
-              message: 'Avatar file is invalid.',
-              details,
-            },
-          },
-          { status: 400 }
-        );
+        return errorResponse('Avatar file is invalid.', 400, {
+          code: 'INVALID_AVATAR_FILE',
+          details,
+        });
       }
-      return NextResponse.json(
-        { error: { code: 'UNKNOWN_ERROR', message: 'Unable to generate upload URL.' } },
-        { status: 500 }
-      );
+      return errorResponse('Unable to generate upload URL.', 500, { code: 'UNKNOWN_ERROR' });
     }
   }
 
-  async confirm(req: NextRequest): Promise<NextResponse> {
+  async confirm(req: NextRequest) {
     const session = await getServerSession(authOptions);
     const userId = session?.user?.id as string | undefined;
     if (!userId) {
-      return NextResponse.json(
-        { error: { code: 'AUTH_REQUIRED', message: 'Authentication required.' } },
-        { status: 401 }
-      );
+      return errorResponse('Authentication required.', 401, { code: 'AUTH_REQUIRED' });
     }
 
     const body = (await req.json()) ?? {};
     const { assetKey } = body;
     if (!assetKey || typeof assetKey !== 'string') {
-      return NextResponse.json(
-        {
-          error: {
-            code: 'INVALID_AVATAR_ASSET',
-            message: 'Avatar asset is invalid or not found.',
-          },
-        },
-        { status: 400 }
-      );
+      return errorResponse('Avatar asset is invalid or not found.', 400, {
+        code: 'INVALID_AVATAR_ASSET',
+      });
     }
 
     const result = await avatarService.confirmAvatar(userId, assetKey);
-    return NextResponse.json(result);
+    return successResponse(result);
   }
 
-  async remove(): Promise<NextResponse> {
+  async remove() {
     const session = await getServerSession(authOptions);
     const userId = session?.user?.id as string | undefined;
     if (!userId) {
-      return NextResponse.json(
-        { error: { code: 'AUTH_REQUIRED', message: 'Authentication required.' } },
-        { status: 401 }
-      );
+      return errorResponse('Authentication required.', 401, { code: 'AUTH_REQUIRED' });
     }
 
     await avatarService.removeAvatar(userId);
-    return NextResponse.json({ success: true });
+    return successResponse({ success: true });
   }
 }
 

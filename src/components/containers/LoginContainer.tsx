@@ -1,7 +1,7 @@
 'use client';
 
-import { useSearchParams } from 'next/navigation';
-import { signIn } from 'next-auth/react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { signIn, useSession } from 'next-auth/react';
 import * as React from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -25,6 +25,16 @@ export function LoginContainer({ onLoggedIn }: LoginContainerProps) {
   const isMountedRef = React.useRef(true);
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get('callbackUrl') || '/';
+
+  const { data: session } = useSession();
+  const router = useRouter();
+
+  React.useEffect(() => {
+    if (session) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      router.push(callbackUrl as any);
+    }
+  }, [session, router, callbackUrl]);
 
   React.useEffect(() => {
     return () => {
@@ -174,20 +184,13 @@ export function LoginContainer({ onLoggedIn }: LoginContainerProps) {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-4">
               <Button
                 variant="outline"
-                onClick={() => void signIn('google')}
+                onClick={() => void signIn('google', { callbackUrl: '/' })}
                 className="bg-background hover:bg-muted"
               >
                 Google
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => void signIn('apple')}
-                className="bg-background hover:bg-muted"
-              >
-                Apple
               </Button>
             </div>
           </div>

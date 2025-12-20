@@ -1,8 +1,8 @@
 import type { NextRequest } from 'next/server';
 import { getServerSession } from 'next-auth';
 
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { errorResponse, successResponse } from '@/lib/api/response';
+import { authOptions } from '@/lib/auth/authOptions';
 import { pushNotificationService } from '@/services/notifications/pushNotificationService';
 
 export async function POST(req: NextRequest) {

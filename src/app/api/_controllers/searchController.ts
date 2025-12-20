@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 
-import { AppError, ErrorCode, handleAsyncRoute } from '@/lib/errors/errorHandler';
+import { successResponse } from '@/lib/api/response';
+import { AppError, handleAsyncRoute, VALIDATION_ERROR } from '@/lib/errors/errorHandler';
 import { SearchService } from '@/services/search/searchService';
 
 const searchService = new SearchService();
@@ -14,11 +15,11 @@ export const searchController = {
       const limit = limitParam ? parseInt(limitParam, 10) : 20;
 
       if (isNaN(limit) || limit < 1 || limit > 100) {
-        throw new AppError(ErrorCode.VALIDATION_ERROR, 'Limit must be between 1 and 100', 400);
+        throw new AppError(VALIDATION_ERROR, 'Limit must be between 1 and 100', 400);
       }
 
       const results = await searchService.search(query, limit);
-      return NextResponse.json(results);
+      return successResponse(results);
     });
   },
 
@@ -31,11 +32,11 @@ export const searchController = {
       const limit = limitParam ? parseInt(limitParam, 10) : 20;
 
       if (isNaN(limit) || limit < 1 || limit > 100) {
-        throw new AppError(ErrorCode.VALIDATION_ERROR, 'Limit must be between 1 and 100', 400);
+        throw new AppError(VALIDATION_ERROR, 'Limit must be between 1 and 100', 400);
       }
 
       const results = await searchService.searchCreators(query, categoryId, limit);
-      return NextResponse.json({ creators: results });
+      return successResponse({ creators: results });
     });
   },
 
@@ -46,11 +47,11 @@ export const searchController = {
       const limit = limitParam ? parseInt(limitParam, 10) : 10;
 
       if (isNaN(limit) || limit < 1 || limit > 100) {
-        throw new AppError(ErrorCode.VALIDATION_ERROR, 'Limit must be between 1 and 100', 400);
+        throw new AppError(VALIDATION_ERROR, 'Limit must be between 1 and 100', 400);
       }
 
       const results = await searchService.getTrendingCreators(limit);
-      return NextResponse.json({ creators: results });
+      return successResponse({ creators: results });
     });
   },
 
@@ -61,11 +62,11 @@ export const searchController = {
       const limit = limitParam ? parseInt(limitParam, 10) : 20;
 
       if (isNaN(limit) || limit < 1 || limit > 100) {
-        throw new AppError(ErrorCode.VALIDATION_ERROR, 'Limit must be between 1 and 100', 400);
+        throw new AppError(VALIDATION_ERROR, 'Limit must be between 1 and 100', 400);
       }
 
       const results = await searchService.getTrendingPosts(limit);
-      return NextResponse.json({ posts: results });
+      return successResponse({ posts: results });
     });
   },
 };

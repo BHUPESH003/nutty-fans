@@ -1,7 +1,7 @@
 import type { NextRequest } from 'next/server';
-import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 
+import { successResponse, errorResponse } from '@/lib/api/response';
 import { authOptions } from '@/lib/auth/authOptions';
 import { SettingsRepository } from '@/repositories/settingsRepository';
 import { SettingsService } from '@/services/settingsService';
@@ -9,35 +9,26 @@ import { SettingsService } from '@/services/settingsService';
 const settingsService = new SettingsService(new SettingsRepository());
 
 export class SettingsController {
-  async get(): Promise<NextResponse> {
+  async get() {
     const session = await getServerSession(authOptions);
     const userId = session?.user?.id as string | undefined;
     if (!userId) {
-      return NextResponse.json(
-        { error: { code: 'AUTH_REQUIRED', message: 'Authentication required.' } },
-        { status: 401 }
-      );
+      return errorResponse('Authentication required.', 401, { code: 'AUTH_REQUIRED' });
     }
 
     const settings = await settingsService.getSettings(userId);
     if (!settings) {
-      return NextResponse.json(
-        { error: { code: 'SETTINGS_NOT_FOUND', message: 'Settings not found.' } },
-        { status: 404 }
-      );
+      return errorResponse('Settings not found.', 404, { code: 'SETTINGS_NOT_FOUND' });
     }
 
-    return NextResponse.json(settings);
+    return successResponse(settings);
   }
 
-  async update(req: NextRequest): Promise<NextResponse> {
+  async update(req: NextRequest) {
     const session = await getServerSession(authOptions);
     const userId = session?.user?.id as string | undefined;
     if (!userId) {
-      return NextResponse.json(
-        { error: { code: 'AUTH_REQUIRED', message: 'Authentication required.' } },
-        { status: 401 }
-      );
+      return errorResponse('Authentication required.', 401, { code: 'AUTH_REQUIRED' });
     }
 
     const body = (await req.json()) ?? {};
@@ -47,12 +38,9 @@ export class SettingsController {
         notifications: body.notifications,
         privacy: body.privacy,
       });
-      return NextResponse.json(updated);
+      return successResponse(updated, 'Settings updated successfully.');
     } catch {
-      return NextResponse.json(
-        { error: { code: 'UNKNOWN_ERROR', message: 'Unable to update settings.' } },
-        { status: 500 }
-      );
+      return errorResponse('Unable to update settings.', 500, { code: 'UNKNOWN_ERROR' });
     }
   }
 }

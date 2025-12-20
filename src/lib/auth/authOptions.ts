@@ -1,5 +1,5 @@
 import { PrismaAdapter } from '@next-auth/prisma-adapter';
-import { type NextAuthOptions, type Session } from 'next-auth';
+import { type NextAuthOptions } from 'next-auth';
 import { type AdapterAccount } from 'next-auth/adapters';
 import AppleProvider from 'next-auth/providers/apple';
 import CredentialsProvider from 'next-auth/providers/credentials';
@@ -71,6 +71,7 @@ export const authOptions: NextAuthOptions = {
           displayName: profile.name,
           username: profile.email?.split('@')[0] ?? `user_${Date.now()}`,
           email: profile.email,
+          emailVerified: profile.email_verified ? new Date() : null,
           avatarUrl: profile.picture,
         };
       },
@@ -88,12 +89,21 @@ export const authOptions: NextAuthOptions = {
       },
     }),
   ],
+  session: {
+    strategy: 'jwt',
+  },
   callbacks: {
-    async session({ session, user }: { session: Session; user: { id: string; email: string } }) {
-      // Attach minimal user info; do not include sensitive PII.
-      if (session.user) {
-        (session.user as { id?: string }).id = user.id;
-        session.user.email = user.email;
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+        token.email = user.email;
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (session.user && token) {
+        (session.user as { id?: string }).id = token.id as string;
+        session.user.email = token.email as string;
       }
       return session;
     },

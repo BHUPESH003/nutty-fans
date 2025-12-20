@@ -2,8 +2,14 @@ import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 
+import { successResponse } from '@/lib/api/response';
 import { authOptions } from '@/lib/auth/authOptions';
-import { AppError, ErrorCode, handleAsyncRoute } from '@/lib/errors/errorHandler';
+import {
+  AppError,
+  handleAsyncRoute,
+  VALIDATION_MISSING_FIELD,
+  RESOURCE_NOT_FOUND,
+} from '@/lib/errors/errorHandler';
 import { CreatorRepository } from '@/repositories/creatorRepository';
 import { PayoutRepository } from '@/repositories/payoutRepository';
 import { UserRepository } from '@/repositories/userRepository';
@@ -38,11 +44,7 @@ export class CreatorController {
     return handleAsyncRoute(async () => {
       const body = await req.json();
       if (!body.displayName || !body.categoryId) {
-        throw new AppError(
-          ErrorCode.VALIDATION_MISSING_FIELD,
-          'Display name and category are required',
-          400
-        );
+        throw new AppError(VALIDATION_MISSING_FIELD, 'Display name and category are required', 400);
       }
       const result = await creatorService.apply(userId, {
         displayName: body.displayName,
@@ -50,7 +52,7 @@ export class CreatorController {
         categoryId: body.categoryId,
         subscriptionPrice: body.subscriptionPrice,
       });
-      return NextResponse.json(result, { status: 201 });
+      return successResponse(result, 'Application submitted', 201);
     });
   }
 
@@ -75,7 +77,7 @@ export class CreatorController {
       );
     }
 
-    return NextResponse.json(status);
+    return successResponse(status);
   }
 
   /**
@@ -99,7 +101,7 @@ export class CreatorController {
       );
     }
 
-    return NextResponse.json(profile);
+    return successResponse(profile);
   }
 
   /**
@@ -118,7 +120,7 @@ export class CreatorController {
     return handleAsyncRoute(async () => {
       const body = await req.json();
       const updated = await creatorService.updateProfile(userId, body);
-      return NextResponse.json(updated);
+      return successResponse(updated);
     });
   }
 
@@ -138,7 +140,7 @@ export class CreatorController {
     return handleAsyncRoute(async () => {
       const body = await req.json();
       const updated = await creatorService.updatePricing(userId, body);
-      return NextResponse.json(updated);
+      return successResponse(updated);
     });
   }
 
@@ -158,7 +160,7 @@ export class CreatorController {
 
     return handleAsyncRoute(async () => {
       const result = await kycService.startVerification(userId, displayName);
-      return NextResponse.json(result);
+      return successResponse(result);
     });
   }
 
@@ -183,7 +185,7 @@ export class CreatorController {
       );
     }
 
-    return NextResponse.json({
+    return successResponse({
       status: profile.kycStatus,
       submittedAt: profile.kycSubmittedAt?.toISOString() ?? null,
       verifiedAt: profile.kycVerifiedAt?.toISOString() ?? null,
@@ -207,7 +209,7 @@ export class CreatorController {
     return handleAsyncRoute(async () => {
       const { url, state } = await paymentService.getConnectUrl(userId);
       // In production, store state in session
-      return NextResponse.json({ url, state });
+      return successResponse({ url, state });
     });
   }
 
@@ -233,10 +235,10 @@ export class CreatorController {
       const metrics = await dashboardService.getMetrics(userId, period);
 
       if (!metrics) {
-        throw new AppError(ErrorCode.RESOURCE_NOT_FOUND, 'Creator profile not found', 404);
+        throw new AppError(RESOURCE_NOT_FOUND, 'Creator profile not found', 404);
       }
 
-      return NextResponse.json(metrics);
+      return successResponse(metrics);
     });
   }
 
@@ -255,7 +257,7 @@ export class CreatorController {
 
     return handleAsyncRoute(async () => {
       const result = await paymentService.getPayouts(userId);
-      return NextResponse.json(result);
+      return successResponse(result);
     });
   }
 }
