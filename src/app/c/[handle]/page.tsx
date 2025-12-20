@@ -4,6 +4,9 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { CreatorRepository } from '@/repositories/creatorRepository';
+import { UserRepository } from '@/repositories/userRepository';
+import { CreatorService } from '@/services/creator/creatorService';
 
 interface PublicCreatorProfile {
   id: string;
@@ -20,15 +23,14 @@ interface PublicCreatorProfile {
   category: { id: string; name: string } | null;
 }
 
+const creatorService = new CreatorService(new CreatorRepository(), new UserRepository());
+
 async function getCreatorProfile(handle: string): Promise<PublicCreatorProfile | null> {
-  const baseUrl = process.env['NEXT_PUBLIC_APP_URL'] || 'http://localhost:3000';
   try {
-    const response = await fetch(`${baseUrl}/api/public/creator/${handle}`, {
-      cache: 'no-store',
-    });
-    if (!response.ok) return null;
-    return response.json();
-  } catch {
+    const profile = await creatorService.getPublicProfile(handle);
+    return profile as PublicCreatorProfile | null;
+  } catch (error) {
+    console.error('Failed to fetch creator profile:', error);
     return null;
   }
 }

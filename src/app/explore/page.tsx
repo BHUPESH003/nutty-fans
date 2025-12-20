@@ -1,7 +1,7 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 
 import { AppShellContainer } from '@/components/containers/layout/AppShellContainer';
 import { CategoryGrid } from '@/components/explore/CategoryGrid';
@@ -18,7 +18,7 @@ interface Category {
   icon: string | null;
 }
 
-export default function ExplorePage() {
+function ExploreContent() {
   const searchParams = useSearchParams();
   const query = searchParams.get('q') || '';
   const categorySlug = searchParams.get('category') || '';
@@ -47,44 +47,52 @@ export default function ExplorePage() {
     : undefined;
 
   return (
-    <AppShellContainer>
-      <div className="container mx-auto max-w-7xl py-8">
-        {/* Search Bar */}
-        <div className="mb-8">
-          <SearchBar defaultValue={query} />
-        </div>
+    <div className="container mx-auto max-w-7xl py-8">
+      {/* Search Bar */}
+      <div className="mb-8">
+        <SearchBar defaultValue={query} />
+      </div>
 
-        {query ? (
-          // Search Results View
-          <SearchResultsView query={query} />
-        ) : (
-          // Explore View (Trending, Categories, Feed)
-          <div className="space-y-8">
-            <Tabs defaultValue="trending" className="w-full">
-              <TabsList>
-                <TabsTrigger value="trending">Trending</TabsTrigger>
-                <TabsTrigger value="feed">Explore Feed</TabsTrigger>
-              </TabsList>
+      {query ? (
+        // Search Results View
+        <SearchResultsView query={query} />
+      ) : (
+        // Explore View (Trending, Categories, Feed)
+        <div className="space-y-8">
+          <Tabs defaultValue="trending" className="w-full">
+            <TabsList>
+              <TabsTrigger value="trending">Trending</TabsTrigger>
+              <TabsTrigger value="feed">Explore Feed</TabsTrigger>
+            </TabsList>
 
-              <TabsContent value="trending" className="space-y-8">
+            <TabsContent value="trending" className="space-y-8">
+              {!loadingCategories && (
+                <CategoryGrid categories={categories} selectedCategory={selectedCategory?.id} />
+              )}
+              <TrendingCreators />
+            </TabsContent>
+
+            <TabsContent value="feed">
+              <div className="space-y-4">
                 {!loadingCategories && (
                   <CategoryGrid categories={categories} selectedCategory={selectedCategory?.id} />
                 )}
-                <TrendingCreators />
-              </TabsContent>
+                <ExploreFeed />
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
+      )}
+    </div>
+  );
+}
 
-              <TabsContent value="feed">
-                <div className="space-y-4">
-                  {!loadingCategories && (
-                    <CategoryGrid categories={categories} selectedCategory={selectedCategory?.id} />
-                  )}
-                  <ExploreFeed />
-                </div>
-              </TabsContent>
-            </Tabs>
-          </div>
-        )}
-      </div>
+export default function ExplorePage() {
+  return (
+    <AppShellContainer>
+      <Suspense fallback={<div className="py-8 text-center">Loading...</div>}>
+        <ExploreContent />
+      </Suspense>
     </AppShellContainer>
   );
 }
