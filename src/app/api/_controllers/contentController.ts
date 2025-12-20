@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 
 import { successResponse } from '@/lib/api/response';
+import { requireEmailVerification } from '@/lib/auth/verificationGuard';
 import {
   AppError,
   handleAsyncRoute,
@@ -14,6 +15,7 @@ import { CommentService } from '@/services/content/commentService';
 import { FeedService } from '@/services/content/feedService';
 import { MediaService } from '@/services/content/mediaService';
 import { PostService } from '@/services/content/postService';
+import { AuthUser } from '@/types/auth';
 import type {
   CreatePostInput,
   UpdatePostInput,
@@ -34,12 +36,13 @@ export const contentController = {
   // POST CRUD
   // ============================================
 
-  async createPost(creatorId: string, body: CreatePostInput) {
+  async createPost(user: AuthUser, body: CreatePostInput) {
     return handleAsyncRoute(async () => {
-      if (!creatorId) {
+      requireEmailVerification(user);
+      if (!user.id) {
         throw new AppError(VALIDATION_MISSING_FIELD, 'Creator ID is required', 400);
       }
-      const post = await postService.create(creatorId, body);
+      const post = await postService.create(user.id, body);
       return successResponse(post, 'Post created successfully', 201);
     });
   },
@@ -186,12 +189,19 @@ export const contentController = {
   // ENGAGEMENT
   // ============================================
 
-  async toggleLike(postId: string, userId: string) {
+  async toggleLike(postId: string, user: AuthUser) {
     try {
-      const isLiked = await likeRepo.toggle(userId, postId);
+      requireEmailVerification(user);
+      const isLiked = await likeRepo.toggle(user.id, postId);
       await postRepo.incrementLikeCount(postId, isLiked ? 1 : -1);
       return successResponse({ isLiked });
     } catch (error) {
+      if (error instanceof AppError) {
+        return NextResponse.json(
+          { error: { message: error.message } },
+          { status: error.statusCode }
+        );
+      }
       const message = error instanceof Error ? error.message : 'Failed to toggle like';
       return NextResponse.json({ error: { message } }, { status: 500 });
     }
@@ -238,11 +248,18 @@ export const contentController = {
     }
   },
 
-  async createComment(postId: string, userId: string, body: CreateCommentInput) {
+  async createComment(postId: string, user: AuthUser, body: CreateCommentInput) {
     try {
-      const comment = await commentService.create(postId, userId, body);
+      requireEmailVerification(user);
+      const comment = await commentService.create(postId, user.id, body);
       return successResponse(comment, 'Comment created successfully', 201);
     } catch (error) {
+      if (error instanceof AppError) {
+        return NextResponse.json(
+          { error: { message: error.message } },
+          { status: error.statusCode }
+        );
+      }
       const message = error instanceof Error ? error.message : 'Failed to create comment';
       return NextResponse.json({ error: { message } }, { status: 400 });
     }
@@ -258,11 +275,18 @@ export const contentController = {
     }
   },
 
-  async toggleCommentLike(commentId: string, userId: string) {
+  async toggleCommentLike(commentId: string, user: AuthUser) {
     try {
-      const isLiked = await commentService.toggleLike(commentId, userId);
+      requireEmailVerification(user);
+      const isLiked = await commentService.toggleLike(commentId, user.id);
       return successResponse({ isLiked });
     } catch (error) {
+      if (error instanceof AppError) {
+        return NextResponse.json(
+          { error: { message: error.message } },
+          { status: error.statusCode }
+        );
+      }
       const message = error instanceof Error ? error.message : 'Failed to toggle like';
       return NextResponse.json({ error: { message } }, { status: 500 });
     }

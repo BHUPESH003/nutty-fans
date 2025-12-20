@@ -59,6 +59,8 @@ export const authOptions: NextAuthOptions = {
           id: user.id,
           email: user.email,
           name: user.displayName,
+          accountState: (user.metadata as unknown as { authState?: { accountState?: string } })
+            ?.authState?.accountState,
         };
       },
     }),
@@ -97,6 +99,8 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id;
         token.email = user.email;
+        // @ts-expect-error accountState is added to user
+        token.accountState = user.accountState;
       }
       return token;
     },
@@ -104,6 +108,8 @@ export const authOptions: NextAuthOptions = {
       if (session.user && token) {
         (session.user as { id?: string }).id = token.id as string;
         session.user.email = token.email as string;
+        // @ts-expect-error accountState is added to session
+        (session.user as { accountState?: string }).accountState = token.accountState as string;
       }
       return session;
     },

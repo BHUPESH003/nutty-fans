@@ -11,7 +11,6 @@ async function handler(req: NextRequest): Promise<NextResponse> {
   if (req.method !== 'POST') {
     return new NextResponse('Method Not Allowed', { status: 405 });
   }
-
   const { email } = (await req.json()) ?? {};
   if (!email || typeof email !== 'string') {
     return NextResponse.json(

@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 
 import { contentController } from '@/app/api/_controllers/contentController';
 import { authOptions } from '@/lib/auth/authOptions';
+import { AuthUser } from '@/types/auth';
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -25,5 +26,5 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   }
 
   const body = await req.json();
-  return contentController.createComment(id, session.user.id, body);
+  return contentController.createComment(id, session.user as AuthUser, body);
 }

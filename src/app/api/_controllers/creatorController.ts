@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth';
 
 import { successResponse } from '@/lib/api/response';
 import { authOptions } from '@/lib/auth/authOptions';
+import { requireEmailVerification } from '@/lib/auth/verificationGuard';
 import {
   AppError,
   handleAsyncRoute,
@@ -40,6 +41,9 @@ export class CreatorController {
         { status: 401 }
       );
     }
+
+    // @ts-expect-error user has accountState
+    requireEmailVerification(session.user);
 
     return handleAsyncRoute(async () => {
       const body = await req.json();

@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { signIn } from 'next-auth/react';
 import * as React from 'react';
 
@@ -11,11 +12,7 @@ import { apiClient, ApiError } from '@/services/apiClient';
 interface RegisterFormState {
   email: string;
   password: string;
-  confirmPassword: string;
   displayName: string;
-  username: string;
-  dateOfBirth: string;
-  country: string;
   acceptTerms: boolean;
 }
 
@@ -27,11 +24,7 @@ export function RegisterContainer({ onRegistered }: RegisterContainerProps) {
   const [form, setForm] = React.useState<RegisterFormState>({
     email: '',
     password: '',
-    confirmPassword: '',
     displayName: '',
-    username: '',
-    dateOfBirth: '',
-    country: '',
     acceptTerms: false,
   });
   const [isSubmitting, setIsSubmitting] = React.useState(false);
@@ -59,20 +52,12 @@ export function RegisterContainer({ onRegistered }: RegisterContainerProps) {
     setError(null);
     setSuccessMessage(null);
 
-    if (form.password !== form.confirmPassword) {
-      setError('Passwords do not match.');
-      return;
-    }
-
     setIsSubmitting(true);
     try {
       await apiClient.auth.register({
         email: form.email,
         password: form.password,
         displayName: form.displayName,
-        username: form.username || undefined,
-        dateOfBirth: form.dateOfBirth,
-        country: form.country,
         acceptTerms: form.acceptTerms,
       });
 
@@ -104,12 +89,12 @@ export function RegisterContainer({ onRegistered }: RegisterContainerProps) {
         {/* Placeholder for actual image */}
         <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=1964&auto=format&fit=crop')] bg-cover bg-center opacity-40 mix-blend-overlay" />
 
-        <div className="relative z-20 flex items-center gap-2 text-lg font-medium">
+        {/* <div className="relative z-20 flex items-center gap-2 text-lg font-medium">
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-xs font-bold text-white">
             NF
           </div>
           NuttyFans
-        </div>
+        </div> */}
         <div className="relative z-20 mt-auto">
           <blockquote className="space-y-2">
             <p className="text-lg">
@@ -121,8 +106,8 @@ export function RegisterContainer({ onRegistered }: RegisterContainerProps) {
       </div>
 
       {/* Right Side - Form */}
-      <div className="flex flex-1 items-center justify-center p-8 lg:p-12">
-        <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[450px]">
+      <div className="flex flex-1 items-center justify-center p-6 lg:p-8 lg:pb-0">
+        <div className="mx-auto flex w-full flex-col justify-center space-y-4 sm:w-[450px]">
           <div className="flex flex-col space-y-2 text-center">
             <h1 className="text-2xl font-semibold tracking-tight">Create an account</h1>
             <p className="text-sm text-muted-foreground">
@@ -130,7 +115,7 @@ export function RegisterContainer({ onRegistered }: RegisterContainerProps) {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-3">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -146,86 +131,31 @@ export function RegisterContainer({ onRegistered }: RegisterContainerProps) {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="displayName">Display Name</Label>
-                <Input
-                  id="displayName"
-                  name="displayName"
-                  required
-                  value={form.displayName}
-                  onChange={handleChange}
-                  placeholder="John Doe"
-                  className="border-white/10 bg-muted/50 focus:border-primary/50"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="username">Username (Optional)</Label>
-                <Input
-                  id="username"
-                  name="username"
-                  value={form.username}
-                  onChange={handleChange}
-                  placeholder="johndoe"
-                  className="border-white/10 bg-muted/50 focus:border-primary/50"
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="displayName">Display Name</Label>
+              <Input
+                id="displayName"
+                name="displayName"
+                required
+                value={form.displayName}
+                onChange={handleChange}
+                placeholder="John Doe"
+                className="border-white/10 bg-muted/50 focus:border-primary/50"
+              />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="dateOfBirth">Date of Birth</Label>
-                <Input
-                  id="dateOfBirth"
-                  name="dateOfBirth"
-                  type="date"
-                  required
-                  value={form.dateOfBirth}
-                  onChange={handleChange}
-                  className="border-white/10 bg-muted/50 focus:border-primary/50"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="country">Country</Label>
-                <Input
-                  id="country"
-                  name="country"
-                  placeholder="United States"
-                  required
-                  value={form.country}
-                  onChange={handleChange}
-                  className="border-white/10 bg-muted/50 focus:border-primary/50"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="new-password"
-                  required
-                  value={form.password}
-                  onChange={handleChange}
-                  className="border-white/10 bg-muted/50 focus:border-primary/50"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm Password</Label>
-                <Input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type="password"
-                  autoComplete="new-password"
-                  required
-                  value={form.confirmPassword}
-                  onChange={handleChange}
-                  className="border-white/10 bg-muted/50 focus:border-primary/50"
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                name="password"
+                type="password"
+                autoComplete="new-password"
+                required
+                value={form.password}
+                onChange={handleChange}
+                className="border-white/10 bg-muted/50 focus:border-primary/50"
+              />
             </div>
 
             <div className="flex items-start space-x-2 rounded-md border border-muted p-4">
@@ -283,28 +213,19 @@ export function RegisterContainer({ onRegistered }: RegisterContainerProps) {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <Button
-              variant="outline"
-              onClick={() => void signIn('google')}
-              className="bg-background hover:bg-muted"
-            >
-              Google
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => void signIn('apple')}
-              className="bg-background hover:bg-muted"
-            >
-              Apple
-            </Button>
-          </div>
+          <Button
+            variant="outline"
+            onClick={() => void signIn('google')}
+            className="bg-background hover:bg-muted"
+          >
+            Google
+          </Button>
 
           <p className="px-8 text-center text-sm text-muted-foreground">
             Already have an account?{' '}
-            <a href="/login" className="underline underline-offset-4 hover:text-primary">
+            <Link href="/login" className="underline underline-offset-4 hover:text-primary">
               Sign in
-            </a>
+            </Link>
           </p>
         </div>
       </div>

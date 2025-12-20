@@ -19,7 +19,7 @@ export class AuthController {
       const body = await req.json();
 
       const { email, password, displayName, username, dateOfBirth, country } = body ?? {};
-      if (!email || !displayName || !username || !dateOfBirth || !country) {
+      if (!email || !displayName) {
         throw new AppError(VALIDATION_MISSING_FIELD, 'Missing required fields', 400);
       }
 
@@ -27,9 +27,9 @@ export class AuthController {
         email,
         password: password ?? null,
         displayName,
-        username,
-        dateOfBirth: new Date(dateOfBirth),
-        country,
+        username: username || email.split('@')[0],
+        dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined,
+        country: country || undefined,
       });
 
       // Issue verification token and send verification email

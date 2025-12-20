@@ -23,8 +23,8 @@ export interface RegisterPayload {
   password: string;
   displayName: string;
   username?: string;
-  dateOfBirth: string;
-  country: string;
+  dateOfBirth?: string;
+  country?: string;
   acceptTerms: boolean;
 }
 

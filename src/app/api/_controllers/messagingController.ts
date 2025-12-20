@@ -1,4 +1,5 @@
 import { successResponse } from '@/lib/api/response';
+import { requireEmailVerification } from '@/lib/auth/verificationGuard';
 import {
   AppError,
   handleAsyncRoute,
@@ -8,19 +9,21 @@ import {
 } from '@/lib/errors/errorHandler';
 import { ConversationService } from '@/services/messaging/conversationService';
 import { MessageService } from '@/services/messaging/messageService';
+import { AuthUser } from '@/types/auth';
 
 const conversationService = new ConversationService();
 const messageService = new MessageService();
 
 export const messagingController = {
   // Conversations
-  async createConversation(userId: string, participantId: string) {
+  async createConversation(user: AuthUser, participantId: string) {
     return handleAsyncRoute(async () => {
+      requireEmailVerification(user);
       if (!participantId) {
         throw new AppError(VALIDATION_MISSING_FIELD, 'Participant ID is required', 400);
       }
 
-      const conversation = await conversationService.create(userId, participantId);
+      const conversation = await conversationService.create(user.id, participantId);
       return successResponse(conversation);
     });
   },
@@ -59,11 +62,12 @@ export const messagingController = {
 
   // Messages
   async sendMessage(
-    userId: string,
+    user: AuthUser,
     conversationId: string,
     body: { content?: string; mediaId?: string; price?: number }
   ) {
     return handleAsyncRoute(async () => {
+      requireEmailVerification(user);
       if (!conversationId) {
         throw new AppError(VALIDATION_MISSING_FIELD, 'Conversation ID is required', 400);
       }
@@ -76,7 +80,7 @@ export const messagingController = {
       }
 
       const message = await messageService.send(
-        userId,
+        user.id,
         conversationId,
         content ?? null,
         mediaId,

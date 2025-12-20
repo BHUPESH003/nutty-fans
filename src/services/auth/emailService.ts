@@ -128,7 +128,6 @@ export class EmailService {
       }
       return;
     }
-
     try {
       await resend.emails.send({
         from: FROM_EMAIL,

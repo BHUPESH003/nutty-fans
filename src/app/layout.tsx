@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import type { ReactNode } from 'react';
 
+import { VerificationBanner } from '@/components/common/VerificationBanner';
 import { SessionProvider } from '@/components/providers/SessionProvider';
 import './globals.css';
 
@@ -21,7 +22,10 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
       <body className={`${inter.variable} font-sans antialiased`}>
-        <SessionProvider>{children}</SessionProvider>
+        <SessionProvider>
+          <VerificationBanner />
+          {children}
+        </SessionProvider>
         <SpeedInsights />
       </body>
     </html>

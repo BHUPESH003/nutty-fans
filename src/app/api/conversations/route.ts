@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 
 import { authOptions } from '@/lib/auth/authOptions';
+import { AuthUser } from '@/types/auth';
 
 import { messagingController } from '../_controllers/messagingController';
 
@@ -28,5 +29,5 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: { message: 'Participant ID is required' } }, { status: 400 });
   }
 
-  return messagingController.createConversation(session.user.id, participantId);
+  return messagingController.createConversation(session.user as AuthUser, participantId);
 }

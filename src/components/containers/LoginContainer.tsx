@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { signIn, useSession } from 'next-auth/react';
 import * as React from 'react';
@@ -197,9 +198,9 @@ export function LoginContainer({ onLoggedIn }: LoginContainerProps) {
 
           <p className="px-8 text-center text-sm text-muted-foreground">
             Don&apos;t have an account?{' '}
-            <a href="/register" className="underline underline-offset-4 hover:text-primary">
+            <Link href="/register" className="underline underline-offset-4 hover:text-primary">
               Sign up
-            </a>
+            </Link>
           </p>
         </div>
       </div>

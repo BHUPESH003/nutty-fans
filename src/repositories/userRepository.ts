@@ -20,8 +20,8 @@ export class UserRepository {
     passwordHash: string | null;
     displayName: string;
     username: string;
-    dateOfBirth: Date;
-    country: string;
+    dateOfBirth: Date | null;
+    country: string | null;
     metadata?: unknown;
   }) {
     return prisma.user.create({

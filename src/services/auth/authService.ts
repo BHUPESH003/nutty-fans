@@ -10,8 +10,8 @@ type RegisterInput = {
   password: string | null;
   displayName: string;
   username: string;
-  dateOfBirth: Date;
-  country: string;
+  dateOfBirth?: Date;
+  country?: string;
 };
 
 export class AuthService {
@@ -48,8 +48,8 @@ export class AuthService {
       passwordHash,
       displayName: input.displayName,
       username: input.username,
-      dateOfBirth: input.dateOfBirth,
-      country: input.country,
+      dateOfBirth: input.dateOfBirth ?? null,
+      country: input.country ?? null,
       metadata: {
         authState: {
           accountState: 'email_unverified',
@@ -71,10 +71,11 @@ export class AuthService {
       return null;
     }
 
-    const accountState = authState['accountState'] as string | undefined;
-    if (accountState === 'email_unverified') {
-      throw new Error('Please verify your email address before logging in.');
-    }
+    authState['accountState'] as string | undefined;
+    // Allow login for unverified users (deferred verification)
+    // if (accountState === 'email_unverified') {
+    //   throw new Error('Please verify your email address before logging in.');
+    // }
 
     const ok = await verifyPassword(password, user.passwordHash);
     if (!ok) {

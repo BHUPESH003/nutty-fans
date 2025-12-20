@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth';
 import { contentController } from '@/app/api/_controllers/contentController';
 import { authOptions } from '@/lib/auth/authOptions';
 import { prisma } from '@/lib/db/prisma';
+import { AuthUser } from '@/types/auth';
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
@@ -21,7 +22,7 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json();
-  return contentController.createPost(creator.id, body);
+  return contentController.createPost(session.user as AuthUser, body);
 }
 
 export async function GET(req: Request) {

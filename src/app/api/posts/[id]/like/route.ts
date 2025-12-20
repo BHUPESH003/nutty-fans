@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 
 import { contentController } from '@/app/api/_controllers/contentController';
 import { authOptions } from '@/lib/auth/authOptions';
+import { AuthUser } from '@/types/auth';
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -11,5 +12,5 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ error: { message: 'Unauthorized' } }, { status: 401 });
   }
 
-  return contentController.toggleLike(id, session.user.id);
+  return contentController.toggleLike(id, session.user as AuthUser);
 }
