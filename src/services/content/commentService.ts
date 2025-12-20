@@ -197,8 +197,8 @@ export class CommentService {
       createdAt: comment.createdAt,
       user: {
         id: comment.user.id,
-        username: comment.user.username,
-        displayName: comment.user.displayName,
+        username: comment.user.username ?? 'user',
+        displayName: comment.user.displayName ?? 'User',
         avatarUrl: comment.user.avatarUrl,
       },
     };

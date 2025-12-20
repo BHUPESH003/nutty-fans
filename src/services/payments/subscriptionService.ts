@@ -257,8 +257,8 @@ export class SubscriptionService {
       autoRenew: sub.autoRenew,
       creator: {
         id: creator.id,
-        handle: user.username,
-        displayName: user.displayName,
+        handle: user.username ?? 'user',
+        displayName: user.displayName ?? 'User',
         avatarUrl: user.avatarUrl,
       },
     };

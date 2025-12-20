@@ -127,8 +127,8 @@ export class SearchService {
     return {
       creators: creators.map((c) => ({
         id: c.id,
-        handle: c.user.username,
-        displayName: c.user.displayName,
+        handle: c.user.username ?? 'user',
+        displayName: c.user.displayName ?? 'User',
         avatarUrl: c.user.avatarUrl,
         bio: c.bio,
         subscriberCount: c.totalSubscribers,
@@ -139,8 +139,8 @@ export class SearchService {
         id: p.id,
         content: p.content,
         creatorId: p.creatorId,
-        creatorHandle: p.creator.user.username,
-        creatorDisplayName: p.creator.user.displayName,
+        creatorHandle: p.creator.user.username ?? 'user',
+        creatorDisplayName: p.creator.user.displayName ?? 'User',
         creatorAvatarUrl: p.creator.user.avatarUrl,
         likeCount: p.likeCount,
         commentCount: p.commentCount,
@@ -197,8 +197,8 @@ export class SearchService {
 
     return creators.map((c) => ({
       id: c.id,
-      handle: c.user.username,
-      displayName: c.user.displayName,
+      handle: c.user.username ?? 'user',
+      displayName: c.user.displayName ?? 'User',
       avatarUrl: c.user.avatarUrl,
       bio: c.bio,
       subscriberCount: c.totalSubscribers,
@@ -248,8 +248,8 @@ export class SearchService {
 
         return creators.map((c) => ({
           id: c.id,
-          handle: c.user.username,
-          displayName: c.user.displayName,
+          handle: c.user.username ?? 'user',
+          displayName: c.user.displayName ?? 'User',
           avatarUrl: c.user.avatarUrl,
           bio: c.bio,
           subscriberCount: c.totalSubscribers,
@@ -303,8 +303,8 @@ export class SearchService {
           id: p.id,
           content: p.content,
           creatorId: p.creatorId,
-          creatorHandle: p.creator.user.username,
-          creatorDisplayName: p.creator.user.displayName,
+          creatorHandle: p.creator.user.username ?? 'user',
+          creatorDisplayName: p.creator.user.displayName ?? 'User',
           creatorAvatarUrl: p.creator.user.avatarUrl,
           likeCount: p.likeCount,
           commentCount: p.commentCount,

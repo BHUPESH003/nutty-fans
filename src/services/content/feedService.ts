@@ -142,8 +142,8 @@ export class FeedService {
       createdAt: post.createdAt,
       creator: {
         id: creator.id,
-        handle: user.username,
-        displayName: user.displayName,
+        handle: user.username ?? 'user',
+        displayName: user.displayName ?? 'User',
         avatarUrl: user.avatarUrl,
         isVerified: creator.isVerified,
       },

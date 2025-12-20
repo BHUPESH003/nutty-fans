@@ -42,8 +42,8 @@ export class ProfileService {
 
         const stats = await this.repo.getStats(user.id);
         return {
-          displayName: user.displayName,
-          username: user.username,
+          displayName: user.displayName ?? 'User',
+          username: user.username ?? 'user',
           avatarUrl: user.avatarUrl,
           bio: user.bio ?? null,
           location: user.location ?? null,
@@ -72,8 +72,8 @@ export class ProfileService {
         const stats = await this.repo.getStats(user.id);
 
         const base: PublicProfile = {
-          displayName: user.displayName,
-          username: user.username,
+          displayName: user.displayName ?? 'User',
+          username: user.username ?? 'user',
           avatarUrl: user.avatarUrl,
           bio: user.bio ?? null,
           joinDate: user.createdAt.toISOString(),
@@ -129,8 +129,8 @@ export class ProfileService {
 
     const stats = await this.repo.getStats(updated.id);
     return {
-      displayName: updated.displayName,
-      username: updated.username,
+      displayName: updated.displayName ?? 'User',
+      username: updated.username ?? 'user',
       avatarUrl: updated.avatarUrl,
       bio: updated.bio ?? null,
       location: updated.location ?? null,

@@ -176,8 +176,8 @@ export class CreatorService {
 
     return {
       id: profile.id,
-      handle: profile.user.username,
-      displayName: profile.user.displayName,
+      handle: profile.user.username ?? 'user',
+      displayName: profile.user.displayName ?? 'User',
       bio: profile.bio,
       avatarUrl: profile.user.avatarUrl,
       coverImageUrl: profile.coverImageUrl,

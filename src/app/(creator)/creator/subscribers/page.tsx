@@ -62,11 +62,13 @@ export default async function SubscribersPage() {
                 <TableCell className="flex items-center gap-3">
                   <Avatar className="h-8 w-8">
                     <AvatarImage src={sub.user.avatarUrl || ''} />
-                    <AvatarFallback>{sub.user.displayName[0]}</AvatarFallback>
+                    <AvatarFallback>{sub.user.displayName?.[0] ?? 'U'}</AvatarFallback>
                   </Avatar>
                   <div>
-                    <div className="font-medium">{sub.user.displayName}</div>
-                    <div className="text-xs text-muted-foreground">@{sub.user.username}</div>
+                    <div className="font-medium">{sub.user.displayName ?? 'User'}</div>
+                    <div className="text-xs text-muted-foreground">
+                      @{sub.user.username ?? 'user'}
+                    </div>
                   </div>
                 </TableCell>
                 <TableCell className="capitalize">{sub.planType}</TableCell>
