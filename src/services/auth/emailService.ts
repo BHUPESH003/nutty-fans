@@ -124,10 +124,13 @@ export class EmailService {
         console.info('Email would be sent:', {
           to: params.email,
           subject: params.subject,
+          html: params.html,
+          text: params.text,
         });
       }
       return;
     }
+    // If resend is configured, send the email regardless of environment
     try {
       await resend.emails.send({
         from: FROM_EMAIL,

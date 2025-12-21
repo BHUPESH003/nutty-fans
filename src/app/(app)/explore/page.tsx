@@ -3,7 +3,6 @@
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 
-import { AppShellContainer } from '@/components/containers/layout/AppShellContainer';
 import { CategoryGrid } from '@/components/explore/CategoryGrid';
 import { ExploreFeed } from '@/components/explore/ExploreFeed';
 import { TrendingCreators } from '@/components/explore/TrendingCreators';
@@ -89,11 +88,9 @@ function ExploreContent() {
 
 export default function ExplorePage() {
   return (
-    <AppShellContainer>
-      <Suspense fallback={<div className="py-8 text-center">Loading...</div>}>
-        <ExploreContent />
-      </Suspense>
-    </AppShellContainer>
+    <Suspense fallback={<div className="py-8 text-center">Loading...</div>}>
+      <ExploreContent />
+    </Suspense>
   );
 }
 

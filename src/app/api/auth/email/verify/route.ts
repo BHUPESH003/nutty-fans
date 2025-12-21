@@ -1,6 +1,7 @@
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
+import { successResponse, errorResponse } from '@/lib/api/response';
 import { prisma } from '@/lib/db/prisma';
 import { withRateLimit } from '@/lib/middleware/rateLimit';
 import { UserRepository } from '@/repositories/userRepository';
@@ -9,15 +10,12 @@ import { TokenService } from '@/services/auth/tokenService';
 
 async function handler(req: NextRequest): Promise<NextResponse> {
   if (req.method !== 'POST') {
-    return new NextResponse('Method Not Allowed', { status: 405 });
+    return errorResponse('Method Not Allowed', 405);
   }
 
   const { token } = (await req.json()) ?? {};
   if (!token || typeof token !== 'string') {
-    return NextResponse.json(
-      { success: false, error: 'Invalid or missing token' },
-      { status: 400 }
-    );
+    return errorResponse('Invalid or missing token', 400);
   }
 
   const tokenService = new TokenService(new VerificationTokenRepository());
@@ -26,18 +24,12 @@ async function handler(req: NextRequest): Promise<NextResponse> {
   const record = await tokenService.consumeToken(token, 'email_verify');
   if (!record) {
     // Generic message to avoid information leaks
-    return NextResponse.json(
-      { success: false, error: 'Invalid or expired verification link' },
-      { status: 400 }
-    );
+    return errorResponse('Invalid or expired verification link', 400);
   }
 
   const user = await userRepo.findById(record.userId);
   if (!user) {
-    return NextResponse.json(
-      { success: false, error: 'Invalid or expired verification link' },
-      { status: 400 }
-    );
+    return errorResponse('Invalid or expired verification link', 400);
   }
 
   // Mark email as verified and update accountState.
@@ -59,7 +51,7 @@ async function handler(req: NextRequest): Promise<NextResponse> {
     },
   });
 
-  return NextResponse.json({ success: true, accountState: 'active' });
+  return successResponse({ accountState: 'active' }, 'Email verified successfully');
 }
 
 export const POST = withRateLimit(handler, {

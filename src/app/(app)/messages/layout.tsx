@@ -3,7 +3,6 @@
 import { Plus } from 'lucide-react';
 import React, { useState } from 'react';
 
-import { AppShellContainer } from '@/components/containers/layout/AppShellContainer';
 import { ConversationList } from '@/components/messaging/ConversationList';
 import { NewMessageDialog } from '@/components/messaging/NewMessageDialog';
 import { Button } from '@/components/ui/button';
@@ -14,7 +13,7 @@ export default function MessagesLayout({ children }: { children: React.ReactNode
   const [newMessageOpen, setNewMessageOpen] = useState(false);
 
   return (
-    <AppShellContainer>
+    <>
       <div className="flex h-[calc(100vh-4rem)] overflow-hidden rounded-lg border bg-background shadow-sm">
         {/* Sidebar */}
         <div className="flex w-80 flex-col border-r">
@@ -37,6 +36,6 @@ export default function MessagesLayout({ children }: { children: React.ReactNode
         <div className="flex flex-1 flex-col overflow-hidden">{children}</div>
       </div>
       <NewMessageDialog open={newMessageOpen} onOpenChange={setNewMessageOpen} />
-    </AppShellContainer>
+    </>
   );
 }

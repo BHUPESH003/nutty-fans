@@ -17,7 +17,11 @@ export class AvatarController {
     }
 
     const body = (await req.json()) ?? {};
-    const { fileName, fileSize, mimeType } = body;
+    // Map frontend fields (filename, contentType) to service fields (fileName, mimeType)
+    // Also support service fields directly for backward compatibility or other clients
+    const fileName = body.filename || body.fileName;
+    const mimeType = body.contentType || body.mimeType;
+    const { fileSize } = body;
 
     try {
       const result = await avatarService.getUploadUrl(userId, {
@@ -25,7 +29,12 @@ export class AvatarController {
         fileSize,
         mimeType,
       });
-      return successResponse(result);
+
+      // Map service response (assetKey) to frontend expectation (avatarKey)
+      return successResponse({
+        uploadUrl: result.uploadUrl,
+        avatarKey: result.assetKey,
+      });
     } catch (error) {
       if (error instanceof Error && 'details' in error) {
         const details = (error as Error & { details?: unknown }).details;
@@ -46,7 +55,9 @@ export class AvatarController {
     }
 
     const body = (await req.json()) ?? {};
-    const { assetKey } = body;
+    // Map frontend field (avatarKey) to service field (assetKey)
+    const assetKey = body.avatarKey || body.assetKey;
+
     if (!assetKey || typeof assetKey !== 'string') {
       return errorResponse('Avatar asset is invalid or not found.', 400, {
         code: 'INVALID_AVATAR_ASSET',

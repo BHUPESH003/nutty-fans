@@ -1,3 +1,7 @@
+import { PutObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+
+import { BUCKET_NAME, CLOUDFRONT_URL, s3Client } from '@/lib/storage/s3';
 import { ProfileRepository } from '@/repositories/profileRepository';
 
 type UploadUrlRequest = {
@@ -41,15 +45,21 @@ export class AvatarService {
       throw error;
     }
 
-    // For now, we fake an upload URL that points to a configurable storage origin.
-    // A real implementation would use S3/Cloudflare/etc. client here.
-    const baseUrl = process.env['AVATAR_UPLOAD_BASE_URL'] ?? '';
+    if (!BUCKET_NAME) {
+      throw new Error('AWS_S3_BUCKET is not configured');
+    }
+
     const safeFileName = input.fileName.replace(/[^a-zA-Z0-9.\-_]/g, '_');
     const assetKey = `avatars/${userId}/${Date.now()}-${safeFileName}`;
 
-    const uploadUrl = baseUrl
-      ? `${baseUrl}/${assetKey}`
-      : `https://storage.example.invalid/${assetKey}`;
+    const command = new PutObjectCommand({
+      Bucket: BUCKET_NAME,
+      Key: assetKey,
+      ContentType: input.mimeType,
+      ContentLength: input.fileSize,
+    });
+
+    const uploadUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
 
     return {
       uploadUrl,
@@ -62,10 +72,8 @@ export class AvatarService {
 
   async confirmAvatar(userId: string, assetKey: string): Promise<{ avatarUrl: string | null }> {
     // In a real implementation we would validate the assetKey against expected prefix and storage.
-    const cdnBase = process.env['AVATAR_CDN_BASE_URL'] ?? '';
-    const avatarUrl = cdnBase
-      ? `${cdnBase}/${assetKey}`
-      : `https://cdn.example.invalid/${assetKey}`;
+    const baseUrl = CLOUDFRONT_URL || 'https://example.com'; // Fallback if not set, but should be set
+    const avatarUrl = `${baseUrl}/${assetKey}`;
 
     const updated = await this.profileRepo.updateAvatarUrl(userId, avatarUrl);
     return { avatarUrl: updated.avatarUrl ?? null };

@@ -16,11 +16,7 @@ interface RegisterFormState {
   acceptTerms: boolean;
 }
 
-export interface RegisterContainerProps {
-  onRegistered?: () => void;
-}
-
-export function RegisterContainer({ onRegistered }: RegisterContainerProps) {
+export function RegisterContainer() {
   const [form, setForm] = React.useState<RegisterFormState>({
     email: '',
     password: '',
@@ -62,10 +58,17 @@ export function RegisterContainer({ onRegistered }: RegisterContainerProps) {
       });
 
       if (!isMountedRef.current) return;
-      setSuccessMessage('Check your email to verify your account.');
-      if (onRegistered) {
-        onRegistered();
-      }
+
+      if (!isMountedRef.current) return;
+
+      setSuccessMessage(
+        'Account created! Please check your email to verify your account. Redirecting to login...'
+      );
+
+      // Redirect to login page after short delay
+      setTimeout(() => {
+        window.location.href = '/login';
+      }, 1500);
     } catch (err) {
       if (!isMountedRef.current) return;
       const msg =
