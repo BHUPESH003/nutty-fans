@@ -1,4 +1,5 @@
 import { MapPin, Calendar, MessageCircle, MoreHorizontal } from 'lucide-react';
+import Link from 'next/link';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -62,9 +63,14 @@ export function ProfileHeader({ profile, isSelf, coverUrl, stats }: ProfileHeade
 
           <div className="flex gap-2">
             {isSelf ? (
-              <Button variant="outline" className="rounded-full" asChild>
-                <a href="/profile/edit">Edit Profile</a>
-              </Button>
+              <>
+                <Button variant="outline" className="rounded-full" asChild>
+                  <Link href="/profile/edit">Edit Profile</Link>
+                </Button>
+                <Button variant="secondary" className="rounded-full" asChild>
+                  <Link href="/creator/apply">Become a Creator</Link>
+                </Button>
+              </>
             ) : (
               <>
                 <Button className="rounded-full bg-primary hover:bg-primary/90">Follow</Button>

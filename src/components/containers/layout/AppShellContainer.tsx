@@ -4,46 +4,35 @@ import { useRouter } from 'next/navigation';
 import * as React from 'react';
 
 import { AppShell } from '@/components/layout/AppShell';
-import { apiClient, ApiError } from '@/services/apiClient';
+import { useAuth } from '@/hooks/useAuth';
 
 interface AppShellContainerProps {
   children: React.ReactNode;
 }
 
 export function AppShellContainer({ children }: AppShellContainerProps) {
-  const [userSummary, setUserSummary] = React.useState<{
-    displayName?: string;
-    username?: string;
-    avatarUrl?: string | null;
-  } | null>(null);
+  const { user, isLoading, isAuthenticated } = useAuth();
   const router = useRouter();
 
   React.useEffect(() => {
-    let cancelled = false;
+    if (!isLoading && !isAuthenticated) {
+      router.push('/login');
+    }
+  }, [isLoading, isAuthenticated, router]);
 
-    const load = async () => {
-      try {
-        const user = await apiClient.user.me();
-        if (cancelled) return;
-        setUserSummary({
-          displayName: user.displayName,
-          username: user.username,
-          avatarUrl: (user as unknown as { avatarUrl?: string | null }).avatarUrl ?? null,
-        });
-      } catch (err) {
-        if (cancelled) return;
-        if (err instanceof ApiError && err.status === 401) {
-          router.push('/login');
-        }
-      }
-    };
+  if (isLoading) {
+    return (
+      <AppShell user={null}>
+        <div className="flex min-h-[50vh] items-center justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary"></div>
+        </div>
+      </AppShell>
+    );
+  }
 
-    void load();
+  if (!isAuthenticated) {
+    return null; // Will redirect
+  }
 
-    return () => {
-      cancelled = true;
-    };
-  }, [router]);
-
-  return <AppShell user={userSummary}>{children}</AppShell>;
+  return <AppShell user={user}>{children}</AppShell>;
 }

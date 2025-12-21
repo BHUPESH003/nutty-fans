@@ -11,6 +11,11 @@ const nextConfig: NextConfig = {
   images: {
     formats: ['image/avif', 'image/webp'],
     remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'd12yj2uf2lejnl.cloudfront.net',
+        pathname: '/**',
+      },
       // Add allowed image domains here as needed
     ],
   },

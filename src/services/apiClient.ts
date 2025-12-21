@@ -258,10 +258,11 @@ export const apiClient = {
         body: data,
       });
     },
-    getFeed(params?: { cursor?: string; limit?: number }) {
+    getFeed(params?: { cursor?: string; limit?: number; type?: 'for-you' | 'following' }) {
       const searchParams = new URLSearchParams();
       if (params?.cursor) searchParams.append('cursor', params.cursor);
       if (params?.limit) searchParams.append('limit', params.limit.toString());
+      if (params?.type) searchParams.append('type', params.type);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return request<any>(`/api/posts/feed?${searchParams.toString()}`);
     },
@@ -411,6 +412,25 @@ export const apiClient = {
     },
     async getVapidKey() {
       return request<{ publicKey: string }>('/api/push/vapid-key');
+    },
+  },
+  wallet: {
+    getBalance() {
+      return request<{ balance: number; currency: string }>('/api/wallet');
+    },
+    getTransactions(cursor?: string) {
+      const searchParams = new URLSearchParams();
+      if (cursor) searchParams.append('cursor', cursor);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return request<{ transactions: any[]; nextCursor?: string }>(
+        `/api/wallet/transactions${searchParams.toString() ? `?${searchParams.toString()}` : ''}`
+      );
+    },
+    topup(amount: number) {
+      return request<{ transactionId: string; balance: number }>('/api/wallet/topup', {
+        method: 'POST',
+        body: { amount },
+      });
     },
   },
 };

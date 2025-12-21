@@ -21,8 +21,9 @@ interface AppShellProps {
 
 const navItems = [
   { href: '/' as const, label: 'Home', icon: '🏠' },
+  { href: '/explore' as const, label: 'Explore', icon: '🔍' },
+  { href: '/messages' as const, label: 'Messages', icon: '💬' },
   { href: '/profile' as const, label: 'Profile', icon: '👤' },
-  { href: '/settings' as const, label: 'Settings', icon: '⚙️' },
 ];
 
 export function AppShell({ children, user }: AppShellProps) {
@@ -105,8 +106,8 @@ export function AppShell({ children, user }: AppShellProps) {
             <p className="mb-3 text-xs text-muted-foreground">
               Start earning from your content today.
             </p>
-            <Button size="sm" className="w-full text-xs" variant="secondary">
-              Apply Now
+            <Button size="sm" className="w-full text-xs" variant="secondary" asChild>
+              <Link href="/creator/apply">Apply Now</Link>
             </Button>
           </div>
         </aside>

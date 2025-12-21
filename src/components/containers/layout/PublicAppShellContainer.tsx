@@ -4,7 +4,7 @@ import * as React from 'react';
 
 import { AppShell } from '@/components/layout/AppShell';
 import { AuthPromptProvider } from '@/components/providers/AuthPromptProvider';
-import { apiClient, ApiError } from '@/services/apiClient';
+import { useAuth } from '@/hooks/useAuth';
 
 interface PublicAppShellContainerProps {
   children: React.ReactNode;
@@ -16,50 +16,7 @@ interface PublicAppShellContainerProps {
  * Uses AuthPromptProvider to show modal when actions require authentication
  */
 export function PublicAppShellContainer({ children }: PublicAppShellContainerProps) {
-  const [userSummary, setUserSummary] = React.useState<{
-    id?: string;
-    displayName?: string;
-    username?: string;
-    avatarUrl?: string | null;
-  } | null>(null);
-  const [isLoading, setIsLoading] = React.useState(true);
-  const [isAuthenticated, setIsAuthenticated] = React.useState(false);
-
-  React.useEffect(() => {
-    let cancelled = false;
-
-    const load = async () => {
-      try {
-        const user = await apiClient.user.me();
-        if (cancelled) return;
-        setUserSummary({
-          id: (user as unknown as Record<string, unknown>)['id'] as string | undefined,
-          displayName: user.displayName,
-          username: user.username,
-          avatarUrl: (user as unknown as { avatarUrl?: string | null }).avatarUrl ?? null,
-        });
-        setIsAuthenticated(true);
-      } catch (err) {
-        if (cancelled) return;
-        // For public pages, we don't redirect on 401
-        // Just leave user as null (anonymous)
-        if (err instanceof ApiError && err.status === 401) {
-          setUserSummary(null);
-          setIsAuthenticated(false);
-        }
-      } finally {
-        if (!cancelled) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    void load();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const { user, isLoading, isAuthenticated } = useAuth();
 
   if (isLoading) {
     return (
@@ -73,7 +30,7 @@ export function PublicAppShellContainer({ children }: PublicAppShellContainerPro
 
   return (
     <AuthPromptProvider isAuthenticated={isAuthenticated}>
-      <AppShell user={userSummary}>{children}</AppShell>
+      <AppShell user={user}>{children}</AppShell>
     </AuthPromptProvider>
   );
 }

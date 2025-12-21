@@ -6,12 +6,24 @@ import { UserRepository } from '@/repositories/userRepository';
 
 export async function GET(): Promise<NextResponse> {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.email) {
+
+  // Check for session ID first (more reliable), then email
+  const userId = session?.user?.id;
+  const userEmail = session?.user?.email;
+
+  if (!userId && !userEmail) {
     return new NextResponse('Unauthorized', { status: 401 });
   }
 
   const userRepo = new UserRepository();
-  const user = await userRepo.findByEmail(session.user.email);
+  let user;
+
+  if (userId) {
+    user = await userRepo.findById(userId);
+  } else if (userEmail) {
+    user = await userRepo.findByEmail(userEmail);
+  }
+
   if (!user) {
     return new NextResponse('Unauthorized', { status: 401 });
   }

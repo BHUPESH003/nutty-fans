@@ -1,34 +1,31 @@
 import { NextRequest } from 'next/server';
+import { getServerSession } from 'next-auth';
 
-import { successResponse, errorResponse } from '@/lib/api/response';
+import { errorResponse, successResponse } from '@/lib/api/response';
+import { authOptions } from '@/lib/auth/authOptions';
 import { FeedService } from '@/services/content/feedService';
 
 export async function GET(req: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
+    const userId = session?.user?.id;
+
     const searchParams = req.nextUrl.searchParams;
     const cursor = searchParams.get('cursor') || undefined;
     const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined;
+    const type = searchParams.get('type');
 
-    // TODO: Get current user ID from session/token
-    // For now, we'll fetch a public feed or for a specific user if authenticated
-    // Assuming FeedService handles logic.
-    // We need to instantiate FeedService.
     const feedService = new FeedService();
 
-    // Note: feedService.getFeed might require a userId if it's a personalized feed.
-    // If it's a global feed, maybe not.
-    // Let's check FeedService signature.
-    // For now, passing 'public' or similar if needed, or just calling it.
-    // Assuming getFeed(userId, options)
+    let result;
 
-    // Mock user ID for now or get from session
-    // const session = await getServerSession(authOptions);
-    // const userId = session?.user?.id;
-
-    // If no user, maybe return public feed?
-    // Let's assume fetching for the current user or public.
-
-    const result = await feedService.getExploreFeed(cursor, limit);
+    if (userId && type === 'following') {
+      result = await feedService.getSubscribedFeed(userId, cursor, limit);
+    } else {
+      // Default to explore/for-you feed
+      // Pass userId if available to get engagement status (liked/bookmarked)
+      result = await feedService.getExploreFeed(cursor, limit, userId);
+    }
 
     return successResponse(result);
   } catch (error) {

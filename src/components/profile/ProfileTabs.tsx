@@ -2,9 +2,11 @@
 
 import * as TabsPrimitive from '@radix-ui/react-tabs';
 import { motion } from 'framer-motion';
-import { Grid, Image as ImageIcon, Info } from 'lucide-react';
+import { CreditCard, Grid, Image as ImageIcon, Info, Settings } from 'lucide-react';
 import * as React from 'react';
 
+import { SettingsPageContainer } from '@/components/containers/settings/SettingsPageContainer';
+import { WalletTab } from '@/components/profile/tabs/WalletTab';
 import { cn } from '@/lib/utils';
 
 interface ProfileTabsProps {
@@ -19,6 +21,8 @@ export function ProfileTabs({ defaultValue = 'posts', className }: ProfileTabsPr
     { id: 'posts', label: 'Posts', icon: Grid },
     { id: 'media', label: 'Media', icon: ImageIcon },
     { id: 'about', label: 'About', icon: Info },
+    { id: 'wallet', label: 'Wallet', icon: CreditCard },
+    { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
   return (
@@ -29,18 +33,18 @@ export function ProfileTabs({ defaultValue = 'posts', className }: ProfileTabsPr
       className={cn('w-full', className)}
     >
       <div className="sticky top-[60px] z-30 w-full border-b border-white/5 bg-background/80 backdrop-blur-md md:top-[0px]">
-        <TabsPrimitive.List className="mx-auto flex w-full max-w-2xl">
+        <TabsPrimitive.List className="no-scrollbar mx-auto flex w-full max-w-2xl overflow-x-auto">
           {tabs.map((tab) => (
             <TabsPrimitive.Trigger
               key={tab.id}
               value={tab.id}
               className={cn(
-                'group relative flex flex-1 items-center justify-center gap-2 py-4 text-sm font-medium transition-colors',
+                'group relative flex min-w-[80px] flex-1 items-center justify-center gap-2 py-4 text-sm font-medium transition-colors',
                 'text-muted-foreground hover:text-foreground data-[state=active]:text-primary'
               )}
             >
               <tab.icon className="size-4" />
-              <span>{tab.label}</span>
+              <span className="hidden sm:inline">{tab.label}</span>
               {activeTab === tab.id && (
                 <motion.div
                   layoutId="activeTab"
@@ -75,6 +79,12 @@ export function ProfileTabs({ defaultValue = 'posts', className }: ProfileTabsPr
           <div className="space-y-4 text-sm text-muted-foreground">
             <p>About content goes here...</p>
           </div>
+        </TabsPrimitive.Content>
+        <TabsPrimitive.Content value="wallet" className="outline-none focus-visible:ring-0">
+          <WalletTab />
+        </TabsPrimitive.Content>
+        <TabsPrimitive.Content value="settings" className="outline-none focus-visible:ring-0">
+          <SettingsPageContainer />
         </TabsPrimitive.Content>
       </div>
     </TabsPrimitive.Root>

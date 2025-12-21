@@ -1,4 +1,5 @@
-import { Loader2 } from 'lucide-react';
+import { ChevronLeft, Loader2 } from 'lucide-react';
+import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { useEffect, useRef } from 'react';
 
@@ -79,6 +80,13 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
     <div className="flex h-full flex-col">
       {/* Header */}
       <div className="flex items-center gap-3 border-b bg-background/95 p-4 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <Link
+          href="/messages"
+          className="mr-2 inline-flex h-8 w-8 items-center justify-center rounded-full hover:bg-muted md:hidden"
+        >
+          <ChevronLeft className="h-5 w-5" />
+          <span className="sr-only">Back</span>
+        </Link>
         <Avatar>
           <AvatarImage src={conversation.otherUser.avatarUrl || ''} />
           <AvatarFallback>{conversation.otherUser.displayName[0]}</AvatarFallback>

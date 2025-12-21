@@ -1,10 +1,12 @@
 import useSWR from 'swr';
 
+import { useAuth } from '@/hooks/useAuth';
 import { apiClient } from '@/services/apiClient';
 
 export function useNotifications(cursor?: string) {
+  const { isAuthenticated } = useAuth();
   const { data, error, isLoading, mutate } = useSWR(
-    '/api/notifications',
+    isAuthenticated ? '/api/notifications' : null,
     async () => {
       return apiClient.notifications.list(cursor);
     },
@@ -23,13 +25,14 @@ export function useNotifications(cursor?: string) {
 }
 
 export function useUnreadNotificationCount() {
+  const { isAuthenticated } = useAuth();
   const { data, error, isLoading, mutate } = useSWR(
-    '/api/notifications/unread-count',
+    isAuthenticated ? '/api/notifications/unread-count' : null,
     async () => {
       return apiClient.notifications.getUnreadCount();
     },
     {
-      refreshInterval: 10000, // Poll every 10s for badge count
+      refreshInterval: 20000, // Poll every 20s for badge count
     }
   );
 
