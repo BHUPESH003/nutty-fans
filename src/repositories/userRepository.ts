@@ -64,4 +64,26 @@ export class UserRepository {
       data: { lastLoginAt },
     });
   }
+
+  async findByUsername(username: string) {
+    return prisma.user.findUnique({
+      where: { username },
+    });
+  }
+
+  async update(
+    id: string,
+    data: {
+      displayName?: string;
+      username?: string;
+      avatarUrl?: string | null;
+      bio?: string;
+      role?: 'user' | 'creator' | 'admin';
+    }
+  ) {
+    return prisma.user.update({
+      where: { id },
+      data,
+    });
+  }
 }

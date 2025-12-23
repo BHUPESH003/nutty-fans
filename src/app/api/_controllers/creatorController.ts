@@ -14,10 +14,10 @@ import {
 import { CreatorRepository } from '@/repositories/creatorRepository';
 import { PayoutRepository } from '@/repositories/payoutRepository';
 import { UserRepository } from '@/repositories/userRepository';
+import { PaymentService } from '@/services/creator/creatorPayoutService';
 import { CreatorService } from '@/services/creator/creatorService';
 import { DashboardService } from '@/services/creator/dashboardService';
 import { KycService } from '@/services/creator/kycService';
-import { PaymentService } from '@/services/creator/paymentService';
 
 // Initialize services
 const creatorRepo = new CreatorRepository();

@@ -1,29 +1,39 @@
+/**
+ * Subscription Service
+ *
+ * Handles creator subscriptions.
+ * All payments go through PaymentService.debitWallet()
+ *
+ * CLOSED-LOOP WALLET:
+ * - No card payments - wallet only
+ * - Auto top-up available for renewals (opt-in)
+ * - Grace period on failed renewals
+ */
+
 import { prisma } from '@/lib/db/prisma';
 import { SubscriptionRepository } from '@/repositories/subscriptionRepository';
-import { TransactionRepository } from '@/repositories/transactionRepository';
+import { transactionService } from '@/services/finance/transactionService';
 import type {
   SubscriptionPlanType,
   SubscriptionPlan,
-  SubscribeInput,
   SubscriptionWithCreator,
   PaginatedSubscriptions,
 } from '@/types/payments';
 import { PLAN_DISCOUNTS, PLAN_MONTHS } from '@/types/payments';
 
+import { paymentService, SUBSCRIPTION_GRACE_PERIOD_DAYS } from './paymentService';
+
 export class SubscriptionService {
   private subscriptionRepo: SubscriptionRepository;
-  private transactionRepo: TransactionRepository;
 
   constructor() {
     this.subscriptionRepo = new SubscriptionRepository();
-    this.transactionRepo = new TransactionRepository();
   }
 
   /**
    * Get subscription plans for a creator
    */
   async getPlans(creatorId: string): Promise<SubscriptionPlan[]> {
-    // Get creator's base price
     const creator = await prisma.creatorProfile.findUnique({
       where: { id: creatorId },
       select: { subscriptionPrice: true },
@@ -52,18 +62,16 @@ export class SubscriptionService {
 
   /**
    * Subscribe to a creator
+   * Debits wallet - no card option
    */
   async subscribe(
     userId: string,
     creatorId: string,
-    input: SubscribeInput = {}
+    planType: SubscriptionPlanType = 'monthly'
   ): Promise<{
     subscription: SubscriptionWithCreator;
-    checkoutUrl?: string;
     transactionId: string;
   }> {
-    const planType = input.planType ?? 'monthly';
-
     // Check if already subscribed
     const existing = await this.subscriptionRepo.findActive(userId, creatorId);
     if (existing) {
@@ -75,17 +83,16 @@ export class SubscriptionService {
     const plan = plans.find((p) => p.planType === planType);
     if (!plan) throw new Error('Invalid plan type');
 
-    // Create pending transaction
-    const transaction = await this.transactionRepo.create({
-      userId,
-      creatorId,
+    // Debit wallet (single payment path)
+    const result = await paymentService.debitWallet(userId, {
       transactionType: 'subscription',
       amount: plan.finalPrice,
+      creatorId,
       relatedType: 'subscription',
       description: `${planType} subscription`,
     });
 
-    // Create subscription (status: active after payment)
+    // Create subscription
     const subscription = await this.subscriptionRepo.create({
       userId,
       creatorId,
@@ -93,6 +100,15 @@ export class SubscriptionService {
       pricePaid: plan.finalPrice,
       autoRenew: true,
     });
+
+    // Update transaction with subscription ID
+    await prisma.transaction.update({
+      where: { id: result.transactionId },
+      data: { relatedId: subscription.id },
+    });
+
+    // Increment subscriber count
+    await transactionService.incrementSubscriberCount(creatorId);
 
     // Record history
     await this.subscriptionRepo.addHistoryEvent({
@@ -104,17 +120,181 @@ export class SubscriptionService {
       pricePaid: plan.finalPrice,
     });
 
-    // Update transaction with subscription ID
-    await prisma.transaction.update({
-      where: { id: transaction.id },
-      data: { relatedId: subscription.id },
-    });
-
     return {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       subscription: this.formatSubscription(subscription as any),
-      transactionId: transaction.id,
+      transactionId: result.transactionId,
     };
+  }
+
+  /**
+   * Process subscription renewal (called by scheduled job)
+   * Implements auto top-up and grace period logic
+   */
+  async processRenewal(subscriptionId: string): Promise<{
+    success: boolean;
+    error?: string;
+    inGracePeriod?: boolean;
+  }> {
+    const subscription = await this.subscriptionRepo.findById(subscriptionId);
+    if (!subscription) {
+      return { success: false, error: 'Subscription not found' };
+    }
+
+    if (subscription.status !== 'active' || !subscription.autoRenew) {
+      return { success: false, error: 'Subscription not eligible for renewal' };
+    }
+
+    // Get pricing
+    const plans = await this.getPlans(subscription.creatorId);
+    const plan = plans.find((p) => p.planType === subscription.planType);
+    if (!plan) {
+      return { success: false, error: 'Plan not found' };
+    }
+
+    const userId = subscription.userId;
+    const requiredAmount = plan.finalPrice;
+
+    // Check wallet balance
+    const balance = await paymentService.getWalletBalance(userId);
+
+    if (balance >= requiredAmount) {
+      // Sufficient balance - debit wallet
+      try {
+        await paymentService.debitWallet(userId, {
+          transactionType: 'subscription',
+          amount: requiredAmount,
+          creatorId: subscription.creatorId,
+          relatedId: subscriptionId,
+          relatedType: 'subscription',
+          description: `${subscription.planType} subscription renewal`,
+        });
+
+        // Extend subscription
+        await this.subscriptionRepo.renew(
+          subscriptionId,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          subscription.planType as any,
+          requiredAmount
+        );
+
+        await this.subscriptionRepo.addHistoryEvent({
+          subscriptionId,
+          userId,
+          creatorId: subscription.creatorId,
+          eventType: 'renewed',
+          planType: subscription.planType,
+          pricePaid: requiredAmount,
+        });
+
+        return { success: true };
+      } catch (error) {
+        return { success: false, error: error instanceof Error ? error.message : 'Debit failed' };
+      }
+    }
+
+    // Insufficient balance - try auto top-up
+    const topUpResult = await paymentService.attemptAutoTopUp(userId, requiredAmount);
+
+    if (topUpResult.success) {
+      // Auto top-up succeeded, retry debit
+      try {
+        await paymentService.debitWallet(userId, {
+          transactionType: 'subscription',
+          amount: requiredAmount,
+          creatorId: subscription.creatorId,
+          relatedId: subscriptionId,
+          relatedType: 'subscription',
+          description: `${subscription.planType} subscription renewal (auto top-up)`,
+        });
+
+        await this.subscriptionRepo.renew(
+          subscriptionId,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          subscription.planType as any,
+          requiredAmount
+        );
+
+        await this.subscriptionRepo.addHistoryEvent({
+          subscriptionId,
+          userId,
+          creatorId: subscription.creatorId,
+          eventType: 'renewed',
+          planType: subscription.planType,
+          pricePaid: requiredAmount,
+        });
+
+        return { success: true };
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Debit failed after top-up',
+        };
+      }
+    }
+
+    // Auto top-up failed or not enabled - enter grace period
+    await this.enterGracePeriod(subscriptionId, userId, subscription.creatorId);
+    return { success: false, error: topUpResult.error, inGracePeriod: true };
+  }
+
+  /**
+   * Enter grace period for failed renewal
+   */
+  private async enterGracePeriod(
+    subscriptionId: string,
+    userId: string,
+    creatorId: string
+  ): Promise<void> {
+    // Update subscription status to paused
+    await this.subscriptionRepo.updateStatus(subscriptionId, 'paused');
+
+    // Extend expiration by grace period
+    const graceEnd = new Date();
+    graceEnd.setDate(graceEnd.getDate() + SUBSCRIPTION_GRACE_PERIOD_DAYS);
+
+    await prisma.subscription.update({
+      where: { id: subscriptionId },
+      data: {
+        expiresAt: graceEnd,
+        metadata: {
+          gracePeriodStart: new Date().toISOString(),
+          gracePeriodEnd: graceEnd.toISOString(),
+        },
+      },
+    });
+
+    await this.subscriptionRepo.addHistoryEvent({
+      subscriptionId,
+      userId,
+      creatorId,
+      eventType: 'renewed' as never, // grace_period_started not in type
+    });
+
+    // TODO: Send notification to user about grace period
+  }
+
+  /**
+   * Process expired grace period (called by scheduled job)
+   */
+  async expireGracePeriod(subscriptionId: string): Promise<void> {
+    const subscription = await this.subscriptionRepo.findById(subscriptionId);
+    if (!subscription || subscription.status !== 'paused') return;
+
+    // Cancel subscription
+    await this.subscriptionRepo.updateStatus(subscriptionId, 'expired');
+
+    // Decrement subscriber count
+    await transactionService.decrementSubscriberCount(subscription.creatorId);
+
+    await this.subscriptionRepo.addHistoryEvent({
+      subscriptionId,
+      userId: subscription.userId,
+      creatorId: subscription.creatorId,
+      eventType: 'expired',
+    });
+
+    // TODO: Send notification to user about expiration
   }
 
   /**
@@ -124,9 +304,14 @@ export class SubscriptionService {
     const subscription = await this.subscriptionRepo.findById(subscriptionId);
     if (!subscription) throw new Error('Subscription not found');
     if (subscription.userId !== userId) throw new Error('Unauthorized');
-    if (subscription.status !== 'active') throw new Error('Subscription is not active');
+    if (subscription.status === 'cancelled' || subscription.status === 'expired') {
+      throw new Error('Subscription is not active');
+    }
 
     await this.subscriptionRepo.updateStatus(subscriptionId, 'cancelled');
+
+    // Decrement subscriber count
+    await transactionService.decrementSubscriberCount(subscription.creatorId);
 
     await this.subscriptionRepo.addHistoryEvent({
       subscriptionId,
@@ -134,51 +319,6 @@ export class SubscriptionService {
       creatorId: subscription.creatorId,
       eventType: 'cancelled',
     });
-  }
-
-  /**
-   * Renew subscription
-   */
-  async renew(
-    subscriptionId: string,
-    planType?: SubscriptionPlanType
-  ): Promise<SubscriptionWithCreator> {
-    const subscription = await this.subscriptionRepo.findById(subscriptionId);
-    if (!subscription) throw new Error('Subscription not found');
-
-    const newPlanType = planType ?? subscription.planType;
-    const plans = await this.getPlans(subscription.creatorId);
-    const plan = plans.find((p) => p.planType === newPlanType);
-    if (!plan) throw new Error('Invalid plan type');
-
-    // Create transaction
-    await this.transactionRepo.create({
-      userId: subscription.userId,
-      creatorId: subscription.creatorId,
-      transactionType: 'subscription',
-      amount: plan.finalPrice,
-      relatedType: 'subscription',
-      relatedId: subscriptionId,
-      description: `${newPlanType} subscription renewal`,
-    });
-
-    const renewed = await this.subscriptionRepo.renew(
-      subscriptionId,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      newPlanType as any,
-      plan.finalPrice
-    );
-
-    await this.subscriptionRepo.addHistoryEvent({
-      subscriptionId,
-      userId: subscription.userId,
-      creatorId: subscription.creatorId,
-      eventType: 'renewed',
-      planType: newPlanType,
-      pricePaid: plan.finalPrice,
-    });
-
-    return this.formatSubscription(renewed);
   }
 
   /**

@@ -4,7 +4,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/authOptions';
 import { CreatorRepository } from '@/repositories/creatorRepository';
 import { PayoutRepository } from '@/repositories/payoutRepository';
-import { PaymentService } from '@/services/creator/paymentService';
+import { PaymentService } from '@/services/creator/creatorPayoutService';
 
 const paymentService = new PaymentService(new CreatorRepository(), new PayoutRepository());
 
@@ -31,7 +31,7 @@ export async function GET(req: Request) {
   try {
     // In production, verify state matches session state
     await paymentService.completeConnection(userId, code);
-    return NextResponse.redirect(new URL('/creator/dashboard?connected=true', req.url));
+    return NextResponse.redirect(new URL('/creator/payouts/setup?connected=true', req.url));
   } catch (err) {
     console.error('Square OAuth callback error:', err);
     return NextResponse.redirect(

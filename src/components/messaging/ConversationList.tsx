@@ -62,12 +62,14 @@ export function ConversationList({ conversations, isLoading, isError }: Conversa
               )}
             >
               <Avatar>
-                <AvatarImage src={conversation.otherUser.avatarUrl || ''} />
-                <AvatarFallback>{conversation.otherUser.displayName[0]}</AvatarFallback>
+                <AvatarImage src={conversation?.otherUser?.avatarUrl || ''} />
+                <AvatarFallback>{conversation?.otherUser?.displayName?.[0] ?? '?'}</AvatarFallback>
               </Avatar>
               <div className="flex-1 overflow-hidden">
                 <div className="flex items-center justify-between">
-                  <span className="truncate font-medium">{conversation.otherUser.displayName}</span>
+                  <span className="truncate font-medium">
+                    {conversation?.otherUser?.displayName ?? 'Unknown User'}
+                  </span>
                   {conversation.lastMessage?.createdAt && (
                     <span className="ml-2 whitespace-nowrap text-xs text-muted-foreground">
                       {formatDistanceToNow(new Date(conversation.lastMessage.createdAt), {
@@ -78,7 +80,7 @@ export function ConversationList({ conversations, isLoading, isError }: Conversa
                 </div>
                 <div className="mt-1 flex items-center justify-between">
                   <span className="truncate text-xs text-muted-foreground">
-                    @{conversation.otherUser.username}
+                    @{conversation?.otherUser?.username ?? 'unknown'}
                   </span>
                   {conversation.unreadCount > 0 && (
                     <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">

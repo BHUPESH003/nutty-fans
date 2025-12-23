@@ -1,64 +1,75 @@
-import { TransactionRepository } from '@/repositories/transactionRepository';
-import type { SendTipInput, TransactionRecord } from '@/types/payments';
+/**
+ * Tip Service
+ *
+ * Handles tips from fans to creators.
+ * All payments go through PaymentService.debitWallet()
+ *
+ * CLOSED-LOOP WALLET: No card payments - wallet only
+ */
 
-import { WalletService } from './walletService';
+import { TransactionRepository } from '@/repositories/transactionRepository';
+import type { TransactionRecord } from '@/types/payments';
+
+import { paymentService } from './paymentService';
+
+export interface SendTipInput {
+  creatorId: string;
+  amount: number;
+  message?: string;
+  relatedType?: 'post' | 'message';
+  relatedId?: string;
+}
 
 export class TipService {
-  private walletService: WalletService;
   private transactionRepo: TransactionRepository;
 
   constructor() {
-    this.walletService = new WalletService();
     this.transactionRepo = new TransactionRepository();
   }
 
   /**
    * Send a tip to a creator
+   * Debits wallet - no card option
    */
   async sendTip(userId: string, input: SendTipInput): Promise<TransactionRecord> {
     if (input.amount <= 0) {
       throw new Error('Tip amount must be positive');
     }
 
-    if (input.paymentSource === 'wallet') {
-      // Pay with wallet
-      return this.walletService.debit(
-        userId,
-        input.amount,
-        input.creatorId,
-        'tip',
-        input.relatedId,
-        input.message || 'Tip'
-      );
-    } else {
-      // Create pending transaction for card payment
-      const transaction = await this.transactionRepo.create({
-        userId,
-        creatorId: input.creatorId,
-        transactionType: 'tip',
-        amount: input.amount,
-        relatedType: input.relatedType,
-        relatedId: input.relatedId,
-        description: input.message || 'Tip',
-        metadata: { message: input.message },
-      });
-
-      return {
-        id: transaction.id,
-        userId: transaction.userId,
-        creatorId: transaction.creatorId,
-        transactionType: transaction.transactionType,
-        amount: transaction.amount.toNumber(),
-        currency: transaction.currency,
-        platformFee: transaction.platformFee?.toNumber() ?? null,
-        creatorEarnings: transaction.creatorEarnings?.toNumber() ?? null,
-        status: transaction.status,
-        relatedId: transaction.relatedId,
-        relatedType: transaction.relatedType,
-        description: transaction.description,
-        createdAt: transaction.createdAt,
-      };
+    if (input.amount < 1) {
+      throw new Error('Minimum tip amount is $1');
     }
+
+    if (input.amount > 200) {
+      throw new Error('Maximum tip amount is $200');
+    }
+
+    // Debit wallet (single payment path)
+    const result = await paymentService.debitWallet(userId, {
+      transactionType: 'tip',
+      amount: input.amount,
+      creatorId: input.creatorId,
+      relatedId: input.relatedId,
+      relatedType: input.relatedType,
+      description: input.message || 'Tip',
+      metadata: { message: input.message },
+    });
+
+    return {
+      id: result.transactionId,
+      userId,
+      creatorId: input.creatorId,
+      transactionType: 'tip',
+      amount: result.amount,
+      currency: 'USD',
+      platformFee: result.platformFee,
+      creatorEarnings: result.creatorEarnings,
+      status: 'completed',
+      relatedId: input.relatedId ?? null,
+      relatedType: input.relatedType ?? null,
+      description: input.message ?? null,
+      createdAt: new Date(),
+    };
   }
 
   /**

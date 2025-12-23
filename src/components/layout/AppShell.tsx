@@ -107,7 +107,7 @@ export function AppShell({ children, user }: AppShellProps) {
               Start earning from your content today.
             </p>
             <Button size="sm" className="w-full text-xs" variant="secondary" asChild>
-              <Link href="/creator/apply">Apply Now</Link>
+              <Link href="/creator/start">Apply Now</Link>
             </Button>
           </div>
         </aside>

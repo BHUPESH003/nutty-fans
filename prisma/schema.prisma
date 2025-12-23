@@ -201,6 +201,37 @@ enum UserActivityType {
   live_join
 }
 
+enum OnboardingStatus {
+  not_started
+  eligibility_passed
+  category_selected
+  profile_complete
+  pricing_complete
+  pending_review
+  review_approved
+  review_rejected
+  kyc_pending
+  kyc_in_progress
+  kyc_approved
+  kyc_rejected
+  payout_pending
+  active
+  suspended
+  banned
+}
+
+enum ContentTypeIntent {
+  sfw
+  nsfw
+  both
+}
+
+enum CreatorGoal {
+  full_time
+  side_hustle
+  hobby
+}
+
 // =============================================================================
 // CORE TABLES
 // =============================================================================
@@ -317,36 +348,47 @@ model Session {
 
 /// CreatorProfile - Extended profile for creators
 model CreatorProfile {
-  id                       String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId                   String    @unique @map("user_id") @db.Uuid
-  bio                      String?   @db.Text
-  coverImageUrl            String?   @map("cover_image_url") @db.Text
-  categoryId               String?   @map("category_id") @db.Uuid
-  isNsfw                   Boolean   @default(false) @map("is_nsfw")
-  subscriptionPrice        Decimal   @default(9.99) @map("subscription_price") @db.Decimal(6, 2)
-  subscriptionPrice3m      Decimal?  @map("subscription_price_3m") @db.Decimal(6, 2)
-  subscriptionPrice6m      Decimal?  @map("subscription_price_6m") @db.Decimal(6, 2)
-  subscriptionPrice12m     Decimal?  @map("subscription_price_12m") @db.Decimal(6, 2)
-  freeTrialDays            Int       @default(0) @map("free_trial_days")
-  tipsEnabled              Boolean   @default(true) @map("tips_enabled")
-  dmPrice                  Decimal   @default(0) @map("dm_price") @db.Decimal(6, 2)
-  kycStatus                KycStatus @default(pending) @map("kyc_status")
-  kycSubmittedAt           DateTime? @map("kyc_submitted_at")
-  kycVerifiedAt            DateTime? @map("kyc_verified_at")
-  kycRejectionReason       String?   @map("kyc_rejection_reason") @db.Text
-  stripeAccountId          String?   @map("stripe_account_id") @db.VarChar(255)
-  stripeOnboardingComplete Boolean   @default(false) @map("stripe_onboarding_complete")
-  payoutSchedule           String    @default("weekly") @map("payout_schedule") @db.VarChar(20)
-  totalEarnings            Decimal   @default(0) @map("total_earnings") @db.Decimal(12, 2)
-  totalSubscribers         Int       @default(0) @map("total_subscribers")
-  totalPosts               Int       @default(0) @map("total_posts")
-  isFeatured               Boolean   @default(false) @map("is_featured")
-  isVerified               Boolean   @default(false) @map("is_verified")
-  blockedCountries         String[]  @default([]) @map("blocked_countries")
-  socialLinks              Json      @default("{}") @map("social_links")
-  settings                 Json      @default("{}")
-  createdAt                DateTime  @default(now()) @map("created_at")
-  updatedAt                DateTime  @default(now()) @updatedAt @map("updated_at")
+  id                       String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId                   String            @unique @map("user_id") @db.Uuid
+  bio                      String?           @db.Text
+  coverImageUrl            String?           @map("cover_image_url") @db.Text
+  categoryId               String?           @map("category_id") @db.Uuid
+  isNsfw                   Boolean           @default(false) @map("is_nsfw")
+  subscriptionPrice        Decimal           @default(9.99) @map("subscription_price") @db.Decimal(6, 2)
+  subscriptionPrice3m      Decimal?          @map("subscription_price_3m") @db.Decimal(6, 2)
+  subscriptionPrice6m      Decimal?          @map("subscription_price_6m") @db.Decimal(6, 2)
+  subscriptionPrice12m     Decimal?          @map("subscription_price_12m") @db.Decimal(6, 2)
+  freeTrialDays            Int               @default(0) @map("free_trial_days")
+  tipsEnabled              Boolean           @default(true) @map("tips_enabled")
+  dmPrice                  Decimal           @default(0) @map("dm_price") @db.Decimal(6, 2)
+  kycStatus                KycStatus         @default(pending) @map("kyc_status")
+  kycSubmittedAt           DateTime?         @map("kyc_submitted_at")
+  kycVerifiedAt            DateTime?         @map("kyc_verified_at")
+  kycRejectionReason       String?           @map("kyc_rejection_reason") @db.Text
+  stripeAccountId          String?           @map("stripe_account_id") @db.VarChar(255)
+  stripeOnboardingComplete Boolean           @default(false) @map("stripe_onboarding_complete")
+  payoutSchedule           String            @default("weekly") @map("payout_schedule") @db.VarChar(20)
+  totalEarnings            Decimal           @default(0) @map("total_earnings") @db.Decimal(12, 2)
+  totalSubscribers         Int               @default(0) @map("total_subscribers")
+  totalPosts               Int               @default(0) @map("total_posts")
+  isFeatured               Boolean           @default(false) @map("is_featured")
+  isVerified               Boolean           @default(false) @map("is_verified")
+  blockedCountries         String[]          @default([]) @map("blocked_countries")
+  socialLinks              Json              @default("{}") @map("social_links")
+  settings                 Json              @default("{}")
+  createdAt                DateTime          @default(now()) @map("created_at")
+  updatedAt                DateTime          @default(now()) @updatedAt @map("updated_at")
+  
+  // New onboarding fields
+  onboardingStatus         OnboardingStatus  @default(not_started) @map("onboarding_status")
+  eligibilityCountry       String?           @map("eligibility_country") @db.VarChar(2)
+  contentTypeIntent        ContentTypeIntent? @map("content_type_intent")
+  creatorGoal              CreatorGoal?      @map("creator_goal")
+  secondaryTags            String[]          @default([]) @map("secondary_tags")
+  reviewStatus             String?           @map("review_status") @db.VarChar(20)
+  reviewFlaggedReasons     String[]          @default([]) @map("review_flagged_reasons")
+  reviewCompletedAt        DateTime?         @map("review_completed_at")
+  reviewCompletedBy        String?           @map("review_completed_by") @db.Uuid
 
   // Relations
   user                User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -368,6 +410,7 @@ model CreatorProfile {
   @@index([categoryId])
   @@index([kycStatus])
   @@index([isNsfw])
+  @@index([onboardingStatus])
   @@map("creator_profiles")
 }
 
@@ -765,22 +808,25 @@ model SubscriptionHistory {
 /// Transactions - All financial transactions
 /// NOTE: This table should be partitioned by created_at in production
 model Transaction {
-  id               String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId           String            @map("user_id") @db.Uuid
-  creatorId        String?           @map("creator_id") @db.Uuid
-  transactionType  TransactionType   @map("transaction_type")
-  amount           Decimal           @db.Decimal(10, 2)
-  currency         String            @default("USD") @db.VarChar(3)
-  platformFee      Decimal?          @map("platform_fee") @db.Decimal(10, 2)
-  creatorEarnings  Decimal?          @map("creator_earnings") @db.Decimal(10, 2)
-  status           TransactionStatus @default(pending)
-  stripePaymentId  String?           @map("stripe_payment_id") @db.VarChar(255)
-  stripeTransferId String?           @map("stripe_transfer_id") @db.VarChar(255)
-  relatedId        String?           @map("related_id") @db.Uuid
-  relatedType      String?           @map("related_type") @db.VarChar(50)
-  description      String?           @db.Text
-  metadata         Json              @default("{}")
-  createdAt        DateTime          @default(now()) @map("created_at")
+  id                         String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId                     String            @map("user_id") @db.Uuid
+  creatorId                  String?           @map("creator_id") @db.Uuid
+  transactionType            TransactionType   @map("transaction_type")
+  amount                     Decimal           @db.Decimal(10, 2)
+  currency                   String            @default("USD") @db.VarChar(3)
+  platformFee                Decimal?          @map("platform_fee") @db.Decimal(10, 2)
+  creatorEarnings            Decimal?          @map("creator_earnings") @db.Decimal(10, 2)
+  // Commission snapshot fields (immutable after creation)
+  commissionRatePercent      Decimal?          @map("commission_rate_percent") @db.Decimal(5, 2)
+  subscriberCountAtTime      Int?              @map("subscriber_count_at_time")
+  status                     TransactionStatus @default(pending)
+  stripePaymentId            String?           @map("stripe_payment_id") @db.VarChar(255)
+  stripeTransferId           String?           @map("stripe_transfer_id") @db.VarChar(255)
+  relatedId                  String?           @map("related_id") @db.Uuid
+  relatedType                String?           @map("related_type") @db.VarChar(50)
+  description                String?           @db.Text
+  metadata                   Json              @default("{}")
+  createdAt                  DateTime          @default(now()) @map("created_at")
 
   // Relations
   user                 User                  @relation(fields: [userId], references: [id])
@@ -1342,4 +1388,20 @@ model AgeVerification {
   @@index([providerSessionId])
   @@index([status])
   @@map("age_verifications")
+}
+
+/// CommissionTier - Progressive platform commission rates based on subscriber count
+model CommissionTier {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  minSubs      Int       @map("min_subs")
+  maxSubs      Int?      @map("max_subs") // NULL = unlimited (1000+)
+  ratePercent  Decimal   @map("rate_percent") @db.Decimal(5, 2)
+  effectiveAt  DateTime  @default(now()) @map("effective_at")
+  deprecatedAt DateTime? @map("deprecated_at")
+  description  String?   @db.VarChar(100)
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  @@unique([minSubs, effectiveAt])
+  @@index([effectiveAt])
+  @@map("commission_tiers")
 }

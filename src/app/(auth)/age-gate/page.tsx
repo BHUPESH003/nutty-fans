@@ -58,11 +58,12 @@ export default function AgeGatePage() {
           </div>
         ) : (
           <Image
-            src="/images/age-gate-bg.png"
+            src="/images/age-gate-bg.jpg"
             alt="Background"
             fill
             className="object-cover opacity-60"
             priority
+            sizes="100vw"
           />
         )}
         {/* Gradient Overlay - Lighter at top to show images, darker at bottom for text readability */}

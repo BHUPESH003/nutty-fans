@@ -9,7 +9,7 @@ export function useConversations() {
       return apiClient.messaging.listConversations();
     },
     {
-      refreshInterval: 10000, // Poll every 10s
+      refreshInterval: 30000, // Poll every 30s
     }
   );
 

@@ -22,10 +22,17 @@ export class KycService {
       throw new Error('KYC verification already completed');
     }
 
+    // Verify the onboarding status is at the right step
+    const validStates = ['review_approved', 'kyc_pending', 'kyc_rejected'];
+    const currentStatus = profile.onboardingStatus as string;
+    if (!validStates.includes(currentStatus)) {
+      throw new Error('Please complete all previous steps before starting KYC verification');
+    }
+
     // Create Veriff session
     const session = await veriffClient.createSession(userId, displayName);
 
-    // Update KYC status to submitted
+    // Update KYC status to submitted (this also updates onboardingStatus to kyc_in_progress)
     await this.creatorRepo.updateKycStatus(userId, 'submitted');
 
     return {

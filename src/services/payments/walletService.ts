@@ -1,12 +1,9 @@
-import { prisma } from '@/lib/db/prisma';
+// Removed unused prisma import
 import { TransactionRepository } from '@/repositories/transactionRepository';
 import { WalletRepository } from '@/repositories/walletRepository';
+import { transactionService } from '@/services/finance/transactionService';
 import type { WalletBalance, TransactionRecord } from '@/types/payments';
-import {
-  MINIMUM_WALLET_TOPUP,
-  PLATFORM_COMMISSION_RATE,
-  CREATOR_EARNINGS_RATE,
-} from '@/types/payments';
+import { MINIMUM_WALLET_TOPUP } from '@/types/payments';
 
 export class WalletService {
   private walletRepo: WalletRepository;
@@ -65,42 +62,35 @@ export class WalletService {
       throw new Error('Insufficient wallet balance');
     }
 
-    // Calculate split
-    const platformFee = amount * PLATFORM_COMMISSION_RATE;
-    const creatorEarnings = amount * CREATOR_EARNINGS_RATE;
-
-    // Create transaction with wallet flag
-    const transaction = await prisma.transaction.create({
-      data: {
+    // Create transaction using unified service (auto-calculates commission)
+    const result = await transactionService.createTransaction(
+      {
         userId,
         creatorId,
         transactionType,
         amount,
-        currency: 'USD',
-        platformFee,
-        creatorEarnings,
-        status: 'completed', // Wallet transactions are instant
         relatedId,
         relatedType: transactionType,
         description,
         metadata: { paidWithWallet: true },
       },
-    });
+      { status: 'completed' } // Wallet transactions are instant
+    );
 
     return {
-      id: transaction.id,
-      userId: transaction.userId,
-      creatorId: transaction.creatorId,
-      transactionType: transaction.transactionType,
-      amount: transaction.amount.toNumber(),
-      currency: transaction.currency,
-      platformFee: transaction.platformFee?.toNumber() ?? null,
-      creatorEarnings: transaction.creatorEarnings?.toNumber() ?? null,
-      status: transaction.status,
-      relatedId: transaction.relatedId,
-      relatedType: transaction.relatedType,
-      description: transaction.description,
-      createdAt: transaction.createdAt,
+      id: result.transactionId,
+      userId,
+      creatorId,
+      transactionType,
+      amount,
+      currency: 'USD',
+      platformFee: result.platformFee,
+      creatorEarnings: result.creatorEarnings,
+      status: result.status,
+      relatedId: relatedId ?? null,
+      relatedType: transactionType,
+      description: description ?? null,
+      createdAt: new Date(),
     };
   }
 

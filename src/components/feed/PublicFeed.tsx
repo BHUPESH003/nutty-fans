@@ -48,7 +48,7 @@ export function PublicFeed() {
               <Link href="/register">Join Now</Link>
             </Button>
             <Button variant="outline" asChild>
-              <Link href="/creator/apply">Become a Creator</Link>
+              <Link href="/creator/start">Become a Creator</Link>
             </Button>
           </div>
         </div>
@@ -62,7 +62,7 @@ export function PublicFeed() {
             <p className="text-sm text-muted-foreground">Start earning from your passion</p>
           </div>
           <Button asChild variant="secondary">
-            <Link href="/creator/apply">Become a Creator</Link>
+            <Link href="/creator/start">Become a Creator</Link>
           </Button>
         </div>
       )}

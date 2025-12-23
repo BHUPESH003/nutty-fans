@@ -50,7 +50,7 @@ export function WalletTab() {
   }
 
   return (
-    <div className="grid gap-8 md:grid-cols-[1fr_2fr]">
+    <div className="grid w-full gap-8 md:grid-cols-[1fr_2fr]">
       <div className="space-y-6">
         <WalletCard balance={balance} onTopup={handleTopup} />
       </div>

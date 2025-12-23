@@ -2,6 +2,7 @@ import { cacheService, cacheKeys } from '@/lib/cache/cacheService';
 import { ProfileRepository } from '@/repositories/profileRepository';
 
 type PublicProfile = {
+  id: string;
   displayName: string;
   username: string;
   avatarUrl: string | null;
@@ -42,6 +43,7 @@ export class ProfileService {
 
         const stats = await this.repo.getStats(user.id);
         return {
+          id: user.id,
           displayName: user.displayName ?? 'User',
           username: user.username ?? 'user',
           avatarUrl: user.avatarUrl,
@@ -72,6 +74,7 @@ export class ProfileService {
         const stats = await this.repo.getStats(user.id);
 
         const base: PublicProfile = {
+          id: user.id,
           displayName: user.displayName ?? 'User',
           username: user.username ?? 'user',
           avatarUrl: user.avatarUrl,
@@ -129,6 +132,7 @@ export class ProfileService {
 
     const stats = await this.repo.getStats(updated.id);
     return {
+      id: updated.id,
       displayName: updated.displayName ?? 'User',
       username: updated.username ?? 'user',
       avatarUrl: updated.avatarUrl,

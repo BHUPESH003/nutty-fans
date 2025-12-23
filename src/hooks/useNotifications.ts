@@ -32,7 +32,7 @@ export function useUnreadNotificationCount() {
       return apiClient.notifications.getUnreadCount();
     },
     {
-      refreshInterval: 20000, // Poll every 20s for badge count
+      refreshInterval: 60000, // Poll every 60s for badge count
     }
   );
 

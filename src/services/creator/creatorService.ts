@@ -62,36 +62,77 @@ export class CreatorService {
     }
 
     const isSquareConnected = Boolean(profile.stripeAccountId && profile.stripeOnboardingComplete);
-    const kycApproved = profile.kycStatus === 'approved';
 
-    let status: CreatorStatusResponse['status'];
-    let nextStep: string | null = null;
+    // Get the new onboarding status
+    const onboardingStatus = (profile.onboardingStatus ||
+      'not_started') as CreatorStatusResponse['onboardingStatus'];
 
-    if (!kycApproved) {
-      if (profile.kycStatus === 'pending') {
-        status = 'pending_kyc';
-        nextStep = '/creator/verify';
-      } else if (profile.kycStatus === 'submitted') {
-        status = 'kyc_in_progress';
-        nextStep = null; // Wait for webhook
-      } else {
-        status = 'pending_kyc';
-        nextStep = '/creator/verify';
-      }
-    } else if (!isSquareConnected) {
-      status = 'pending_payout_setup';
-      nextStep = '/creator/payouts/setup';
+    // Map onboarding status to route
+    const routeMap: Record<string, string> = {
+      not_started: '/creator/start',
+      eligibility_passed: '/creator/apply/category',
+      category_selected: '/creator/apply/profile',
+      profile_complete: '/creator/apply/pricing',
+      pricing_complete: '/creator/apply/review-pending',
+      pending_review: '/creator/apply/review-pending',
+      review_approved: '/creator/verify',
+      review_rejected: '/creator/apply/rejected',
+      kyc_pending: '/creator/verify',
+      kyc_in_progress: '/creator/verify',
+      kyc_approved: '/creator/payouts/setup',
+      kyc_rejected: '/creator/verify',
+      payout_pending: '/creator/payouts/setup',
+      active: '/creator/dashboard',
+      suspended: '/creator/suspended',
+      banned: '/banned',
+    };
+
+    // Map onboarding status to step number
+    const stepMap: Record<string, number> = {
+      not_started: 1,
+      eligibility_passed: 2,
+      category_selected: 3,
+      profile_complete: 4,
+      pricing_complete: 5,
+      pending_review: 5,
+      review_approved: 6,
+      review_rejected: 5,
+      kyc_pending: 6,
+      kyc_in_progress: 6,
+      kyc_approved: 7,
+      kyc_rejected: 6,
+      payout_pending: 7,
+      active: 8,
+      suspended: 8,
+      banned: 8,
+    };
+
+    // Derive legacy status for backward compatibility
+    let legacyStatus: CreatorStatusResponse['status'];
+    if (onboardingStatus === 'active') {
+      legacyStatus = 'active';
+    } else if (onboardingStatus === 'suspended' || onboardingStatus === 'banned') {
+      legacyStatus = 'suspended';
+    } else if (
+      onboardingStatus.startsWith('kyc_') ||
+      ['review_approved', 'kyc_pending'].includes(onboardingStatus)
+    ) {
+      legacyStatus = profile.kycStatus === 'submitted' ? 'kyc_in_progress' : 'pending_kyc';
+    } else if (onboardingStatus === 'payout_pending') {
+      legacyStatus = 'pending_payout_setup';
     } else {
-      status = 'active';
-      nextStep = '/creator/dashboard';
+      legacyStatus = 'pending_kyc';
     }
 
     return {
-      status,
+      onboardingStatus,
+      status: legacyStatus,
       kycStatus: profile.kycStatus as CreatorStatusResponse['kycStatus'],
       isSquareConnected,
       isVerified: profile.isVerified,
-      nextStep,
+      nextStep: routeMap[onboardingStatus] || '/creator/start',
+      currentStep: stepMap[onboardingStatus] || 1,
+      totalSteps: 8,
     };
   }
 

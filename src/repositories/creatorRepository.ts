@@ -55,15 +55,21 @@ export class CreatorRepository {
     userId: string;
     bio?: string;
     categoryId?: string;
-    subscriptionPrice: number;
+    subscriptionPrice?: number;
+    eligibilityCountry?: string;
+    contentTypeIntent?: 'sfw' | 'nsfw' | 'both';
+    onboardingStatus?: 'not_started' | 'eligibility_passed';
   }) {
     return prisma.creatorProfile.create({
       data: {
         userId: data.userId,
         bio: data.bio ?? null,
         categoryId: data.categoryId ?? null,
-        subscriptionPrice: data.subscriptionPrice,
+        subscriptionPrice: data.subscriptionPrice ?? 9.99,
         kycStatus: 'pending',
+        onboardingStatus: data.onboardingStatus ?? 'not_started',
+        eligibilityCountry: data.eligibilityCountry ?? null,
+        contentTypeIntent: data.contentTypeIntent ?? null,
       },
     });
   }
@@ -92,11 +98,18 @@ export class CreatorRepository {
 
     if (status === 'submitted') {
       updateData.kycSubmittedAt = new Date();
+      updateData.onboardingStatus = 'kyc_in_progress';
     } else if (status === 'approved') {
       updateData.kycVerifiedAt = new Date();
       updateData.isVerified = true;
-    } else if (status === 'rejected' && rejectionReason) {
-      updateData.kycRejectionReason = rejectionReason;
+      updateData.onboardingStatus = 'kyc_approved';
+    } else if (status === 'rejected') {
+      updateData.onboardingStatus = 'kyc_rejected';
+      if (rejectionReason) {
+        updateData.kycRejectionReason = rejectionReason;
+      }
+    } else if (status === 'pending') {
+      updateData.onboardingStatus = 'kyc_pending';
     }
 
     return prisma.creatorProfile.update({

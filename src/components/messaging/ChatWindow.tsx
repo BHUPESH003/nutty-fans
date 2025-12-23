@@ -61,7 +61,7 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
     );
   }
 
-  const isCreator = session?.user?.id === conversation.otherUser.id ? false : true;
+  const isCreator = session?.user?.id === conversation?.otherUser?.id ? false : true;
 
   const handleSendMessage = async (content: string, mediaId?: string, price?: number) => {
     if (!conversationId) return;
@@ -88,12 +88,16 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
           <span className="sr-only">Back</span>
         </Link>
         <Avatar>
-          <AvatarImage src={conversation.otherUser.avatarUrl || ''} />
-          <AvatarFallback>{conversation.otherUser.displayName[0]}</AvatarFallback>
+          <AvatarImage src={conversation?.otherUser?.avatarUrl || ''} />
+          <AvatarFallback>{conversation?.otherUser?.displayName?.[0] ?? '?'}</AvatarFallback>
         </Avatar>
         <div>
-          <h2 className="font-semibold">{conversation.otherUser.displayName}</h2>
-          <p className="text-xs text-muted-foreground">@{conversation.otherUser.username}</p>
+          <h2 className="font-semibold">
+            {conversation?.otherUser?.displayName ?? 'Unknown User'}
+          </h2>
+          <p className="text-xs text-muted-foreground">
+            @{conversation?.otherUser?.username ?? 'unknown'}
+          </p>
         </div>
       </div>
 

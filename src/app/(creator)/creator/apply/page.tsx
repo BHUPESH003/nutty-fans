@@ -1,12 +1,6 @@
-import { Metadata } from 'next';
+import { redirect } from 'next/navigation';
 
-import { CreatorApplicationContainer } from '@/components/containers/creator/CreatorApplicationContainer';
-
-export const metadata: Metadata = {
-  title: 'Become a Creator | NuttyFans',
-  description: 'Apply to become a creator on NuttyFans and start earning from your content.',
-};
-
+// Redirect old /creator/apply URL to new onboarding flow
 export default function CreatorApplyPage() {
-  return <CreatorApplicationContainer />;
+  redirect('/creator/start');
 }

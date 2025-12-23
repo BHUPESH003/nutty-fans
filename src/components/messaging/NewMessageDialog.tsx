@@ -50,6 +50,10 @@ export function NewMessageDialog({ open, onOpenChange }: NewMessageDialogProps) 
       // Create conversation
       const conversation = await apiClient.messaging.createConversation(profile.id);
 
+      if (!conversation?.id) {
+        throw new Error('Invalid conversation response');
+      }
+
       // Navigate to the conversation
       router.push(`/messages/${conversation.id}`);
       onOpenChange(false);

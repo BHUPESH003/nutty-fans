@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 
+import { OnboardingProgress } from '@/components/creator/OnboardingProgress';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -13,6 +14,24 @@ export default function PayoutSetupPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const checkConnection = async () => {
+      try {
+        const response = await fetch('/api/creator/status');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.data) {
+            setIsConnected(data.data.isSquareConnected);
+            // If already active, redirect to dashboard
+            if (data.data.onboardingStatus === 'active' || data.data.status === 'active') {
+              router.push('/creator/dashboard');
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Failed to check connection:', err);
+      }
+    };
+
     void checkConnection();
 
     // Check URL for connection result
@@ -22,18 +41,16 @@ export default function PayoutSetupPage() {
     }
     if (params.get('connected')) {
       setIsConnected(true);
+      // Update onboarding status to active on successful connection
+      void updateOnboardingStatus();
     }
-  }, []);
+  }, [router]);
 
-  const checkConnection = async () => {
+  const updateOnboardingStatus = async () => {
     try {
-      const response = await fetch('/api/creator/status');
-      if (response.ok) {
-        const data = await response.json();
-        setIsConnected(data.isSquareConnected);
-      }
+      await fetch('/api/creator/square/complete', { method: 'POST' });
     } catch (error) {
-      console.error('Failed to check connection:', error);
+      console.error('Failed to update status:', error);
     }
   };
 
@@ -58,13 +75,10 @@ export default function PayoutSetupPage() {
 
   if (isConnected) {
     return (
-      <div className="space-y-8">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold">Payout Setup Complete</h1>
-          <p className="mt-2 text-muted-foreground">Your Square account is connected</p>
-        </div>
+      <div className="container mx-auto max-w-2xl px-4 py-8">
+        <OnboardingProgress currentStep={8} totalSteps={8} />
 
-        <Card>
+        <Card className="mt-8">
           <CardContent className="pt-6">
             <div className="space-y-4 text-center">
               <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-100 dark:bg-green-900">
@@ -75,7 +89,7 @@ export default function PayoutSetupPage() {
                 Your Square account is connected. Payouts are processed every Friday for balances
                 over $20.
               </p>
-              <Button onClick={() => router.push('/creator/dashboard')}>Go to Dashboard</Button>
+              <Button onClick={() => router.push('/creator/welcome')}>Complete Setup</Button>
             </div>
           </CardContent>
         </Card>
@@ -84,8 +98,9 @@ export default function PayoutSetupPage() {
   }
 
   return (
-    <div className="space-y-8">
-      <div className="text-center">
+    <div className="container mx-auto max-w-2xl px-4 py-8">
+      <OnboardingProgress currentStep={7} totalSteps={8} />
+      <div className="mt-4 text-center">
         <h1 className="text-3xl font-bold">Set Up Payouts</h1>
         <p className="mt-2 text-muted-foreground">
           Connect your Square account to receive earnings

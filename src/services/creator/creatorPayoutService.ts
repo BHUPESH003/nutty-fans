@@ -64,6 +64,14 @@ export class PaymentService {
 
     // Store the merchant ID (tokens should be encrypted and stored securely)
     await this.creatorRepo.updateSquareConnection(userId, tokenResponse.merchant_id, true);
+
+    // Update onboardingStatus to active (creator is now fully onboarded)
+    const profile = await this.creatorRepo.findByUserId(userId);
+    if (profile) {
+      await this.creatorRepo.update(profile.id, {
+        onboardingStatus: 'active',
+      });
+    }
   }
 
   /**

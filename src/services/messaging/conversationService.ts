@@ -42,7 +42,7 @@ export class ConversationService {
       nextCursor = nextItem?.id;
     }
 
-    return { conversations, nextCursor };
+    return { items: conversations, nextCursor };
   }
 
   async get(userId: string, conversationId: string): Promise<Conversation | null> {

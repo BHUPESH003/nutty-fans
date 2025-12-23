@@ -1,28 +1,32 @@
+/**
+ * PPV (Pay-Per-View) Service
+ *
+ * Handles unlocking of paid content.
+ * All payments go through PaymentService.debitWallet()
+ *
+ * CLOSED-LOOP WALLET: No card payments - wallet only
+ */
+
 import { prisma } from '@/lib/db/prisma';
 import { PpvRepository } from '@/repositories/ppvRepository';
-import { TransactionRepository } from '@/repositories/transactionRepository';
-import type { PpvPurchaseRecord, PurchasePpvInput } from '@/types/payments';
+import type { PpvPurchaseRecord } from '@/types/payments';
 
-import { WalletService } from './walletService';
+import { paymentService } from './paymentService';
 
 export class PpvService {
   private ppvRepo: PpvRepository;
-  private walletService: WalletService;
-  private transactionRepo: TransactionRepository;
 
   constructor() {
     this.ppvRepo = new PpvRepository();
-    this.walletService = new WalletService();
-    this.transactionRepo = new TransactionRepository();
   }
 
   /**
    * Purchase PPV content
+   * Debits wallet - no card option
    */
   async purchase(
     userId: string,
-    postId: string,
-    input: PurchasePpvInput
+    postId: string
   ): Promise<{ purchase: PpvPurchaseRecord; transactionId: string }> {
     // Check if already purchased
     const alreadyPurchased = await this.ppvRepo.hasPurchased(userId, postId);
@@ -48,36 +52,21 @@ export class PpvService {
 
     const price = post.ppvPrice.toNumber();
 
-    let transaction;
-
-    if (input.paymentSource === 'wallet') {
-      // Pay with wallet
-      transaction = await this.walletService.debit(
-        userId,
-        price,
-        post.creatorId,
-        'ppv',
-        postId,
-        `PPV unlock: ${post.content?.substring(0, 50) || 'Content'}`
-      );
-    } else {
-      // Create pending transaction for card payment
-      transaction = await this.transactionRepo.create({
-        userId,
-        creatorId: post.creatorId,
-        transactionType: 'ppv',
-        amount: price,
-        relatedType: 'ppv',
-        relatedId: postId,
-        description: `PPV unlock: ${post.content?.substring(0, 50) || 'Content'}`,
-      });
-    }
+    // Debit wallet (single payment path)
+    const result = await paymentService.debitWallet(userId, {
+      transactionType: 'ppv',
+      amount: price,
+      creatorId: post.creatorId,
+      relatedId: postId,
+      relatedType: 'ppv',
+      description: `PPV unlock: ${post.content?.substring(0, 50) || 'Content'}`,
+    });
 
     // Create PPV purchase record
     const purchase = await this.ppvRepo.create({
       userId,
       postId,
-      transactionId: transaction.id,
+      transactionId: result.transactionId,
       pricePaid: price,
     });
 
@@ -89,7 +78,7 @@ export class PpvService {
         pricePaid: purchase.pricePaid.toNumber(),
         createdAt: purchase.createdAt,
       },
-      transactionId: transaction.id,
+      transactionId: result.transactionId,
     };
   }
 

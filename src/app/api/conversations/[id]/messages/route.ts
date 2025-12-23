@@ -16,3 +16,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const body = await request.json().catch(() => ({}));
   return messagingController.sendMessage(session.user as AuthUser, id, body);
 }
+
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: { message: 'Unauthorized' } }, { status: 401 });
+  }
+
+  const { id } = await params;
+  const cursor = request.nextUrl.searchParams.get('cursor') ?? undefined;
+  return messagingController.listMessages(session.user.id, id, cursor);
+}

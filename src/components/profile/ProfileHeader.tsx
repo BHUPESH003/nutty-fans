@@ -68,7 +68,7 @@ export function ProfileHeader({ profile, isSelf, coverUrl, stats }: ProfileHeade
                   <Link href="/profile/edit">Edit Profile</Link>
                 </Button>
                 <Button variant="secondary" className="rounded-full" asChild>
-                  <Link href="/creator/apply">Become a Creator</Link>
+                  <Link href="/creator/start">Become a Creator</Link>
                 </Button>
               </>
             ) : (

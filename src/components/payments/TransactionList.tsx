@@ -70,35 +70,41 @@ export function TransactionList({ transactions, loading, isCreator }: Transactio
   };
 
   return (
-    <div className="rounded-md border">
+    <div className="w-full max-w-full overflow-x-auto rounded-md border">
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Date</TableHead>
-            <TableHead>Type</TableHead>
-            <TableHead>Description</TableHead>
-            <TableHead>Amount</TableHead>
-            {isCreator && <TableHead>Earnings</TableHead>}
-            <TableHead>Status</TableHead>
+            <TableHead className="whitespace-nowrap">Date</TableHead>
+            <TableHead className="whitespace-nowrap">Type</TableHead>
+            <TableHead className="min-w-[200px]">Description</TableHead>
+            <TableHead className="whitespace-nowrap">Amount</TableHead>
+            {isCreator && <TableHead className="whitespace-nowrap">Earnings</TableHead>}
+            <TableHead className="whitespace-nowrap">Status</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {transactions.map((t) => (
             <TableRow key={t.id}>
-              <TableCell>{formatDate(t.createdAt)}</TableCell>
-              <TableCell>{getTypeLabel(t.transactionType)}</TableCell>
+              <TableCell className="whitespace-nowrap">{formatDate(t.createdAt)}</TableCell>
+              <TableCell className="whitespace-nowrap">{getTypeLabel(t.transactionType)}</TableCell>
               <TableCell className="max-w-[200px] truncate" title={t.description || ''}>
                 {t.description || '-'}
               </TableCell>
-              <TableCell className={t.transactionType === 'wallet_topup' ? 'text-green-600' : ''}>
+              <TableCell
+                className={
+                  t.transactionType === 'wallet_topup'
+                    ? 'whitespace-nowrap text-green-600'
+                    : 'whitespace-nowrap'
+                }
+              >
                 {formatCurrency(t.amount)}
               </TableCell>
               {isCreator && (
-                <TableCell className="font-medium text-green-600">
+                <TableCell className="whitespace-nowrap font-medium text-green-600">
                   {t.creatorEarnings ? formatCurrency(t.creatorEarnings) : '-'}
                 </TableCell>
               )}
-              <TableCell>{getStatusBadge(t.status)}</TableCell>
+              <TableCell className="whitespace-nowrap">{getStatusBadge(t.status)}</TableCell>
             </TableRow>
           ))}
         </TableBody>

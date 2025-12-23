@@ -185,6 +185,32 @@ export function createErrorResponse(error: unknown): NextResponse {
         { status: 402 }
       );
     }
+
+    // Handle validation-like errors (should return 400, not 500)
+    const validationPatterns = [
+      'already taken',
+      'is required',
+      'must be',
+      'not allowed',
+      'at least',
+      'complete eligibility first',
+      'complete previous steps',
+      'already applied',
+      'already completed',
+    ];
+
+    for (const pattern of validationPatterns) {
+      if (error.message.toLowerCase().includes(pattern.toLowerCase())) {
+        return NextResponse.json(
+          {
+            code: 400,
+            data: { errorCode: VALIDATION_ERROR },
+            message: error.message,
+          },
+          { status: 400 }
+        );
+      }
+    }
   }
 
   // Log unexpected errors

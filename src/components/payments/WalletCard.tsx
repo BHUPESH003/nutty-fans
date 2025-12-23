@@ -62,7 +62,7 @@ export function WalletCard({ balance, onTopup }: WalletCardProps) {
 
           <div className="space-y-4">
             <Label>Add Funds</Label>
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row">
               <div className="relative flex-1">
                 <span className="absolute left-3 top-2.5 text-muted-foreground">$</span>
                 <Input
@@ -75,7 +75,11 @@ export function WalletCard({ balance, onTopup }: WalletCardProps) {
                   placeholder="Amount"
                 />
               </div>
-              <Button onClick={() => handleTopUp(parseFloat(amount))} disabled={loading}>
+              <Button
+                onClick={() => handleTopUp(parseFloat(amount))}
+                disabled={loading}
+                className="w-full sm:w-auto"
+              >
                 {loading ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
@@ -84,7 +88,7 @@ export function WalletCard({ balance, onTopup }: WalletCardProps) {
                 Top Up
               </Button>
             </div>
-            <div className="flex gap-2 text-sm">
+            <div className="flex flex-wrap gap-2 text-sm">
               <Button variant="outline" size="sm" onClick={() => setAmount('10')}>
                 $10
               </Button>

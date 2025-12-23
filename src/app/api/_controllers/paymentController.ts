@@ -33,7 +33,7 @@ export const paymentController = {
       if (!creatorId) {
         throw new AppError(VALIDATION_MISSING_FIELD, 'Creator ID is required', 400);
       }
-      const result = await subscriptionService.subscribe(userId, creatorId, { planType });
+      const result = await subscriptionService.subscribe(userId, creatorId, planType);
       return successResponse(result, 'Subscribed successfully', 201);
     });
   },
@@ -55,13 +55,18 @@ export const paymentController = {
     });
   },
 
-  async renewSubscription(subscriptionId: string, planType?: SubscriptionPlanType) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
+  async renewSubscription(subscriptionId: string, userId: string, planType?: SubscriptionPlanType) {
     return handleAsyncRoute(async () => {
       if (!subscriptionId) {
         throw new AppError(VALIDATION_MISSING_FIELD, 'Subscription ID is required', 400);
       }
-      const result = await subscriptionService.renew(subscriptionId, planType);
-      return successResponse(result);
+      // Renewal is now handled by scheduled job - manual renewal not supported
+      throw new AppError(
+        VALIDATION_ERROR,
+        'Manual renewal not supported. Subscriptions renew automatically.',
+        400
+      );
     });
   },
 
@@ -117,12 +122,14 @@ export const paymentController = {
   // PPV
   // ============================================
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
   async purchasePpv(userId: string, postId: string, paymentSource: 'wallet' | 'card') {
     return handleAsyncRoute(async () => {
       if (!postId) {
         throw new AppError(VALIDATION_MISSING_FIELD, 'Post ID is required', 400);
       }
-      const result = await ppvService.purchase(userId, postId, { paymentSource });
+      // Wallet-only - paymentSource parameter ignored
+      const result = await ppvService.purchase(userId, postId);
       return successResponse(result, 'PPV purchased successfully', 201);
     });
   },

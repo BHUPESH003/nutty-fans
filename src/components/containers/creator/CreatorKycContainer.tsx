@@ -4,13 +4,13 @@ import { AlertCircle, CheckCircle2, Clock, ShieldCheck, XCircle } from 'lucide-r
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 
+import { OnboardingProgress } from '@/components/creator/OnboardingProgress';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { apiClient } from '@/services/apiClient';
 
 export const CreatorKycContainer = () => {
   const router = useRouter();
-  // const [status, setStatus] = useState<string | null>(null); // Unused
   const [kycStatus, setKycStatus] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isStarting, setIsStarting] = useState(false);
@@ -21,12 +21,18 @@ export const CreatorKycContainer = () => {
       try {
         const data = await apiClient.creator.getStatus();
         if (data) {
-          // setStatus(data.status);
           setKycStatus(data.kycStatus);
+          const currentOnboardingStatus =
+            (data as { onboardingStatus?: string }).onboardingStatus || data.status;
 
-          if (data.status === 'active' || data.status === 'pending_payout_setup') {
+          // If already past KYC, redirect to next step
+          if (
+            currentOnboardingStatus === 'kyc_approved' ||
+            currentOnboardingStatus === 'payout_pending' ||
+            currentOnboardingStatus === 'active'
+          ) {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            router.push((data.nextStep || '/creator/dashboard') as any);
+            router.push((data.nextStep || '/creator/payouts/setup') as any);
           }
         }
       } catch (err) {
@@ -73,7 +79,9 @@ export const CreatorKycContainer = () => {
 
   return (
     <div className="container mx-auto max-w-2xl px-4 py-8">
-      <Card className="border-none bg-card/50 shadow-xl backdrop-blur-sm">
+      <OnboardingProgress currentStep={6} totalSteps={8} />
+
+      <Card className="mt-8 border-none bg-card/50 shadow-xl backdrop-blur-sm">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
             <ShieldCheck className="h-8 w-8 text-primary" />
