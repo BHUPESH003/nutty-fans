@@ -365,6 +365,7 @@ model CreatorProfile {
   kycSubmittedAt           DateTime?         @map("kyc_submitted_at")
   kycVerifiedAt            DateTime?         @map("kyc_verified_at")
   kycRejectionReason       String?           @map("kyc_rejection_reason") @db.Text
+  kycSessionId             String?           @map("kyc_session_id") @db.VarChar(255)
   stripeAccountId          String?           @map("stripe_account_id") @db.VarChar(255)
   stripeOnboardingComplete Boolean           @default(false) @map("stripe_onboarding_complete")
   payoutSchedule           String            @default("weekly") @map("payout_schedule") @db.VarChar(20)

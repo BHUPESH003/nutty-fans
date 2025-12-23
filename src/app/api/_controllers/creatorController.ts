@@ -198,6 +198,26 @@ export class CreatorController {
   }
 
   /**
+   * POST /api/creator/kyc/sync — Sync KYC status from Veriff API
+   * Used when webhook might have been missed
+   */
+  async syncKycStatus(): Promise<NextResponse> {
+    const session = await getServerSession(authOptions);
+    const userId = session?.user?.id;
+    if (!userId) {
+      return NextResponse.json(
+        { error: { code: 'AUTH_REQUIRED', message: 'Authentication required' } },
+        { status: 401 }
+      );
+    }
+
+    return handleAsyncRoute(async () => {
+      const result = await kycService.syncStatusFromVeriff(userId);
+      return successResponse(result);
+    });
+  }
+
+  /**
    * GET /api/creator/square/connect — Get Square OAuth URL
    */
   async getSquareConnectUrl(): Promise<NextResponse> {

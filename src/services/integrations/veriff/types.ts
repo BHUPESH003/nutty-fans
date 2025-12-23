@@ -67,3 +67,37 @@ export type VeriffDecisionStatus =
   | 'resubmission_requested'
   | 'expired'
   | 'abandoned';
+
+/**
+ * Response from Veriff session status endpoint
+ * GET /v1/sessions/{sessionId}/decision
+ */
+export interface VeriffSessionDecisionResponse {
+  status: string;
+  verification: {
+    id: string;
+    code: number;
+    status:
+      | 'approved'
+      | 'declined'
+      | 'resubmission_requested'
+      | 'expired'
+      | 'abandoned'
+      | 'submitted'
+      | 'started'
+      | 'created';
+    reason?: string | null;
+    reasonCode?: number | null;
+    person?: {
+      firstName?: string | null;
+      lastName?: string | null;
+      dateOfBirth?: string | null;
+    } | null;
+    document?: {
+      type?: string | null;
+      country?: string | null;
+      number?: string | null;
+    } | null;
+    vendorData?: string | null;
+  };
+}

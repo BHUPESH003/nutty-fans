@@ -32,12 +32,97 @@ export class KycService {
     // Create Veriff session
     const session = await veriffClient.createSession(userId, displayName);
 
-    // Update KYC status to submitted (this also updates onboardingStatus to kyc_in_progress)
-    await this.creatorRepo.updateKycStatus(userId, 'submitted');
+    // Update KYC status to submitted and store session ID
+    await this.creatorRepo.update(profile.id, {
+      kycStatus: 'submitted',
+      kycSubmittedAt: new Date(),
+      onboardingStatus: 'kyc_in_progress',
+      kycSessionId: session.sessionId,
+    });
 
     return {
       sessionUrl: session.sessionUrl,
       sessionId: session.sessionId,
+    };
+  }
+
+  /**
+   * Sync KYC status from Veriff API (for when webhook is missed)
+   * Returns the updated status
+   */
+  async syncStatusFromVeriff(userId: string): Promise<{
+    status: string;
+    updated: boolean;
+    message: string;
+  }> {
+    const profile = await this.creatorRepo.findByUserId(userId);
+    if (!profile) {
+      throw new Error('Creator profile not found');
+    }
+
+    // If already approved, no need to check
+    if (profile.kycStatus === 'approved') {
+      return {
+        status: 'approved',
+        updated: false,
+        message: 'KYC already approved',
+      };
+    }
+
+    // Get the session ID
+    const sessionId = profile.kycSessionId;
+    if (!sessionId) {
+      return {
+        status: profile.kycStatus as string,
+        updated: false,
+        message: 'No KYC session found. Please start verification first.',
+      };
+    }
+
+    // Fetch decision from Veriff
+    const decision = await veriffClient.getSessionDecision(sessionId);
+    if (!decision) {
+      return {
+        status: profile.kycStatus as string,
+        updated: false,
+        message: 'Unable to fetch status from verification provider',
+      };
+    }
+
+    // Map the decision to KYC status
+    const kycStatus = veriffClient.mapDecisionToKycStatus(decision.action);
+
+    // Check if status changed
+    const currentStatus = profile.kycStatus as string;
+    const newStatus =
+      kycStatus === 'failed' || kycStatus === 'needs_review' ? 'rejected' : kycStatus;
+
+    if (currentStatus === newStatus || newStatus === 'pending') {
+      return {
+        status: currentStatus,
+        updated: false,
+        message:
+          decision.action === 'submitted'
+            ? 'Verification is still in progress'
+            : `Current status: ${currentStatus}`,
+      };
+    }
+
+    // Update the database with new status
+    const rejectionReason = decision.reason || undefined;
+    await this.creatorRepo.updateKycStatus(
+      userId,
+      newStatus as 'pending' | 'submitted' | 'approved' | 'rejected',
+      rejectionReason
+    );
+
+    return {
+      status: newStatus,
+      updated: true,
+      message:
+        newStatus === 'approved'
+          ? 'Identity verified successfully!'
+          : `Verification status updated: ${newStatus}`,
     };
   }
 

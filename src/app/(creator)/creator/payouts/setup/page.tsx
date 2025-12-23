@@ -61,12 +61,11 @@ export default function PayoutSetupPage() {
     try {
       const response = await fetch('/api/creator/square/connect');
       const data = await response.json();
-
       if (!response.ok) {
         throw new Error(data.error?.message || 'Failed to get connect URL');
       }
 
-      window.location.href = data.url;
+      window.location.href = data.data.url;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
       setLoading(false);

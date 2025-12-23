@@ -126,7 +126,30 @@ export const CreatorKycContainer = () => {
                   We are reviewing your documents. This usually takes a few minutes but can take up
                   to 24 hours.
                 </p>
-                <Button variant="outline" onClick={() => window.location.reload()}>
+                <Button
+                  variant="outline"
+                  onClick={async () => {
+                    setError(null);
+                    try {
+                      const response = await fetch('/api/creator/kyc/sync', { method: 'POST' });
+                      const data = await response.json();
+                      if (response.ok) {
+                        if (data.data?.updated) {
+                          // Status was updated, reload to get new state
+                          window.location.reload();
+                        } else {
+                          // No update, show message
+                          setError(data.data?.message || 'Verification is still in progress');
+                        }
+                      } else {
+                        setError(data.error?.message || 'Failed to check status');
+                      }
+                    } catch (err) {
+                      console.error('Failed to sync status:', err);
+                      setError('Failed to check status. Please try again.');
+                    }
+                  }}
+                >
                   Check Status
                 </Button>
               </div>

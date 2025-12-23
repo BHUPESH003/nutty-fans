@@ -107,6 +107,63 @@ export class VeriffClient {
         return 'pending';
     }
   }
+
+  /**
+   * Get session decision/status from Veriff API
+   * Used for manual status check when webhook is missed
+   */
+  async getSessionDecision(sessionId: string): Promise<{
+    status: string;
+    action: string;
+    reason?: string | null;
+    vendorData?: string | null;
+  } | null> {
+    if (!this.apiKey) {
+      console.warn('Veriff API key not configured');
+      return null;
+    }
+
+    try {
+      const response = await fetch(`${this.baseUrl}/v1/sessions/${sessionId}/decision`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-AUTH-CLIENT': this.apiKey,
+          'X-HMAC-SIGNATURE': this.generateSignature(sessionId),
+        },
+      });
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          // No decision yet (still in progress)
+          return { status: 'pending', action: 'submitted' };
+        }
+        console.error('Veriff decision API error:', response.status);
+        return null;
+      }
+
+      const data = await response.json();
+      return {
+        status: data.verification?.status || 'unknown',
+        action: data.verification?.status || 'unknown',
+        reason: data.verification?.reason,
+        vendorData: data.verification?.vendorData,
+      };
+    } catch (error) {
+      console.error('Failed to fetch Veriff session decision:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Generate HMAC signature for API requests
+   */
+  private generateSignature(payload: string): string {
+    if (!this.apiSecret) {
+      return '';
+    }
+    return crypto.createHmac('sha256', this.apiSecret).update(payload).digest('hex');
+  }
 }
 
 // Singleton instance

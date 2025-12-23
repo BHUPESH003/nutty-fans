@@ -28,18 +28,21 @@ export class SquareClient {
 
   /**
    * Generate OAuth authorization URL
+   * For code flow: redirect_uri is NOT included in the URL
+   * Square uses the redirect URL registered in the Developer Dashboard
    */
-  getAuthorizationUrl(state: string, redirectUri: string): string {
-    const scopes = ['MERCHANT_PROFILE_READ', 'PAYMENTS_WRITE', 'BANK_ACCOUNTS_READ'].join('+');
 
-    return (
-      `${this.baseUrl}/oauth2/authorize?` +
-      `client_id=${this.applicationId}&` +
-      `scope=${scopes}&` +
-      `session=false&` +
-      `state=${encodeURIComponent(state)}&` +
-      `redirect_uri=${encodeURIComponent(redirectUri)}`
-    );
+  getAuthorizationUrl(state: string): string {
+    const params = new URLSearchParams({
+      client_id: this.applicationId,
+      scope: ['MERCHANT_PROFILE_READ', 'PAYMENTS_WRITE', 'BANK_ACCOUNTS_READ'].join(' '),
+      session: 'false',
+      state: state,
+      // NOTE: redirect_uri is NOT included for code flow
+      // Square will use the redirect URL registered in the Developer Dashboard
+    });
+
+    return `${this.baseUrl}/oauth2/authorize?${params.toString()}`;
   }
 
   /**

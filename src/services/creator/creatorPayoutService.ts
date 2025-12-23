@@ -4,8 +4,6 @@ import { CreatorRepository } from '@/repositories/creatorRepository';
 import { PayoutRepository } from '@/repositories/payoutRepository';
 import { squareClient } from '@/services/integrations/square/squareClient';
 
-const APP_URL = process.env['NEXT_PUBLIC_APP_URL'] ?? 'http://localhost:3000';
-
 export class PaymentService {
   constructor(
     // eslint-disable-next-line no-unused-vars
@@ -31,8 +29,7 @@ export class PaymentService {
     const state = crypto.randomBytes(32).toString('hex');
     // In production, store state in session/cache with userId
 
-    const redirectUri = `${APP_URL}/api/creator/square/callback`;
-    const url = squareClient.getAuthorizationUrl(state, redirectUri);
+    const url = squareClient.getAuthorizationUrl(state);
 
     return { url, state };
   }

@@ -17,6 +17,13 @@ export class WebhookController {
     const signature = req.headers.get('x-hmac-signature') ?? '';
     const payload = await req.text();
 
+    // Log the raw payload for debugging
+    console.warn('[Veriff Webhook] Received payload:', payload);
+    console.warn(
+      '[Veriff Webhook] Headers:',
+      JSON.stringify(Object.fromEntries(req.headers.entries()))
+    );
+
     // Verify signature
     if (!kycService.verifySignature(payload, signature)) {
       console.error('Invalid Veriff webhook signature');
@@ -25,6 +32,12 @@ export class WebhookController {
 
     try {
       const webhookPayload = JSON.parse(payload);
+
+      // Log parsed payload structure
+      console.warn('[Veriff Webhook] Parsed payload:', JSON.stringify(webhookPayload, null, 2));
+      console.warn('[Veriff Webhook] vendorData:', webhookPayload.vendorData);
+      console.warn('[Veriff Webhook] action:', webhookPayload.action);
+
       await kycService.processWebhook(webhookPayload);
       return successResponse({ received: true });
     } catch (error) {
