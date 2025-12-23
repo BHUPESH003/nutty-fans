@@ -133,6 +133,20 @@ export class CreatorService {
       nextStep: routeMap[onboardingStatus] || '/creator/start',
       currentStep: stepMap[onboardingStatus] || 1,
       totalSteps: 8,
+      // Include profile data for form pre-population on back navigation
+      profile: {
+        eligibilityCountry: profile.eligibilityCountry,
+        contentTypeIntent: profile.contentTypeIntent as 'sfw' | 'nsfw' | 'both' | null,
+        categoryId: profile.categoryId,
+        creatorGoal: profile.creatorGoal as 'full_time' | 'side_hustle' | 'hobby' | null,
+        bio: profile.bio,
+        displayName: profile.user?.displayName,
+        username: profile.user?.username,
+        avatarUrl: profile.user?.avatarUrl,
+        socialLinks: profile.socialLinks as Record<string, string> | null,
+        subscriptionPrice: profile.subscriptionPrice ? Number(profile.subscriptionPrice) : null,
+        freeTrialDays: profile.freeTrialDays,
+      },
     };
   }
 

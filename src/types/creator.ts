@@ -123,6 +123,20 @@ export interface CreatorStatusResponse {
   nextStep: string | null;
   currentStep: number;
   totalSteps: number;
+  /** Profile data for form pre-population */
+  profile?: {
+    eligibilityCountry?: string | null;
+    contentTypeIntent?: ContentTypeIntent | null;
+    categoryId?: string | null;
+    creatorGoal?: CreatorGoal | null;
+    bio?: string | null;
+    displayName?: string | null;
+    username?: string | null;
+    avatarUrl?: string | null;
+    socialLinks?: Record<string, string> | null;
+    subscriptionPrice?: number | null;
+    freeTrialDays?: number | null;
+  };
 }
 
 export interface KycSessionResponse {

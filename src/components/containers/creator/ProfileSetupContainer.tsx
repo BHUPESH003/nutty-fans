@@ -30,13 +30,19 @@ export const ProfileSetupContainer = () => {
     },
   });
 
-  // Fetch existing user data to prefill form
+  // Fetch existing user data and creator profile to prefill form
   useEffect(() => {
-    const fetchUserData = async () => {
+    const fetchData = async () => {
       try {
-        const response = await fetch('/api/auth/session');
-        if (response.ok) {
-          const session = await response.json();
+        // Fetch session and creator status in parallel
+        const [sessionResponse, statusResponse] = await Promise.all([
+          fetch('/api/auth/session'),
+          fetch('/api/creator/status'),
+        ]);
+
+        // Pre-fill from session (user data)
+        if (sessionResponse.ok) {
+          const session = await sessionResponse.json();
           if (session?.user) {
             setFormData((prev) => ({
               ...prev,
@@ -46,14 +52,30 @@ export const ProfileSetupContainer = () => {
             }));
           }
         }
+
+        // Pre-fill from creator status (bio, socialLinks)
+        if (statusResponse.ok) {
+          const statusData = await statusResponse.json();
+          const profile = statusData.data?.profile;
+          if (profile) {
+            setFormData((prev) => ({
+              ...prev,
+              displayName: profile.displayName || prev.displayName,
+              username: profile.username || prev.username,
+              avatarUrl: profile.avatarUrl || prev.avatarUrl,
+              bio: profile.bio || '',
+              socialLinks: profile.socialLinks || prev.socialLinks,
+            }));
+          }
+        }
       } catch (err) {
-        console.error('Failed to fetch user data:', err);
+        console.error('Failed to fetch data:', err);
       } finally {
         setIsLoading(false);
       }
     };
 
-    void fetchUserData();
+    void fetchData();
   }, []);
 
   const validateUsername = (username: string) => {

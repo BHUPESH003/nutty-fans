@@ -2,7 +2,7 @@
 
 import { AlertCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 import { OnboardingProgress } from '@/components/creator/OnboardingProgress';
 import { Button } from '@/components/ui/button';
@@ -57,12 +57,39 @@ const CONTENT_TYPES = [
 export const EligibilityContainer = () => {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     ageConfirmed: false,
     country: '',
     contentTypeIntent: '',
   });
+
+  // Fetch saved data on mount for pre-population
+  useEffect(() => {
+    const fetchSavedData = async () => {
+      try {
+        const response = await fetch('/api/creator/status');
+        if (response.ok) {
+          const data = await response.json();
+          const profile = data.data?.profile;
+          if (profile) {
+            setFormData((prev) => ({
+              ...prev,
+              ageConfirmed: Boolean(profile.eligibilityCountry), // If country was saved, age was confirmed
+              country: profile.eligibilityCountry || '',
+              contentTypeIntent: profile.contentTypeIntent || '',
+            }));
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch saved data:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    void fetchSavedData();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -105,6 +132,14 @@ export const EligibilityContainer = () => {
       setIsSubmitting(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex h-[50vh] items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto max-w-2xl px-4 py-8">

@@ -49,18 +49,36 @@ export const CategorySelectionContainer = () => {
   });
 
   useEffect(() => {
-    const fetchCategories = async () => {
+    const fetchData = async () => {
       try {
-        const data = await apiClient.common.getCategories();
-        setCategories(data);
+        // Fetch categories and saved data in parallel
+        const [categoriesData, statusResponse] = await Promise.all([
+          apiClient.common.getCategories(),
+          fetch('/api/creator/status'),
+        ]);
+
+        setCategories(categoriesData);
+
+        // Pre-populate form with saved data
+        if (statusResponse.ok) {
+          const statusData = await statusResponse.json();
+          const profile = statusData.data?.profile;
+          if (profile) {
+            setFormData((prev) => ({
+              ...prev,
+              categoryId: profile.categoryId || '',
+              creatorGoal: profile.creatorGoal || '',
+            }));
+          }
+        }
       } catch (err) {
-        console.error('Failed to fetch categories:', err);
-        setError('Failed to load categories');
+        console.error('Failed to fetch data:', err);
+        setError('Failed to load data');
       } finally {
         setIsLoading(false);
       }
     };
-    void fetchCategories();
+    void fetchData();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
