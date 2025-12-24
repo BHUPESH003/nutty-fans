@@ -368,6 +368,14 @@ model CreatorProfile {
   kycSessionId             String?           @map("kyc_session_id") @db.VarChar(255)
   stripeAccountId          String?           @map("stripe_account_id") @db.VarChar(255)
   stripeOnboardingComplete Boolean           @default(false) @map("stripe_onboarding_complete")
+  
+  // Square OAuth token storage (encrypted)
+  squareMerchantId         String?           @map("square_merchant_id") @db.VarChar(255)
+  squareAccessToken        String?           @map("square_access_token") @db.Text
+  squareRefreshToken       String?           @map("square_refresh_token") @db.Text
+  squareTokenExpiresAt     DateTime?         @map("square_token_expires_at")
+  squareConnectedAt        DateTime?         @map("square_connected_at")
+  
   payoutSchedule           String            @default("weekly") @map("payout_schedule") @db.VarChar(20)
   totalEarnings            Decimal           @default(0) @map("total_earnings") @db.Decimal(12, 2)
   totalSubscribers         Int               @default(0) @map("total_subscribers")

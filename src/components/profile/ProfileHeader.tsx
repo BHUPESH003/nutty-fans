@@ -1,6 +1,7 @@
 import { MapPin, Calendar, MessageCircle, MoreHorizontal } from 'lucide-react';
 import Link from 'next/link';
 
+import { CreatorCTA } from '@/components/creator/CreatorCTA';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import type { Profile } from '@/types/profile';
@@ -67,9 +68,7 @@ export function ProfileHeader({ profile, isSelf, coverUrl, stats }: ProfileHeade
                 <Button variant="outline" className="rounded-full" asChild>
                   <Link href="/profile/edit">Edit Profile</Link>
                 </Button>
-                <Button variant="secondary" className="rounded-full" asChild>
-                  <Link href="/creator/start">Become a Creator</Link>
-                </Button>
+                <CreatorCTA variant="compact" />
               </>
             ) : (
               <>

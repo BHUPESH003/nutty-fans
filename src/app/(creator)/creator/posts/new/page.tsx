@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import * as React from 'react';
 
+import { PageHeader } from '@/components/layout/PageHeader';
 import { PostForm } from '@/components/posts/PostForm';
 import type { CreatePostInput } from '@/types/content';
 
@@ -34,7 +35,8 @@ export default function NewPostPage() {
   };
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="mx-auto max-w-2xl space-y-6">
+      <PageHeader title="Create New Post" subtitle="Share content with your subscribers" />
       <PostForm onSubmit={handleSubmit} isSubmitting={isSubmitting} />
     </div>
   );

@@ -1,12 +1,14 @@
+'use client';
+
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import React from 'react';
 
+import { CreatorCTA } from '@/components/creator/CreatorCTA';
+import { CreatorNavButton } from '@/components/creator/CreatorNavButton';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
-
-import { Button } from '../ui';
 
 interface UserSummary {
   displayName?: string;
@@ -52,7 +54,8 @@ export function AppShell({ children, user }: AppShellProps) {
             </div>
             <span className="text-lg font-bold tracking-tight">NuttyFans</span>
           </Link>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            <CreatorNavButton className="hidden sm:flex" />
             <NotificationBell />
             <Link href="/profile" aria-label="Your profile">
               <Avatar className="h-9 w-9 ring-2 ring-white/10 transition-all hover:ring-primary/50">
@@ -100,16 +103,8 @@ export function AppShell({ children, user }: AppShellProps) {
             })}
           </nav>
 
-          {/* Creator CTA Placeholder */}
-          <div className="mt-8 rounded-2xl border border-white/5 bg-gradient-to-br from-purple-900/20 to-primary/10 p-4">
-            <h3 className="mb-1 text-sm font-semibold text-white">Become a Creator</h3>
-            <p className="mb-3 text-xs text-muted-foreground">
-              Start earning from your content today.
-            </p>
-            <Button size="sm" className="w-full text-xs" variant="secondary" asChild>
-              <Link href="/creator/start">Apply Now</Link>
-            </Button>
-          </div>
+          {/* Creator CTA - Smart component based on status */}
+          <CreatorCTA variant="sidebar" className="mt-8" />
         </aside>
 
         {/* Main content */}
@@ -121,7 +116,31 @@ export function AppShell({ children, user }: AppShellProps) {
       {/* Floating Bottom Nav (Mobile) - Island Style */}
       <nav className="fixed bottom-6 left-1/2 z-50 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 rounded-full border border-white/10 bg-background/80 p-2 shadow-2xl backdrop-blur-xl md:hidden">
         <div className="flex items-center justify-around">
-          {navItems.map((item) => {
+          {navItems.slice(0, 2).map((item) => {
+            const active = pathname === item.href;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  'flex h-12 w-12 flex-col items-center justify-center rounded-full transition-all',
+                  active
+                    ? 'bg-primary text-white shadow-lg shadow-primary/30'
+                    : 'text-muted-foreground hover:bg-white/5 hover:text-foreground'
+                )}
+              >
+                <span className="text-xl">{item.icon}</span>
+              </Link>
+            );
+          })}
+
+          {/* Center Create Button for Creators */}
+          <CreatorNavButton
+            variant="icon"
+            className="h-14 w-14 bg-primary shadow-lg shadow-primary/30 hover:bg-primary/90"
+          />
+
+          {navItems.slice(2).map((item) => {
             const active = pathname === item.href;
             return (
               <Link

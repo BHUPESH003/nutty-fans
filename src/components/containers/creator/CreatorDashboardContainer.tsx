@@ -1,8 +1,21 @@
 'use client';
 
-import { DollarSign, Users, Eye, CreditCard } from 'lucide-react';
+import {
+  DollarSign,
+  Users,
+  Eye,
+  CreditCard,
+  Plus,
+  FileText,
+  TrendingUp,
+  Settings,
+  CheckCircle,
+} from 'lucide-react';
+import Link from 'next/link';
 import { useState, useEffect } from 'react';
 
+import { PageHeader } from '@/components/layout/PageHeader';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { apiClient } from '@/services/apiClient';
 
@@ -14,9 +27,14 @@ interface DashboardMetrics {
   nextPayoutDate: string;
 }
 
+interface ConnectionStatus {
+  isConnected: boolean;
+}
+
 export const CreatorDashboardContainer = () => {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [payoutConnected, setPayoutConnected] = useState(false);
 
   useEffect(() => {
     const fetchDashboard = async () => {
@@ -24,6 +42,17 @@ export const CreatorDashboardContainer = () => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const data = (await apiClient.creator.getDashboard()) as any;
         setMetrics(data);
+
+        // Check payout connection status
+        try {
+          const res = await fetch('/api/creator/square/status');
+          if (res.ok) {
+            const status: ConnectionStatus = await res.json();
+            setPayoutConnected(status.isConnected);
+          }
+        } catch {
+          // Ignore - defaults to not connected
+        }
       } catch (err) {
         console.error('Failed to fetch dashboard:', err);
       } finally {
@@ -43,71 +72,115 @@ export const CreatorDashboardContainer = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="mb-8 text-3xl font-bold">Creator Dashboard</h1>
+    <div className="space-y-6">
+      <PageHeader
+        title="Creator Dashboard"
+        subtitle="Manage your content and earnings"
+        showBack={false}
+        actions={
+          <Button asChild>
+            <Link href="/creator/posts/new">
+              <Plus className="mr-2 h-4 w-4" />
+              Create Post
+            </Link>
+          </Button>
+        }
+      />
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+      {/* Quick Actions */}
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <Button variant="outline" className="h-auto flex-col gap-1 py-3" asChild>
+          <Link href="/creator/posts/new">
+            <Plus className="h-4 w-4 text-primary" />
+            <span className="text-xs">New Post</span>
+          </Link>
+        </Button>
+        <Button variant="outline" className="h-auto flex-col gap-1 py-3" asChild>
+          <Link href="/creator/posts">
+            <FileText className="h-4 w-4 text-blue-500" />
+            <span className="text-xs">My Posts</span>
+          </Link>
+        </Button>
+        <Button variant="outline" className="h-auto flex-col gap-1 py-3" asChild>
+          <Link href="/creator/earnings">
+            <TrendingUp className="h-4 w-4 text-green-500" />
+            <span className="text-xs">Earnings</span>
+          </Link>
+        </Button>
+        {payoutConnected ? (
+          <Button variant="outline" className="h-auto flex-col gap-1 py-3 text-green-500" disabled>
+            <CheckCircle className="h-4 w-4" />
+            <span className="text-xs">Payouts ✓</span>
+          </Button>
+        ) : (
+          <Button variant="outline" className="h-auto flex-col gap-1 py-3" asChild>
+            <Link href="/creator/payouts/setup">
+              <Settings className="h-4 w-4 text-orange-500" />
+              <span className="text-xs">Setup Payouts</span>
+            </Link>
+          </Button>
+        )}
+      </div>
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Card className="p-4">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">Total Revenue</span>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">${metrics?.totalRevenue || '0.00'}</div>
-            <p className="text-xs text-muted-foreground">+20.1% from last month</p>
-          </CardContent>
+          </div>
+          <div className="text-xl font-bold">${metrics?.totalRevenue || '0.00'}</div>
+          <p className="text-xs text-muted-foreground">Lifetime earnings</p>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Subscribers</CardTitle>
+        <Card className="p-4">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">Subscribers</span>
             <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{metrics?.subscriberCount || 0}</div>
-            <p className="text-xs text-muted-foreground">+180.1% from last month</p>
-          </CardContent>
+          </div>
+          <div className="text-xl font-bold">{metrics?.subscriberCount || 0}</div>
+          <p className="text-xs text-muted-foreground">Active subscribers</p>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Profile Views</CardTitle>
+        <Card className="p-4">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">Profile Views</span>
             <Eye className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{metrics?.profileViews || 0}</div>
-            <p className="text-xs text-muted-foreground">+19% from last month</p>
-          </CardContent>
+          </div>
+          <div className="text-xl font-bold">{metrics?.profileViews || 0}</div>
+          <p className="text-xs text-muted-foreground">This month</p>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Payout</CardTitle>
+        <Card className="p-4">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">Pending Payout</span>
             <CreditCard className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">${metrics?.pendingPayout || '0.00'}</div>
-            <p className="text-xs text-muted-foreground">
-              Next payout: {metrics?.nextPayoutDate || 'N/A'}
-            </p>
-          </CardContent>
+          </div>
+          <div className="text-xl font-bold">${metrics?.pendingPayout || '0.00'}</div>
+          <p className="text-xs text-muted-foreground">
+            Next:{' '}
+            {metrics?.nextPayoutDate
+              ? new Date(metrics.nextPayoutDate).toLocaleDateString()
+              : 'N/A'}
+          </p>
         </Card>
       </div>
 
-      <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <Card className="col-span-4">
-          <CardHeader>
-            <CardTitle>Overview</CardTitle>
+      {/* Charts Section */}
+      <div className="grid gap-4 lg:grid-cols-7">
+        <Card className="lg:col-span-4">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Overview</CardTitle>
           </CardHeader>
-          <CardContent className="pl-2">
-            <div className="flex h-[350px] items-center justify-center text-muted-foreground">
-              Chart Placeholder
+          <CardContent>
+            <div className="flex h-[250px] items-center justify-center text-sm text-muted-foreground">
+              Chart coming soon
             </div>
           </CardContent>
         </Card>
-        <Card className="col-span-3">
-          <CardHeader>
-            <CardTitle>Recent Sales</CardTitle>
+        <Card className="lg:col-span-3">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Recent Sales</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex h-[350px] items-center justify-center text-muted-foreground">
+            <div className="flex h-[250px] items-center justify-center text-sm text-muted-foreground">
               No recent sales
             </div>
           </CardContent>

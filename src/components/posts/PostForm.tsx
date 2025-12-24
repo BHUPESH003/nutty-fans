@@ -56,7 +56,15 @@ export function PostForm({ initialData, onSubmit, isSubmitting }: PostFormProps)
         });
 
         if (!urlRes.ok) throw new Error('Failed to get upload URL');
-        const { uploadUrl, mediaId, key } = await urlRes.json();
+
+        // API returns { data: { uploadUrl, mediaId, key } } structure
+        const response = await urlRes.json();
+        const { uploadUrl, mediaId, key } = response.data || response;
+
+        if (!uploadUrl || !mediaId || !key) {
+          console.error('Invalid upload URL response:', response);
+          throw new Error('Invalid upload URL response');
+        }
 
         // Upload directly to S3
         const uploadRes = await fetch(uploadUrl, {
@@ -67,12 +75,14 @@ export function PostForm({ initialData, onSubmit, isSubmitting }: PostFormProps)
 
         if (!uploadRes.ok) throw new Error('Upload failed');
 
-        // Confirm upload
-        await fetch('/api/media/confirm', {
+        // Confirm upload - mediaId goes in body, not URL
+        const confirmRes = await fetch('/api/media/confirm', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ mediaId, key }),
         });
+
+        if (!confirmRes.ok) throw new Error('Failed to confirm upload');
 
         mediaIds.push(mediaId);
       }

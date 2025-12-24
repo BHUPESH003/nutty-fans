@@ -40,9 +40,20 @@ export const contentController = {
     return handleAsyncRoute(async () => {
       requireEmailVerification(user);
       if (!user.id) {
-        throw new AppError(VALIDATION_MISSING_FIELD, 'Creator ID is required', 400);
+        throw new AppError(VALIDATION_MISSING_FIELD, 'User ID is required', 400);
       }
-      const post = await postService.create(user.id, body);
+
+      // Look up creator profile by user ID
+      const { prisma } = await import('@/lib/db/prisma');
+      const creatorProfile = await prisma.creatorProfile.findUnique({
+        where: { userId: user.id },
+      });
+
+      if (!creatorProfile) {
+        throw new AppError(VALIDATION_MISSING_FIELD, 'You must be a creator to create posts', 403);
+      }
+
+      const post = await postService.create(creatorProfile.id, body);
       return successResponse(post, 'Post created successfully', 201);
     });
   },

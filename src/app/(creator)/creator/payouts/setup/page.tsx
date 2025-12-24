@@ -64,7 +64,6 @@ export default function PayoutSetupPage() {
       if (!response.ok) {
         throw new Error(data.error?.message || 'Failed to get connect URL');
       }
-
       window.location.href = data.data.url;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong');

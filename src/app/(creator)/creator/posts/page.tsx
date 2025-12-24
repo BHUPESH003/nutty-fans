@@ -1,9 +1,11 @@
 'use client';
 
 import { formatDistanceToNow } from 'date-fns';
+import { Plus } from 'lucide-react';
 import Link from 'next/link';
 import * as React from 'react';
 
+import { PageHeader } from '@/components/layout/PageHeader';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -31,8 +33,9 @@ export default function CreatorPostsPage() {
 
       const res = await fetch(`/api/posts?${params.toString()}`);
       if (res.ok) {
-        const data = await res.json();
-        setPosts(data.posts);
+        const response = await res.json();
+        // API returns { data: { posts: [] } } structure
+        setPosts(response.data?.posts || response.posts || []);
       }
     } catch (error) {
       console.error('Failed to fetch posts:', error);
@@ -90,16 +93,18 @@ export default function CreatorPostsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">My Posts</h1>
-          <p className="text-muted-foreground">Manage your content</p>
-        </div>
-        <Button asChild>
-          <Link href="/creator/posts/new">+ New Post</Link>
-        </Button>
-      </div>
+      <PageHeader
+        title="My Posts"
+        subtitle="Manage your content"
+        actions={
+          <Button asChild>
+            <Link href="/creator/posts/new">
+              <Plus className="mr-2 h-4 w-4" />
+              New Post
+            </Link>
+          </Button>
+        }
+      />
 
       {/* Tabs */}
       <div className="flex gap-2 border-b pb-2">

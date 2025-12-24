@@ -1,8 +1,7 @@
-import crypto from 'crypto';
-
 import { CreatorRepository } from '@/repositories/creatorRepository';
 import { PayoutRepository } from '@/repositories/payoutRepository';
 import { squareClient } from '@/services/integrations/square/squareClient';
+import { squareTokenService } from '@/services/integrations/square/squareTokenService';
 
 export class PaymentService {
   constructor(
@@ -13,9 +12,15 @@ export class PaymentService {
   ) {}
 
   /**
-   * Generate Square OAuth URL
+   * Generate Square OAuth URL with all required parameters
+   * Returns the URL and state for CSRF validation
    */
-  async getConnectUrl(userId: string): Promise<{ url: string; state: string }> {
+  async getConnectUrl(userId: string): Promise<{
+    url: string;
+    state: string;
+    redirectUri: string;
+    environment: string;
+  }> {
     const profile = await this.creatorRepo.findByUserId(userId);
     if (!profile) {
       throw new Error('Creator profile not found');
@@ -25,50 +30,79 @@ export class PaymentService {
       throw new Error('KYC verification must be completed before setting up payouts');
     }
 
-    // Generate state token for CSRF protection
-    const state = crypto.randomBytes(32).toString('hex');
-    // In production, store state in session/cache with userId
+    // Generate OAuth URL using the new builder
+    const oauthResult = squareClient.getAuthorizationUrl();
 
-    const url = squareClient.getAuthorizationUrl(state);
+    // Log for debugging
+    console.warn('[Square OAuth] Generated authorization URL:', {
+      userId,
+      environment: oauthResult.environment,
+      redirectUri: oauthResult.redirectUri,
+      scopes: oauthResult.scopes,
+      statePrefix: oauthResult.state.substring(0, 10) + '...',
+    });
 
-    return { url, state };
-  }
-
-  /**
-   * Handle Square OAuth callback
-   */
-  // eslint-disable-next-line no-unused-vars
-  async handleCallback(code: string, _state: string): Promise<{ success: boolean }> {
-    // In production, verify state matches stored session state
-    // For now, we'll proceed with the code exchange
-
-    await squareClient.exchangeCodeForToken(code);
-
-    // The merchant ID will be extracted from the token response
-    // In a real implementation, you'd look up the user from the state token
-    // For now, this returns the result and the controller handles the user lookup
+    // TODO: In production, persist state to session/cookie/DB for validation
+    // await this.storeOAuthState(userId, oauthResult.state);
 
     return {
-      success: true,
+      url: oauthResult.url,
+      state: oauthResult.state,
+      redirectUri: oauthResult.redirectUri,
+      environment: oauthResult.environment,
     };
   }
 
   /**
    * Complete Square connection for a user
+   * Exchanges code for tokens and stores them securely (encrypted)
    */
   async completeConnection(userId: string, code: string): Promise<void> {
+    // Exchange authorization code for tokens
     const tokenResponse = await squareClient.exchangeCodeForToken(code);
 
-    // Store the merchant ID (tokens should be encrypted and stored securely)
-    await this.creatorRepo.updateSquareConnection(userId, tokenResponse.merchant_id, true);
-
-    // Update onboardingStatus to active (creator is now fully onboarded)
+    // Get creator profile
     const profile = await this.creatorRepo.findByUserId(userId);
-    if (profile) {
-      await this.creatorRepo.update(profile.id, {
-        onboardingStatus: 'active',
-      });
+    if (!profile) {
+      throw new Error('Creator profile not found');
     }
+
+    // Calculate token expiry (Square tokens expire in 30 days)
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 30);
+
+    // Store tokens securely (encrypted)
+    await squareTokenService.storeTokens(profile.id, {
+      accessToken: tokenResponse.access_token,
+      refreshToken: tokenResponse.refresh_token,
+      merchantId: tokenResponse.merchant_id,
+      expiresAt,
+    });
+
+    console.warn('[Square OAuth] Connection completed for user:', userId);
+  }
+
+  /**
+   * Get Square connection status
+   */
+  async getConnectionStatus(userId: string) {
+    return squareTokenService.getConnectionStatus(userId);
+  }
+
+  /**
+   * Disconnect Square account
+   */
+  async disconnect(userId: string): Promise<void> {
+    await squareTokenService.disconnect(userId);
+  }
+
+  /**
+   * Get access token for making Square API calls
+   * Automatically refreshes if needed
+   */
+  async getAccessToken(userId: string): Promise<string | null> {
+    const tokens = await squareTokenService.getTokens(userId);
+    return tokens?.accessToken || null;
   }
 
   /**
@@ -101,7 +135,7 @@ export class PaymentService {
    * Check if Square is connected
    */
   async isConnected(userId: string): Promise<boolean> {
-    const profile = await this.creatorRepo.findByUserId(userId);
-    return Boolean(profile?.stripeAccountId && profile?.stripeOnboardingComplete);
+    const status = await squareTokenService.getConnectionStatus(userId);
+    return status.isConnected;
   }
 }

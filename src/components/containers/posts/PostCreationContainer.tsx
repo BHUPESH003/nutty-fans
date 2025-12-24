@@ -56,20 +56,29 @@ export const PostCreationContainer = () => {
       // Upload media if selected
       if (selectedFile) {
         // 1. Get upload URL
-        const { uploadUrl, mediaId, key } = await apiClient.content.getUploadUrl(
+        const uploadResult = await apiClient.content.getUploadUrl(
           selectedFile.name,
           selectedFile.type,
           selectedFile.size
         );
 
+        const { uploadUrl, mediaId, key } = uploadResult;
+        if (!uploadUrl || !mediaId || !key) {
+          throw new Error('Failed to get upload URL - missing required fields');
+        }
+
         // 2. Upload to S3
-        await fetch(uploadUrl, {
+        const s3Response = await fetch(uploadUrl, {
           method: 'PUT',
           body: selectedFile,
           headers: {
             'Content-Type': selectedFile.type,
           },
         });
+
+        if (!s3Response.ok) {
+          throw new Error(`Failed to upload file to storage: ${s3Response.status}`);
+        }
 
         // 3. Confirm upload
         await apiClient.content.confirmUpload(mediaId, key);

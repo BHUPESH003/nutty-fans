@@ -1,5 +1,3 @@
-import { randomUUID } from 'crypto';
-
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
@@ -55,7 +53,16 @@ export class MediaService {
       throw new Error('Image too large. Maximum size: 20MB');
     }
 
-    const mediaId = randomUUID();
+    // Create media record first to get the actual ID
+    const media = await this.mediaRepo.create({
+      creatorId,
+      mediaType: 'image',
+      originalUrl: '', // Will be set on confirm
+      mimeType: file.contentType,
+      fileSize: file.size,
+    });
+
+    const mediaId = media.id;
     const key = `uploads/${creatorId}/${mediaId}/${file.filename}`;
     const expiresIn = 3600; // 1 hour
 
@@ -64,19 +71,9 @@ export class MediaService {
       Bucket: AWS_S3_BUCKET,
       Key: key,
       ContentType: file.contentType,
-      ContentLength: file.size,
     });
 
     const uploadUrl = await getSignedUrl(s3Client, command, { expiresIn });
-
-    // Create media record
-    await this.mediaRepo.create({
-      creatorId,
-      mediaType: 'image',
-      originalUrl: `${CLOUDFRONT_URL}/${key}`,
-      mimeType: file.contentType,
-      fileSize: file.size,
-    });
 
     return {
       uploadUrl,

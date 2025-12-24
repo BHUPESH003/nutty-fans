@@ -278,9 +278,9 @@ export const apiClient = {
     },
     confirmUpload(mediaId: string, key: string) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return request<any>(`/api/media/confirm/${mediaId}`, {
+      return request<any>('/api/media/confirm', {
         method: 'POST',
-        body: { key },
+        body: { mediaId, key },
       });
     },
   },

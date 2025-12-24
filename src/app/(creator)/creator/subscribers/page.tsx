@@ -2,6 +2,7 @@ import { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth';
 
+import { PageHeader } from '@/components/layout/PageHeader';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -37,13 +38,8 @@ export default async function SubscribersPage() {
   const result = await subscriptionService.getCreatorSubscribers(creator.id);
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Subscribers</h1>
-          <p className="text-muted-foreground">{result.totalCount} active subscribers</p>
-        </div>
-      </div>
+    <div className="space-y-6">
+      <PageHeader title="Subscribers" subtitle={`${result.totalCount} active subscribers`} />
 
       <div className="rounded-md border">
         <Table>

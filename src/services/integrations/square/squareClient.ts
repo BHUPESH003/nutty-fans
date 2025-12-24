@@ -2,6 +2,12 @@ import crypto from 'crypto';
 
 import type { CheckoutParams, CheckoutResult } from '@/types/payments';
 
+import {
+  buildSquareAuthorizeUrl,
+  generateSecureState,
+  getSquareOAuthConfig,
+  type SquareOAuthResult,
+} from './oauthBuilder';
 import type { SquareOAuthTokenResponse, SquareMerchant } from './types';
 
 const SQUARE_BASE_URL =
@@ -27,28 +33,35 @@ export class SquareClient {
   }
 
   /**
-   * Generate OAuth authorization URL
-   * For code flow: redirect_uri is NOT included in the URL
-   * Square uses the redirect URL registered in the Developer Dashboard
+   * Generate a cryptographically secure state token
    */
+  generateState(): string {
+    return generateSecureState();
+  }
 
-  getAuthorizationUrl(state: string): string {
-    const params = new URLSearchParams({
-      client_id: this.applicationId,
-      scope: ['MERCHANT_PROFILE_READ', 'PAYMENTS_WRITE', 'BANK_ACCOUNTS_READ'].join(' '),
-      session: 'false',
-      state: state,
-      // NOTE: redirect_uri is NOT included for code flow
-      // Square will use the redirect URL registered in the Developer Dashboard
+  /**
+   * Generate OAuth authorization URL with all required parameters
+   * Uses the new OAuth builder for proper URL construction
+   */
+  getAuthorizationUrl(state?: string): SquareOAuthResult {
+    const config = getSquareOAuthConfig();
+    const oauthState = state ?? generateSecureState();
+
+    return buildSquareAuthorizeUrl({
+      clientId: config.clientId,
+      redirectUri: config.redirectUri,
+      scopes: config.scopes,
+      state: oauthState,
+      environment: config.environment,
     });
-
-    return `${this.baseUrl}/oauth2/authorize?${params.toString()}`;
   }
 
   /**
    * Exchange authorization code for access token
    */
   async exchangeCodeForToken(code: string): Promise<SquareOAuthTokenResponse> {
+    const config = getSquareOAuthConfig();
+
     const response = await fetch(`${this.baseUrl}/oauth2/token`, {
       method: 'POST',
       headers: {
@@ -60,6 +73,7 @@ export class SquareClient {
         client_secret: this.applicationSecret,
         code,
         grant_type: 'authorization_code',
+        redirect_uri: config.redirectUri, // Required by Square
       }),
     });
 

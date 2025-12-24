@@ -3,6 +3,7 @@ import { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth';
 
+import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { authOptions } from '@/lib/auth/authOptions';
 import { formatCurrency } from '@/lib/utils';
@@ -34,11 +35,8 @@ export default async function EarningsPage() {
   const earnings = await payoutService.getEarningsSummary(creator.id);
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Earnings</h1>
-        <p className="text-muted-foreground">Overview of your revenue and payouts.</p>
-      </div>
+    <div className="space-y-6">
+      <PageHeader title="Earnings" subtitle="Overview of your revenue and payouts" />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>

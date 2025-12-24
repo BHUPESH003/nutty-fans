@@ -1,6 +1,16 @@
 import { prisma } from '@/lib/db/prisma';
 import type { MediaType, ProcessingStatus } from '@/types/content';
 
+// Helper to convert BigInt to number for JSON serialization
+function serializeMedia<T extends { fileSize?: bigint | number | null }>(
+  media: T
+): Omit<T, 'fileSize'> & { fileSize: number | null } {
+  return {
+    ...media,
+    fileSize: media.fileSize ? Number(media.fileSize) : null,
+  };
+}
+
 export class MediaRepository {
   /**
    * Create media record (pending upload)
@@ -13,7 +23,7 @@ export class MediaRepository {
     fileSize?: number;
     postId?: string;
   }) {
-    return prisma.media.create({
+    const media = await prisma.media.create({
       data: {
         creatorId: data.creatorId,
         mediaType: data.mediaType,
@@ -24,25 +34,28 @@ export class MediaRepository {
         processingStatus: 'pending',
       },
     });
+    return serializeMedia(media);
   }
 
   /**
    * Find media by ID
    */
   async findById(id: string) {
-    return prisma.media.findUnique({
+    const media = await prisma.media.findUnique({
       where: { id },
     });
+    return media ? serializeMedia(media) : null;
   }
 
   /**
    * Find media by post ID
    */
   async findByPostId(postId: string) {
-    return prisma.media.findMany({
+    const mediaList = await prisma.media.findMany({
       where: { postId },
       orderBy: { sortOrder: 'asc' },
     });
+    return mediaList.map(serializeMedia);
   }
 
   /**

@@ -4,6 +4,7 @@ import { Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
+import { CreatorCTA } from '@/components/creator/CreatorCTA';
 import { PostCard } from '@/components/posts/PostCard';
 import { useAuthPrompt } from '@/components/providers/AuthPromptProvider';
 import { Button } from '@/components/ui/button';
@@ -54,16 +55,14 @@ export function PublicFeed() {
         </div>
       )}
 
-      {/* Become a Creator CTA for logged-in users */}
+      {/* Creator CTA for logged-in users */}
       {isAuthenticated && (
         <div className="flex items-center justify-between rounded-xl bg-gradient-to-r from-purple-500/10 to-pink-500/10 p-4">
           <div>
             <h3 className="font-semibold">Ready to share your content?</h3>
             <p className="text-sm text-muted-foreground">Start earning from your passion</p>
           </div>
-          <Button asChild variant="secondary">
-            <Link href="/creator/start">Become a Creator</Link>
-          </Button>
+          <CreatorCTA variant="compact" />
         </div>
       )}
 
