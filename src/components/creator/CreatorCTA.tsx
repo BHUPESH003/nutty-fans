@@ -3,9 +3,9 @@
 import { AlertTriangle, ArrowRight, Sparkles, Palette } from 'lucide-react';
 import type { Route } from 'next';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
+import { useCreatorStatus } from '@/hooks/useCreatorStatus';
 import { cn } from '@/lib/utils';
 
 type OnboardingStatus =
@@ -19,11 +19,6 @@ type OnboardingStatus =
   | 'kyc_in_progress'
   | 'payout_setup'
   | 'active';
-
-interface CreatorStatus {
-  onboardingStatus: OnboardingStatus;
-  isCreator: boolean;
-}
 
 interface CreatorCTAProps {
   variant?: 'sidebar' | 'inline' | 'compact';
@@ -48,38 +43,15 @@ function getOnboardingUrl(status: OnboardingStatus): string {
 }
 
 export function CreatorCTA({ variant = 'sidebar', className }: CreatorCTAProps) {
-  const [status, setStatus] = useState<CreatorStatus | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchStatus = async () => {
-      try {
-        const response = await fetch('/api/creator/status');
-        if (response.ok) {
-          const data = await response.json();
-          setStatus({
-            onboardingStatus: data.data?.onboardingStatus || 'not_started',
-            isCreator: data.data?.onboardingStatus === 'active',
-          });
-        }
-      } catch (error) {
-        console.error('Failed to fetch creator status:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    void fetchStatus();
-  }, []);
+  const { onboardingStatus, isLoading } = useCreatorStatus();
 
   if (isLoading) {
     return null; // Don't show anything while loading
   }
 
-  const onboardingStatus = status?.onboardingStatus || 'not_started';
   const isActive = onboardingStatus === 'active';
   const isInProgress = onboardingStatus !== 'not_started' && onboardingStatus !== 'active';
-  const targetUrl = getOnboardingUrl(onboardingStatus);
+  const targetUrl = getOnboardingUrl(onboardingStatus as OnboardingStatus);
 
   // If creator is active, show Creator Dashboard link
   if (isActive) {
@@ -169,7 +141,7 @@ export function CreatorCTA({ variant = 'sidebar', className }: CreatorCTAProps) 
         <div className="mb-3 h-1 w-full overflow-hidden rounded-full bg-white/10">
           <div
             className="h-full rounded-full bg-yellow-500 transition-all"
-            style={{ width: getProgressPercent(onboardingStatus) }}
+            style={{ width: getProgressPercent(onboardingStatus as OnboardingStatus) }}
           />
         </div>
         <Button size="sm" className="w-full text-xs" variant="secondary" asChild>

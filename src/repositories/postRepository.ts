@@ -215,14 +215,18 @@ export class PostRepository {
 
   /**
    * Get public posts for explore feed
+   * Only includes FREE and PPV content - subscriber-only content requires subscription
+   * PPV content shows in explore but media URLs are stripped until purchased
    */
   async getExploreFeed(cursor?: string, limit = 20) {
     return prisma.post.findMany({
       where: {
         status: 'published',
-        accessLevel: 'free',
+        // Only free and PPV - subscriber content is exclusive to subscribers
+        accessLevel: { in: ['free', 'ppv'] },
         publishedAt: { lte: new Date() },
-        postType: 'post', // Stories/reels have separate feeds
+        // Include both posts and reels (exclude stories as they expire)
+        postType: { in: ['post', 'reel'] },
         OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
       },
       orderBy: { publishedAt: 'desc' },
@@ -283,6 +287,41 @@ export class PostRepository {
           userId,
         },
         status: 'published',
+      },
+    });
+  }
+
+  /**
+   * Get reels feed - videos and reel-type posts ordered by engagement
+   */
+  async getReelsFeed(cursor?: string, limit = 10) {
+    return prisma.post.findMany({
+      where: {
+        status: 'published',
+        publishedAt: { lte: new Date() },
+        OR: [
+          { postType: 'reel' },
+          {
+            media: {
+              some: {
+                mediaType: 'video',
+              },
+            },
+          },
+        ],
+      },
+      orderBy: [{ likeCount: 'desc' }, { viewCount: 'desc' }, { publishedAt: 'desc' }],
+      take: limit + 1,
+      ...(cursor && { cursor: { id: cursor }, skip: 1 }),
+      include: {
+        media: { orderBy: { sortOrder: 'asc' } },
+        creator: {
+          include: {
+            user: {
+              select: { id: true, username: true, displayName: true, avatarUrl: true },
+            },
+          },
+        },
       },
     });
   }

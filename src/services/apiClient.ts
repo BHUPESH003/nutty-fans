@@ -433,6 +433,39 @@ export const apiClient = {
       });
     },
   },
+  payments: {
+    getStatus() {
+      return request<{ walletBalance: number; autoTopUpEnabled: boolean }>('/api/payments/status');
+    },
+    /**
+     * Unlock PPV content - debits wallet
+     * Uses the correct purchase endpoint which performs actual transaction
+     */
+    unlockPpv(postId: string) {
+      return request<{ data: { purchase: { id: string }; transactionId: string } }>(
+        `/api/ppv/${postId}/purchase`,
+        {
+          method: 'POST',
+          body: { paymentSource: 'wallet' },
+        }
+      );
+    },
+    /**
+     * Subscribe to a creator - debits wallet
+     */
+    subscribe(
+      creatorId: string,
+      planType: 'monthly' | '3month' | '6month' | '12month' = 'monthly'
+    ) {
+      return request<{ data: { subscriptionId: string; expiresAt: string } }>(
+        '/api/subscriptions',
+        {
+          method: 'POST',
+          body: { creatorId, planType },
+        }
+      );
+    },
+  },
 };
 
 export type ApiClient = typeof apiClient;

@@ -110,6 +110,7 @@ export interface MuxUploadResponse {
   uploadUrl: string;
   uploadId: string;
   mediaId: string;
+  key: string;
 }
 
 export interface FeedResult {

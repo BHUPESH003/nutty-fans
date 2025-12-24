@@ -1,4 +1,5 @@
 import { cacheService, cacheKeys } from '@/lib/cache/cacheService';
+import { prisma } from '@/lib/db/prisma';
 import { BookmarkRepository } from '@/repositories/bookmarkRepository';
 import { LikeRepository } from '@/repositories/likeRepository';
 import { PostRepository } from '@/repositories/postRepository';
@@ -48,33 +49,38 @@ export class FeedService {
 
   /**
    * Get explore feed (public content)
+   * Only includes FREE and PPV content
+   * PPV content media URLs are stripped until user has purchased
    */
   async getExploreFeed(cursor?: string, limit = 20, userId?: string): Promise<FeedResult> {
-    // Cache explore feed for 1 minute
-    const cacheKey = cacheKeys.exploreFeed(cursor);
+    // Don't cache per-user since access varies
+    const posts = await this.postRepo.getExploreFeed(cursor, limit);
 
-    return cacheService.getOrSet(
-      cacheKey,
-      async () => {
-        const posts = await this.postRepo.getExploreFeed(cursor, limit);
+    const hasMore = posts.length > limit;
+    const items = hasMore ? posts.slice(0, limit) : posts;
+    const formattedPosts = items.map((p) => this.formatPost(p));
 
-        const hasMore = posts.length > limit;
-        const items = hasMore ? posts.slice(0, limit) : posts;
-        const formattedPosts = items.map((p) => this.formatPost(p));
+    // Add engagement status if user is logged in
+    if (userId && formattedPosts.length > 0) {
+      await this.addEngagementStatus(formattedPosts, userId);
+      // Also add access status for PPV content
+      await this.addAccessStatus(formattedPosts, userId);
+    } else {
+      // For non-logged-in users, only free content is accessible
+      for (const post of formattedPosts) {
+        post.hasAccess = post.accessLevel === 'free';
+      }
+    }
 
-        // Add engagement status if user is logged in
-        if (userId && formattedPosts.length > 0) {
-          await this.addEngagementStatus(formattedPosts, userId);
-        }
+    // SECURITY: Strip media URLs from locked PPV content
+    // This prevents users from accessing media via network tab
+    this.stripLockedMedia(formattedPosts);
 
-        return {
-          posts: formattedPosts,
-          nextCursor: hasMore && items.length > 0 ? items[items.length - 1]!.id : null,
-          hasMore,
-        };
-      },
-      60 * 1000 // 1 minute cache
-    );
+    return {
+      posts: formattedPosts,
+      nextCursor: hasMore && items.length > 0 ? items[items.length - 1]!.id : null,
+      hasMore,
+    };
   }
 
   /**
@@ -94,6 +100,50 @@ export class FeedService {
   }
 
   /**
+   * Get reels feed (video/reel posts optimized for vertical browsing)
+   * Uses same Post model, just filtered for video content
+   */
+  async getReelsFeed(userId?: string, cursor?: string, limit = 10): Promise<FeedResult> {
+    const cacheKey = `reels:${cursor || 'initial'}`;
+
+    return cacheService.getOrSet(
+      cacheKey,
+      async () => {
+        // Get posts that are reels or have video media
+        const posts = await this.postRepo.getReelsFeed(cursor, limit);
+
+        const hasMore = posts.length > limit;
+        const items = hasMore ? posts.slice(0, limit) : posts;
+        const formattedPosts = items.map((p) => this.formatPost(p));
+
+        // Add engagement status if user is logged in
+        if (userId && formattedPosts.length > 0) {
+          await this.addEngagementStatus(formattedPosts, userId);
+        }
+
+        // Add hasAccess based on access level and user
+        for (const post of formattedPosts) {
+          if (post.accessLevel === 'free') {
+            post.hasAccess = true;
+          } else if (!userId) {
+            post.hasAccess = false;
+          } else {
+            // TODO: Check actual access via subscriptions/purchases
+            post.hasAccess = false;
+          }
+        }
+
+        return {
+          posts: formattedPosts,
+          nextCursor: hasMore && items.length > 0 ? items[items.length - 1]!.id : null,
+          hasMore,
+        };
+      },
+      30 * 1000 // 30 seconds cache
+    );
+  }
+
+  /**
    * Add like/bookmark status to posts
    */
   private async addEngagementStatus(posts: PostWithCreator[], userId: string) {
@@ -110,6 +160,71 @@ export class FeedService {
     for (const post of posts) {
       post.isLiked = likedSet.has(post.id);
       post.isBookmarked = bookmarkedSet.has(post.id);
+    }
+  }
+
+  /**
+   * Add access status (hasAccess) to posts based on subscriptions and PPV purchases
+   */
+  private async addAccessStatus(posts: PostWithCreator[], userId: string) {
+    const postIds = posts.map((p) => p.id);
+    const creatorIds = [...new Set(posts.map((p) => p.creatorId))];
+
+    // Batch fetch subscriptions and PPV purchases
+    const [activeSubscriptions, ppvPurchases] = await Promise.all([
+      prisma.subscription.findMany({
+        where: {
+          userId,
+          creatorId: { in: creatorIds },
+          status: 'active',
+        },
+        select: { creatorId: true },
+      }),
+      prisma.ppvPurchase.findMany({
+        where: {
+          userId,
+          postId: { in: postIds },
+        },
+        select: { postId: true },
+      }),
+    ]);
+
+    const subscribedCreatorIds = new Set(activeSubscriptions.map((s) => s.creatorId));
+    const purchasedPostIds = new Set(
+      ppvPurchases.filter((p) => p.postId !== null).map((p) => p.postId as string)
+    );
+
+    for (const post of posts) {
+      if (post.accessLevel === 'free') {
+        post.hasAccess = true;
+      } else if (post.accessLevel === 'subscribers') {
+        post.hasAccess = subscribedCreatorIds.has(post.creatorId);
+      } else if (post.accessLevel === 'ppv') {
+        // PPV can be accessed via subscription OR purchase
+        post.hasAccess = subscribedCreatorIds.has(post.creatorId) || purchasedPostIds.has(post.id);
+      } else {
+        post.hasAccess = false;
+      }
+    }
+  }
+
+  /**
+   * SECURITY: Strip media URLs from posts where user doesn't have access
+   * This prevents accessing content via network tab inspection
+   * Only thumbnailUrl is kept for preview display with blur overlay
+   */
+  private stripLockedMedia(posts: PostWithCreator[]) {
+    for (const post of posts) {
+      if (!post.hasAccess) {
+        for (const media of post.media) {
+          // Set to placeholder that won't trigger browser download
+          // Components should check hasAccess before rendering media
+          media.originalUrl = 'locked';
+          media.processedUrl = null;
+          // Keep thumbnailUrl for blurred preview - UI will apply blur overlay
+          // Keep previewUrl if it's a low-quality teaser
+        }
+      }
     }
   }
 

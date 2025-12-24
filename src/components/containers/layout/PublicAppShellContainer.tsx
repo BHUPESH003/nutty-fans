@@ -4,6 +4,7 @@ import * as React from 'react';
 
 import { AppShell } from '@/components/layout/AppShell';
 import { AuthPromptProvider } from '@/components/providers/AuthPromptProvider';
+import { CreatorStatusProvider } from '@/components/providers/CreatorStatusProvider';
 import { useAuth } from '@/hooks/useAuth';
 
 interface PublicAppShellContainerProps {
@@ -30,7 +31,9 @@ export function PublicAppShellContainer({ children }: PublicAppShellContainerPro
 
   return (
     <AuthPromptProvider isAuthenticated={isAuthenticated}>
-      <AppShell user={user}>{children}</AppShell>
+      <CreatorStatusProvider>
+        <AppShell user={user}>{children}</AppShell>
+      </CreatorStatusProvider>
     </AuthPromptProvider>
   );
 }

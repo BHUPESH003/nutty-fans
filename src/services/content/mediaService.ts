@@ -118,6 +118,9 @@ export class MediaService {
       uploadUrl: upload.uploadUrl,
       uploadId: upload.uploadId,
       mediaId: media.id,
+      // Add key for frontend compatibility - use mediaId as the key for videos
+      // since there's no S3 path for Mux direct uploads
+      key: `mux/${media.id}`,
     };
   }
 

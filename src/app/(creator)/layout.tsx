@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react';
 import React from 'react';
 
 import { AppShell } from '@/components/layout/AppShell';
+import { CreatorStatusProvider } from '@/components/providers/CreatorStatusProvider';
 
 export default function CreatorLayout({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession();
@@ -32,8 +33,10 @@ export default function CreatorLayout({ children }: { children: React.ReactNode 
     : null;
 
   return (
-    <AppShell user={user}>
-      <div className="mx-auto max-w-4xl py-8">{children}</div>
-    </AppShell>
+    <CreatorStatusProvider>
+      <AppShell user={user}>
+        <div className="mx-auto max-w-4xl py-8">{children}</div>
+      </AppShell>
+    </CreatorStatusProvider>
   );
 }

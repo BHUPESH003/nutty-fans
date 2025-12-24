@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import * as React from 'react';
 
 import { AppShell } from '@/components/layout/AppShell';
+import { CreatorStatusProvider } from '@/components/providers/CreatorStatusProvider';
 import { useAuth } from '@/hooks/useAuth';
 
 interface AppShellContainerProps {
@@ -34,5 +35,9 @@ export function AppShellContainer({ children }: AppShellContainerProps) {
     return null; // Will redirect
   }
 
-  return <AppShell user={user}>{children}</AppShell>;
+  return (
+    <CreatorStatusProvider>
+      <AppShell user={user}>{children}</AppShell>
+    </CreatorStatusProvider>
+  );
 }
