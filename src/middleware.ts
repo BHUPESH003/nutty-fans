@@ -7,7 +7,7 @@ export async function middleware(request: NextRequest) {
   const isAuth = !!token;
   const { pathname } = request.nextUrl;
 
-  // Public routes that don't require authentication
+  // Public routes that don't require authenticatio
   const publicRoutes = [
     '/',
     '/login',
