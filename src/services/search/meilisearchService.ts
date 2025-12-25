@@ -8,21 +8,36 @@ import { MeiliSearch } from 'meilisearch';
 
 import { prisma } from '@/lib/db/prisma';
 
-const MEILISEARCH_HOST = process.env['MEILISEARCH_HOST'] ?? 'http://localhost:7700';
+const MEILISEARCH_HOST = process.env['MEILISEARCH_HOST'] || '';
 const MEILISEARCH_API_KEY = process.env['MEILISEARCH_API_KEY'] ?? '';
 
-const client = new MeiliSearch({
-  host: MEILISEARCH_HOST,
-  apiKey: MEILISEARCH_API_KEY,
-});
+// Lazy initialization to avoid build-time errors when env vars are not set
+let _client: MeiliSearch | null = null;
+function getClient(): MeiliSearch {
+  if (!_client) {
+    const host = MEILISEARCH_HOST || 'http://localhost:7700';
+    if (!host || host === 'http://') {
+      throw new Error('MEILISEARCH_HOST is not configured properly');
+    }
+    _client = new MeiliSearch({
+      host,
+      apiKey: MEILISEARCH_API_KEY,
+    });
+  }
+  return _client;
+}
 
 // Index names
 const CREATORS_INDEX = 'creators';
 const POSTS_INDEX = 'posts';
 
 export class MeilisearchService {
-  private creatorsIndex = client.index(CREATORS_INDEX);
-  private postsIndex = client.index(POSTS_INDEX);
+  private get creatorsIndex() {
+    return getClient().index(CREATORS_INDEX);
+  }
+  private get postsIndex() {
+    return getClient().index(POSTS_INDEX);
+  }
 
   /**
    * Initialize indexes with settings

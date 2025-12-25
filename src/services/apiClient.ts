@@ -842,8 +842,8 @@ export const apiClient = {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return request<any>('/api/bundles', { method: 'POST', data: input });
     },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     update(bundleId: string, input: any) {
-      // eslint-disable-line @typescript-eslint/no-explicit-any
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return request<any>(`/api/bundles/${bundleId}`, { method: 'PATCH', data: input });
     },

@@ -14,8 +14,8 @@ export class LiveStreamService {
     private readonly mux = new MuxClient()
   ) {}
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async create(userId: string, input: any) {
-    // eslint-disable-line @typescript-eslint/no-explicit-any
     const creatorId = await this.creatorAccessService.requireCreatorIdByUserId(userId);
     const { title, description, thumbnailUrl, accessLevel, entryPrice, scheduledAt } = input ?? {};
 

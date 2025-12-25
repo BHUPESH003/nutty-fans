@@ -57,8 +57,9 @@ export function BundleEditorContainer({ bundleId }: BundleEditorContainerProps) 
           );
           setCoverImageUrl(b.coverImageUrl ?? '');
           const itemPostIds = Array.isArray(b.items)
-            ? b.items.map((it: any) => it.postId ?? it.post?.id).filter(Boolean)
-            : []; // eslint-disable-line @typescript-eslint/no-explicit-any
+            ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              b.items.map((it: any) => it.postId ?? it.post?.id).filter(Boolean)
+            : [];
           setSelectedPostIds(itemPostIds);
         }
       } finally {

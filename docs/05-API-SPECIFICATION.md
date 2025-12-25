@@ -678,7 +678,7 @@ Events handled (high-level):
   - `payment.refunded`
 - Payout lifecycle (if/when enabled via Square):
   - `payout.sent`
-  - `payout.failed`
+- `payout.failed`
 
 ### Mux Webhooks
 

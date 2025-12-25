@@ -39,9 +39,10 @@ export const CreatorStartContainer = () => {
       try {
         const data = await apiClient.creator.getStatus();
         // If user has any onboarding status beyond not_started, redirect them appropriately
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         if ((data as any)?.onboardingStatus && (data as any).onboardingStatus !== 'not_started') {
-          // eslint-disable-line @typescript-eslint/no-explicit-any
-          router.push((data as any).nextStep || '/creator/dashboard'); // eslint-disable-line @typescript-eslint/no-explicit-any
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          router.push((data as any).nextStep || '/creator/dashboard');
           return;
         }
       } catch (err) {

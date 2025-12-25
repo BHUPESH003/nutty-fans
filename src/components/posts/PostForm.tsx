@@ -41,8 +41,9 @@ export function PostForm({
   const [uploading, setUploading] = React.useState(false);
   const [uploadError, setUploadError] = React.useState<string | null>(null);
   const [tagsText, setTagsText] = React.useState<string>(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (initialData as any)?.tags?.join(', ') || ''
-  ); // eslint-disable-line @typescript-eslint/no-explicit-any
+  );
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const parsedTags = React.useMemo(() => {
