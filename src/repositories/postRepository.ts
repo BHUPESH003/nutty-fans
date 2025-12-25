@@ -35,6 +35,9 @@ export class PostRepository {
       },
       include: {
         media: true,
+        postTags: {
+          include: { tag: { select: { id: true, name: true, slug: true } } },
+        },
         creator: {
           include: {
             user: {
@@ -54,6 +57,9 @@ export class PostRepository {
       where: { id },
       include: {
         media: { orderBy: { sortOrder: 'asc' } },
+        postTags: {
+          include: { tag: { select: { id: true, name: true, slug: true } } },
+        },
         creator: {
           include: {
             user: {
@@ -84,6 +90,9 @@ export class PostRepository {
       ...(cursor && { cursor: { id: cursor }, skip: 1 }),
       include: {
         media: { orderBy: { sortOrder: 'asc' } },
+        postTags: {
+          include: { tag: { select: { id: true, name: true, slug: true } } },
+        },
         creator: {
           include: {
             user: {
@@ -104,6 +113,9 @@ export class PostRepository {
       data,
       include: {
         media: { orderBy: { sortOrder: 'asc' } },
+        postTags: {
+          include: { tag: { select: { id: true, name: true, slug: true } } },
+        },
       },
     });
   }
@@ -139,6 +151,40 @@ export class PostRepository {
       data: {
         status: 'scheduled',
         scheduledAt,
+      },
+    });
+  }
+
+  /**
+   * Find scheduled posts that should be published now.
+   */
+  async findScheduledToPublish(now: Date, limit = 50) {
+    return prisma.post.findMany({
+      where: {
+        status: 'scheduled',
+        scheduledAt: {
+          lte: now,
+          not: null,
+        },
+      },
+      take: limit,
+      select: {
+        id: true,
+        scheduledAt: true,
+      },
+    });
+  }
+
+  /**
+   * Publish a scheduled post and clear scheduledAt.
+   */
+  async publishScheduled(id: string, publishedAt: Date) {
+    return prisma.post.update({
+      where: { id },
+      data: {
+        status: 'published',
+        publishedAt,
+        scheduledAt: null,
       },
     });
   }
@@ -200,6 +246,9 @@ export class PostRepository {
       ...(cursor && { cursor: { id: cursor }, skip: 1 }),
       include: {
         media: { orderBy: { sortOrder: 'asc' } },
+        postTags: {
+          include: { tag: { select: { id: true, name: true, slug: true } } },
+        },
         creator: {
           include: {
             user: {
@@ -234,6 +283,9 @@ export class PostRepository {
       ...(cursor && { cursor: { id: cursor }, skip: 1 }),
       include: {
         media: { orderBy: { sortOrder: 'asc' } },
+        postTags: {
+          include: { tag: { select: { id: true, name: true, slug: true } } },
+        },
         creator: {
           include: {
             user: {
@@ -261,6 +313,9 @@ export class PostRepository {
       ...(cursor && { cursor: { id: cursor }, skip: 1 }),
       include: {
         media: { orderBy: { sortOrder: 'asc' } },
+        postTags: {
+          include: { tag: { select: { id: true, name: true, slug: true } } },
+        },
       },
     });
   }
@@ -315,6 +370,9 @@ export class PostRepository {
       ...(cursor && { cursor: { id: cursor }, skip: 1 }),
       include: {
         media: { orderBy: { sortOrder: 'asc' } },
+        postTags: {
+          include: { tag: { select: { id: true, name: true, slug: true } } },
+        },
         creator: {
           include: {
             user: {

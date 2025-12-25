@@ -27,13 +27,13 @@ NuttyFans is a creator monetization platform enabling content creators to earn t
 
 ### 1.2 Product Principles
 
-| Principle              | Description                                       |
-| ---------------------- | ------------------------------------------------- |
-| **Creator-First**      | Features prioritize creator earning potential     |
-| **Premium Experience** | Clean, editorial aesthetic inspired by Hidden.com |
-| **Trust & Safety**     | Robust verification and moderation                |
-| **Fair Economics**     | 15% commission, weekly payouts                    |
-| **Mobile-Ready**       | PWA-first responsive design                       |
+| Principle              | Description                                                          |
+| ---------------------- | -------------------------------------------------------------------- |
+| **Creator-First**      | Features prioritize creator earning potential                        |
+| **Premium Experience** | Clean, editorial aesthetic inspired by Hidden.com                    |
+| **Trust & Safety**     | Robust verification and moderation                                   |
+| **Fair Economics**     | Tiered commission (default 4–16% by subscriber tier), weekly payouts |
+| **Mobile-Ready**       | PWA-first responsive design                                          |
 
 ### 1.3 Target Users
 
@@ -749,14 +749,14 @@ START (User views locked content)
 
 ### 5.4 Payouts
 
-| Criterion | Test                                        |
-| --------- | ------------------------------------------- |
-| AC-030    | Earnings are calculated with 15% commission |
-| AC-031    | Payouts are processed weekly (Fridays)      |
-| AC-032    | Minimum payout threshold is $20             |
-| AC-033    | Creator receives payout confirmation        |
-| AC-034    | Payout history is accurate and complete     |
-| AC-035    | Failed payouts are retried and notified     |
+| Criterion | Test                                                                             |
+| --------- | -------------------------------------------------------------------------------- |
+| AC-030    | Earnings are calculated using the tiered commission strategy (CommissionService) |
+| AC-031    | Payouts are processed weekly (Fridays)                                           |
+| AC-032    | Minimum payout threshold is $20                                                  |
+| AC-033    | Creator receives payout confirmation                                             |
+| AC-034    | Payout history is accurate and complete                                          |
+| AC-035    | Failed payouts are retried and notified                                          |
 
 ---
 

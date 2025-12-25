@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/table';
 import { authOptions } from '@/lib/auth/authOptions';
 import { formatCurrency, formatDate } from '@/lib/utils';
+import { creatorAccessService } from '@/services/creator/creatorAccess';
 
 export const metadata: Metadata = {
   title: 'Payouts | NuttyFans Creator',
@@ -26,16 +27,16 @@ export default async function PayoutsPage() {
   if (!session?.user?.id) {
     redirect('/auth/signin' as any); // eslint-disable-line @typescript-eslint/no-explicit-any
   }
-
-  const { paymentController } = await import('@/app/api/_controllers/paymentController');
-  const creator = await paymentController.getCreatorProfile(session.user.id);
-  if (!creator) {
+  let creatorId: string;
+  try {
+    creatorId = await creatorAccessService.requireCreatorIdByUserId(session.user.id);
+  } catch {
     redirect('/creator/onboarding' as any); // eslint-disable-line @typescript-eslint/no-explicit-any
   }
 
   const { PayoutService } = await import('@/services/payments/payoutService');
   const payoutService = new PayoutService();
-  const result = await payoutService.getPayouts(creator.id);
+  const result = await payoutService.getPayouts(creatorId);
 
   return (
     <div className="space-y-8">

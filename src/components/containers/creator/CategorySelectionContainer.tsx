@@ -1,6 +1,7 @@
 'use client';
 
 import { AlertCircle } from 'lucide-react';
+import type { Route } from 'next';
 import { useRouter } from 'next/navigation';
 import React, { useState, useEffect } from 'react';
 
@@ -52,24 +53,21 @@ export const CategorySelectionContainer = () => {
     const fetchData = async () => {
       try {
         // Fetch categories and saved data in parallel
-        const [categoriesData, statusResponse] = await Promise.all([
+        const [categoriesData, statusData] = await Promise.all([
           apiClient.common.getCategories(),
-          fetch('/api/creator/status'),
+          apiClient.creator.getStatus(),
         ]);
 
         setCategories(categoriesData);
 
         // Pre-populate form with saved data
-        if (statusResponse.ok) {
-          const statusData = await statusResponse.json();
-          const profile = statusData.data?.profile;
-          if (profile) {
-            setFormData((prev) => ({
-              ...prev,
-              categoryId: profile.categoryId || '',
-              creatorGoal: profile.creatorGoal || '',
-            }));
-          }
+        const profile = statusData?.profile;
+        if (profile) {
+          setFormData((prev) => ({
+            ...prev,
+            categoryId: profile.categoryId || '',
+            creatorGoal: profile.creatorGoal || '',
+          }));
         }
       } catch (err) {
         console.error('Failed to fetch data:', err);
@@ -98,19 +96,11 @@ export const CategorySelectionContainer = () => {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch('/api/creator/apply/category', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+      const data = await apiClient.creator.submitCategory({
+        categoryId: formData.categoryId,
+        creatorGoal: formData.creatorGoal,
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error?.message || 'Failed to submit category');
-      }
-
-      router.push(data.data.nextStep);
+      router.push(data.nextStep as Route);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {

@@ -9,6 +9,8 @@ import type {
   MuxAssetStatus,
   MuxPlaybackUrls,
   MuxWebhookPayload,
+  MuxLiveStreamResponse,
+  MuxCreateLiveStreamResult,
 } from './types';
 
 const MUX_TOKEN_ID = process.env['MUX_TOKEN_ID'] ?? '';
@@ -275,6 +277,72 @@ export class MuxClient {
    */
   parseWebhookEvent(raw: string): MuxWebhookPayload {
     return JSON.parse(raw) as MuxWebhookPayload;
+  }
+
+  // ============================================
+  // LIVE STREAMS (Mux Live)
+  // ============================================
+
+  /**
+   * Create a Mux Live Stream (RTMP ingest + HLS playback)
+   *
+   * We use signed playback policy for consistency with VOD security.
+   * RTMP ingest URL is fixed for Mux; stream_key is returned per stream.
+   */
+  async createLiveStream(passthrough?: string): Promise<MuxCreateLiveStreamResult> {
+    const response = await fetch(`${MUX_BASE_URL}/video/v1/live-streams`, {
+      method: 'POST',
+      headers: {
+        Authorization: this.authHeader,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        playback_policy: ['signed'],
+        new_asset_settings: {
+          playback_policy: ['signed'],
+          passthrough,
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Mux live stream creation failed: ${error}`);
+    }
+
+    const data: MuxLiveStreamResponse = await response.json();
+    const playbackId = data.data.playback_ids?.[0]?.id;
+    if (!playbackId) {
+      throw new Error('Mux live stream missing playback ID');
+    }
+
+    return {
+      muxLiveStreamId: data.data.id,
+      streamKey: data.data.stream_key,
+      playbackId,
+      // Mux RTMP ingest endpoint (TLS)
+      rtmpUrl: 'rtmps://global-live.mux.com:443/app',
+    };
+  }
+
+  /**
+   * Complete/disable a live stream so it stops accepting ingest.
+   */
+  async completeLiveStream(muxLiveStreamId: string): Promise<void> {
+    const response = await fetch(
+      `${MUX_BASE_URL}/video/v1/live-streams/${muxLiveStreamId}/complete`,
+      {
+        method: 'PUT',
+        headers: {
+          Authorization: this.authHeader,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Mux live stream complete failed: ${error}`);
+    }
   }
 }
 

@@ -1,5 +1,5 @@
-import { prisma } from '@/lib/db/prisma';
 import { SettingsRepository } from '@/repositories/settingsRepository';
+import { UserRepository } from '@/repositories/userRepository';
 
 type SettingsResponse = {
   email: string;
@@ -8,6 +8,7 @@ type SettingsResponse = {
     emailNotifications: boolean;
     marketingEmails: boolean;
     platformUpdates: boolean;
+    pushNotifications: boolean;
   };
   privacy: {
     profileDiscoverable: boolean;
@@ -21,17 +22,14 @@ type UpdateSettingsInput = {
 };
 
 export class SettingsService {
-  constructor(private readonly repo: SettingsRepository) {}
+  constructor(
+    private readonly repo: SettingsRepository,
+    private readonly userRepo: UserRepository
+  ) {}
 
   async getSettings(userId: string): Promise<SettingsResponse | null> {
     const [user, settings] = await Promise.all([
-      prisma.user.findUnique({
-        where: { id: userId },
-        select: {
-          email: true,
-          metadata: true,
-        },
-      }),
+      this.userRepo.findById(userId),
       this.repo.getByUserId(userId),
     ]);
 
@@ -47,6 +45,7 @@ export class SettingsService {
         emailNotifications: settings.emailNotifications,
         marketingEmails: settings.marketingEmails,
         platformUpdates: settings.platformUpdates,
+        pushNotifications: settings.pushNotifications,
       },
       privacy: {
         profileDiscoverable: settings.profileDiscoverable,
@@ -68,6 +67,9 @@ export class SettingsService {
       if (input.notifications.platformUpdates !== undefined) {
         partial.platformUpdates = input.notifications.platformUpdates;
       }
+      if (input.notifications.pushNotifications !== undefined) {
+        partial.pushNotifications = input.notifications.pushNotifications;
+      }
     }
 
     if (input.privacy) {
@@ -82,12 +84,9 @@ export class SettingsService {
     const updatedSettings = await this.repo.update(userId, partial);
 
     // Keep User flags in sync with settings.
-    await prisma.user.update({
-      where: { id: userId },
-      data: {
-        isDiscoverable: updatedSettings.profileDiscoverable,
-        showLocation: updatedSettings.showLocation,
-      },
+    await this.userRepo.updateFlags(userId, {
+      isDiscoverable: updatedSettings.profileDiscoverable,
+      showLocation: updatedSettings.showLocation,
     });
 
     const current = await this.getSettings(userId);

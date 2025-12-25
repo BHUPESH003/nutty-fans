@@ -1,0 +1,16 @@
+## 04 — Engineering (Integration) (Draft)
+
+### Contract rules
+- API responses must follow standard `{ code, message, data }` format (see `src/lib/api/response`).
+- Frontend must use `src/services/apiClient.ts` exclusively.
+
+### Key integration flows to validate end-to-end
+- Subscribe (wallet debit) → access to subscriber posts → subscription list shows active
+- PPV purchase → access to media → PPV purchase history reflects it
+- Tip → transaction created → creator earnings reflect it
+- Bundle purchase → access to bundle posts → purchase history reflects it
+- Live stream:
+  - creator creates stream → goes live → fans can watch (gated) → notifications fire
+- Push notifications:
+  - permission + subscribe endpoint → notify on new post, live started, etc.
+

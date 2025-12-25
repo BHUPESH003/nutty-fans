@@ -2,7 +2,7 @@
 
 import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import {
   AlertDialog,
@@ -21,13 +21,14 @@ import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
   CardDescription,
   CardFooter,
+  CardHeader,
+  CardTitle,
 } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency, formatDate } from '@/lib/utils';
+import { apiClient } from '@/services/apiClient';
 
 interface Subscription {
   id: string;
@@ -45,44 +46,63 @@ interface Subscription {
   };
 }
 
-export function SubscriptionListClient({
-  initialSubscriptions,
-}: {
-  initialSubscriptions: Subscription[];
-}) {
+export function SubscriptionsPageContainer() {
   const router = useRouter();
   const { toast } = useToast();
+
+  const [items, setItems] = useState<Subscription[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [loadingId, setLoadingId] = useState<string | null>(null);
+
+  const load = async () => {
+    setIsLoading(true);
+    try {
+      const result = await apiClient.subscriptions.list();
+      setItems(result.subscriptions || []);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to load subscriptions';
+      toast({ title: 'Error', description: message, variant: 'destructive' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleCancel = async (id: string) => {
     try {
       setLoadingId(id);
-      const response = await fetch(`/api/subscriptions/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'cancel' }),
-      });
-
-      if (!response.ok) throw new Error('Failed to cancel');
-
+      await apiClient.subscriptions.cancel(id);
       toast({
         title: 'Subscription cancelled',
         description: 'Your subscription will remain active until the end of the period.',
       });
-
+      await load();
       router.refresh();
-    } catch {
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to cancel subscription';
       toast({
         title: 'Error',
-        description: 'Failed to cancel subscription.',
-        // variant: 'destructive',
+        description: message,
+        variant: 'destructive',
       });
     } finally {
       setLoadingId(null);
     }
   };
 
-  if (initialSubscriptions.length === 0) {
+  if (isLoading) {
+    return (
+      <div className="flex h-[40vh] items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (items.length === 0) {
     return (
       <div className="rounded-lg border bg-muted/10 py-12 text-center">
         <h3 className="text-lg font-medium">No active subscriptions</h3>
@@ -96,7 +116,7 @@ export function SubscriptionListClient({
 
   return (
     <div className="grid gap-6 md:grid-cols-2">
-      {initialSubscriptions.map((sub) => (
+      {items.map((sub) => (
         <Card key={sub.id}>
           <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
             <div className="flex items-center gap-3">

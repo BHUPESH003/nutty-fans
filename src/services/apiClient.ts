@@ -25,6 +25,7 @@ import type {
   VerifyEmailPayload,
   VerifyEmailResponse,
 } from '@/types/auth';
+import type { CreatorStatusResponse } from '@/types/creator';
 import type {
   AvatarUploadUrlPayload,
   AvatarUploadUrlResponse,
@@ -250,7 +251,10 @@ function handleApiError(error: ApiError, statusCode: number) {
  * Generic request function using axios
  * Automatically handles { code, data, message } response format via interceptors
  */
-async function request<TResponse>(path: string, config?: AxiosRequestConfig): Promise<TResponse> {
+export async function request<TResponse>(
+  path: string,
+  config?: AxiosRequestConfig
+): Promise<TResponse> {
   const response = await axiosInstance.request<TResponse>({
     url: path,
     ...config,
@@ -290,6 +294,13 @@ export const apiClient = {
       return request<SimpleMessageResponse>('/api/auth/logout', {
         method: 'POST',
       });
+    },
+    /**
+     * NextAuth session (non-standard response shape; returned as-is)
+     */
+    getSession() {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return request<any>('/api/auth/session');
     },
     forgotPassword(payload: ForgotPasswordPayload) {
       return request<SimpleMessageResponse>('/api/auth/forgot-password', {
@@ -395,13 +406,7 @@ export const apiClient = {
       );
     },
     getStatus() {
-      return request<{
-        status: 'pending_kyc' | 'kyc_in_progress' | 'pending_payout_setup' | 'active';
-        kycStatus: string;
-        isSquareConnected: boolean;
-        isVerified: boolean;
-        nextStep: string | null;
-      } | null>('/api/creator/status');
+      return request<CreatorStatusResponse | null>('/api/creator/status');
     },
     startKyc() {
       return request<{ sessionUrl: string; sessionId: string }>('/api/creator/kyc/start', {
@@ -411,6 +416,98 @@ export const apiClient = {
     getDashboard() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return request<any>('/api/creator/dashboard');
+    },
+    getProfile() {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return request<any>('/api/creator/profile');
+    },
+    updateProfile(payload: {
+      bio?: string;
+      categoryId?: string;
+      coverImageUrl?: string;
+      socialLinks?: Record<string, string>;
+      blockedCountries?: string[];
+    }) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return request<any>('/api/creator/profile', {
+        method: 'PATCH',
+        data: payload,
+      });
+    },
+    updateSubscription(payload: {
+      subscriptionPrice: number;
+      subscriptionPrice3m: number | null;
+      subscriptionPrice6m: number | null;
+      subscriptionPrice12m: number | null;
+      freeTrialDays: number;
+    }) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return request<any>('/api/creator/subscription', {
+        method: 'PATCH',
+        data: payload,
+      });
+    },
+    getSquareConnectUrl() {
+      return request<{ url: string }>('/api/creator/square/connect');
+    },
+    getSquareStatus() {
+      return request<{ isConnected: boolean }>('/api/creator/square/status');
+    },
+    syncKycStatus() {
+      return request<{ updated: boolean; message?: string }>('/api/creator/kyc/sync', {
+        method: 'POST',
+      });
+    },
+    submitEligibility(payload: {
+      ageConfirmed: boolean;
+      country: string;
+      contentTypeIntent: string;
+    }) {
+      return request<{ nextStep: string }>('/api/creator/apply/eligibility', {
+        method: 'POST',
+        data: payload,
+      });
+    },
+    submitCategory(payload: { categoryId: string; creatorGoal: string; secondaryTags?: string[] }) {
+      return request<{ nextStep: string }>('/api/creator/apply/category', {
+        method: 'POST',
+        data: payload,
+      });
+    },
+    submitProfile(payload: {
+      displayName: string;
+      username: string;
+      bio: string;
+      avatarUrl?: string;
+      socialLinks?: Record<string, string>;
+    }) {
+      return request<{ nextStep: string }>('/api/creator/apply/profile', {
+        method: 'POST',
+        data: payload,
+      });
+    },
+    submitPricing(payload: { subscriptionPrice: number; freeTrialDays: number }) {
+      return request<{ nextStep: string }>('/api/creator/apply/pricing', {
+        method: 'POST',
+        data: payload,
+      });
+    },
+    submitReview() {
+      return request<{ nextStep: string }>('/api/creator/apply/submit-review', {
+        method: 'POST',
+      });
+    },
+    getPublicProfile(handle: string) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return request<any>(`/api/public/creator/${encodeURIComponent(handle)}`);
+    },
+    getPublicPosts(handle: string, cursor?: string) {
+      const searchParams = new URLSearchParams();
+      if (cursor) searchParams.append('cursor', cursor);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return request<any>(
+        `/api/public/creator/${encodeURIComponent(handle)}/posts${searchParams.toString() ? `?${searchParams.toString()}` : ''}`
+      );
     },
   },
   common: {
@@ -440,6 +537,28 @@ export const apiClient = {
     getPost(id: string) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return request<any>(`/api/posts/${id}`);
+    },
+    listMyPosts(params?: {
+      status?: 'draft' | 'published' | 'scheduled';
+      cursor?: string;
+      limit?: number;
+    }) {
+      const sp = new URLSearchParams();
+      if (params?.status) sp.append('status', params.status);
+      if (params?.cursor) sp.append('cursor', params.cursor);
+      if (params?.limit) sp.append('limit', params.limit.toString());
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return request<any>(`/api/posts${sp.toString() ? `?${sp.toString()}` : ''}`);
+    },
+    toggleLike(postId: string) {
+      return request<{ isLiked: boolean }>(`/api/posts/${postId}/like`, {
+        method: 'POST',
+      });
+    },
+    toggleBookmark(postId: string) {
+      return request<{ isBookmarked: boolean }>(`/api/posts/${postId}/bookmark`, {
+        method: 'POST',
+      });
     },
     getUploadUrl(filename: string, contentType: string, size: number) {
       return request<{ uploadUrl: string; mediaId: string; key: string }>('/api/media/upload-url', {
@@ -559,6 +678,16 @@ export const apiClient = {
       );
     },
   },
+  tags: {
+    list(params?: { q?: string; limit?: number }) {
+      const searchParams = new URLSearchParams();
+      if (params?.q) searchParams.append('q', params.q);
+      if (params?.limit) searchParams.append('limit', params.limit.toString());
+      return request<{
+        tags: Array<{ id: string; name: string; slug: string; usageCount: number }>;
+      }>(`/api/tags${searchParams.toString() ? `?${searchParams.toString()}` : ''}`);
+    },
+  },
   explore: {
     getFeed(cursor?: string, limit?: number) {
       const searchParams = new URLSearchParams();
@@ -598,7 +727,7 @@ export const apiClient = {
       );
     },
     topup(amount: number) {
-      return request<{ transactionId: string; balance: number }>('/api/wallet/topup', {
+      return request<{ checkoutUrl: string; checkoutId: string }>('/api/wallet/topup', {
         method: 'POST',
         data: { amount },
       });
@@ -635,6 +764,159 @@ export const apiClient = {
           data: { creatorId, planType },
         }
       );
+    },
+    /**
+     * Send a tip to a creator
+     */
+    sendTip(input: {
+      creatorId: string;
+      amount: number;
+      message?: string;
+      paymentSource?: 'wallet' | 'card';
+    }) {
+      return request<{ data: { tipId: string; transactionId: string } }>('/api/tips', {
+        method: 'POST',
+        data: {
+          creatorId: input.creatorId,
+          amount: input.amount,
+          message: input.message,
+          paymentSource: input.paymentSource || 'wallet',
+        },
+      });
+    },
+  },
+  subscriptions: {
+    subscribe(
+      creatorId: string,
+      planType: 'monthly' | '3month' | '6month' | '12month' = 'monthly'
+    ) {
+      return request<{ data: { subscriptionId: string; expiresAt: string } }>(
+        '/api/subscriptions',
+        {
+          method: 'POST',
+          data: { creatorId, planType },
+        }
+      );
+    },
+    list(cursor?: string) {
+      const searchParams = new URLSearchParams();
+      if (cursor) searchParams.append('cursor', cursor);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return request<any>(
+        `/api/subscriptions${searchParams.toString() ? `?${searchParams.toString()}` : ''}`
+      );
+    },
+    cancel(subscriptionId: string) {
+      return request<{ success: boolean }>(`/api/subscriptions/${subscriptionId}`, {
+        method: 'PATCH',
+        data: { action: 'cancel' },
+      });
+    },
+  },
+  ppv: {
+    listPurchases(cursor?: string, limit?: number) {
+      const searchParams = new URLSearchParams();
+      if (cursor) searchParams.append('cursor', cursor);
+      if (limit) searchParams.append('limit', limit.toString());
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return request<any>(
+        `/api/ppv/purchases${searchParams.toString() ? `?${searchParams.toString()}` : ''}`
+      );
+    },
+  },
+  bundles: {
+    listMy(cursor?: string) {
+      const sp = new URLSearchParams();
+      if (cursor) sp.append('cursor', cursor);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return request<any>(`/api/bundles${sp.toString() ? `?${sp.toString()}` : ''}`);
+    },
+    create(input: {
+      title: string;
+      description?: string;
+      price: number;
+      originalPrice?: number | null;
+      coverImageUrl?: string | null;
+      postIds?: string[];
+    }) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return request<any>('/api/bundles', { method: 'POST', data: input });
+    },
+    update(bundleId: string, input: any) {
+      // eslint-disable-line @typescript-eslint/no-explicit-any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return request<any>(`/api/bundles/${bundleId}`, { method: 'PATCH', data: input });
+    },
+    getMy(bundleId: string) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return request<any>(`/api/bundles/${bundleId}`);
+    },
+    setItems(bundleId: string, postIds: string[]) {
+      return request<{ itemCount: number }>(`/api/bundles/${bundleId}/items`, {
+        method: 'PUT',
+        data: { postIds },
+      });
+    },
+    activate(bundleId: string) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return request<any>(`/api/bundles/${bundleId}/activate`, { method: 'POST' });
+    },
+    purchase(bundleId: string) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return request<any>(`/api/bundles/${bundleId}/purchase`, { method: 'POST' });
+    },
+    listPurchases(cursor?: string) {
+      const sp = new URLSearchParams();
+      if (cursor) sp.append('cursor', cursor);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return request<any>(`/api/bundles/purchases${sp.toString() ? `?${sp.toString()}` : ''}`);
+    },
+    listPublicByHandle(handle: string, cursor?: string) {
+      const sp = new URLSearchParams();
+      if (cursor) sp.append('cursor', cursor);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return request<any>(
+        `/api/public/creator/${encodeURIComponent(handle)}/bundles${sp.toString() ? `?${sp.toString()}` : ''}`
+      );
+    },
+  },
+  streams: {
+    create(input: {
+      title: string;
+      description?: string;
+      thumbnailUrl?: string | null;
+      accessLevel: 'free' | 'subscribers' | 'paid';
+      entryPrice?: number | null;
+      scheduledAt?: string | null;
+    }) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return request<any>('/api/streams', { method: 'POST', data: input });
+    },
+    listLive(cursor?: string) {
+      const sp = new URLSearchParams();
+      if (cursor) sp.append('cursor', cursor);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return request<any>(`/api/streams/live${sp.toString() ? `?${sp.toString()}` : ''}`);
+    },
+    get(streamId: string) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return request<any>(`/api/streams/${streamId}`);
+    },
+    start(streamId: string) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return request<any>(`/api/streams/${streamId}/start`, { method: 'POST' });
+    },
+    end(streamId: string) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return request<any>(`/api/streams/${streamId}/end`, { method: 'POST' });
+    },
+    purchase(streamId: string) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return request<any>(`/api/streams/${streamId}/purchase`, { method: 'POST' });
+    },
+    getPlayback(streamId: string) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return request<any>(`/api/streams/${streamId}/playback`);
     },
   },
 };

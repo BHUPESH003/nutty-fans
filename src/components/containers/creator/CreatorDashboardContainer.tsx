@@ -5,12 +5,15 @@ import {
   Users,
   Eye,
   CreditCard,
+  Package,
   Plus,
   FileText,
   TrendingUp,
   Settings,
   CheckCircle,
+  Video,
 } from 'lucide-react';
+import type { Route } from 'next';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 
@@ -45,11 +48,8 @@ export const CreatorDashboardContainer = () => {
 
         // Check payout connection status
         try {
-          const res = await fetch('/api/creator/square/status');
-          if (res.ok) {
-            const status: ConnectionStatus = await res.json();
-            setPayoutConnected(status.isConnected);
-          }
+          const status: ConnectionStatus = await apiClient.creator.getSquareStatus();
+          setPayoutConnected(status.isConnected);
         } catch {
           // Ignore - defaults to not connected
         }
@@ -88,7 +88,7 @@ export const CreatorDashboardContainer = () => {
       />
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-6">
         <Button variant="outline" className="h-auto flex-col gap-1 py-3" asChild>
           <Link href="/creator/posts/new">
             <Plus className="h-4 w-4 text-primary" />
@@ -105,6 +105,18 @@ export const CreatorDashboardContainer = () => {
           <Link href="/creator/earnings">
             <TrendingUp className="h-4 w-4 text-green-500" />
             <span className="text-xs">Earnings</span>
+          </Link>
+        </Button>
+        <Button variant="outline" className="h-auto flex-col gap-1 py-3" asChild>
+          <Link href={'/creator/bundles' as Route}>
+            <Package className="h-4 w-4 text-purple-500" />
+            <span className="text-xs">Bundles</span>
+          </Link>
+        </Button>
+        <Button variant="outline" className="h-auto flex-col gap-1 py-3" asChild>
+          <Link href={'/creator/live' as Route}>
+            <Video className="h-4 w-4 text-red-500" />
+            <span className="text-xs">Go Live</span>
           </Link>
         </Button>
         {payoutConnected ? (

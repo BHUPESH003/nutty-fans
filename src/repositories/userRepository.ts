@@ -58,6 +58,31 @@ export class UserRepository {
     });
   }
 
+  async updateEmailVerifiedAndAccountStateActive(id: string) {
+    const user = await this.findById(id);
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    const metadata = (user.metadata ?? {}) as Record<string, unknown>;
+    const existingAuthState = (metadata['authState'] as Record<string, unknown>) ?? {};
+    const nextMetadata = {
+      ...metadata,
+      authState: {
+        ...existingAuthState,
+        accountState: 'active',
+      },
+    } as unknown;
+
+    return prisma.user.update({
+      where: { id },
+      data: {
+        emailVerified: new Date(),
+        metadata: nextMetadata as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+      },
+    });
+  }
+
   async updateLastLoginAt(id: string, lastLoginAt: Date) {
     return prisma.user.update({
       where: { id },
@@ -79,6 +104,19 @@ export class UserRepository {
       avatarUrl?: string | null;
       bio?: string;
       role?: 'user' | 'creator' | 'admin';
+    }
+  ) {
+    return prisma.user.update({
+      where: { id },
+      data,
+    });
+  }
+
+  async updateFlags(
+    id: string,
+    data: {
+      isDiscoverable?: boolean;
+      showLocation?: boolean;
     }
   ) {
     return prisma.user.update({

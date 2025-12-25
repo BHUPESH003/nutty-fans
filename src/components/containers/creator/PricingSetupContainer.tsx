@@ -1,6 +1,7 @@
 'use client';
 
 import { AlertCircle, DollarSign } from 'lucide-react';
+import type { Route } from 'next';
 import { useRouter } from 'next/navigation';
 import React, { useState, useEffect } from 'react';
 
@@ -10,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
+import { apiClient } from '@/services/apiClient';
 
 export const PricingSetupContainer = () => {
   const router = useRouter();
@@ -25,17 +27,14 @@ export const PricingSetupContainer = () => {
   useEffect(() => {
     const fetchSavedData = async () => {
       try {
-        const response = await fetch('/api/creator/status');
-        if (response.ok) {
-          const data = await response.json();
-          const profile = data.data?.profile;
-          if (profile) {
-            setFormData((prev) => ({
-              ...prev,
-              subscriptionPrice: profile.subscriptionPrice ?? prev.subscriptionPrice,
-              freeTrialDays: profile.freeTrialDays ?? prev.freeTrialDays,
-            }));
-          }
+        const data = await apiClient.creator.getStatus();
+        const profile = data?.profile;
+        if (profile) {
+          setFormData((prev) => ({
+            ...prev,
+            subscriptionPrice: profile.subscriptionPrice ?? prev.subscriptionPrice,
+            freeTrialDays: profile.freeTrialDays ?? prev.freeTrialDays,
+          }));
         }
       } catch (err) {
         console.error('Failed to fetch saved data:', err);
@@ -58,30 +57,9 @@ export const PricingSetupContainer = () => {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch('/api/creator/apply/pricing', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error?.message || 'Failed to submit pricing');
-      }
-
-      // After pricing, submit for review
-      const reviewResponse = await fetch('/api/creator/apply/submit-review', {
-        method: 'POST',
-      });
-
-      const reviewData = await reviewResponse.json();
-
-      if (!reviewResponse.ok) {
-        throw new Error(reviewData.error?.message || 'Failed to submit for review');
-      }
-
-      router.push(reviewData.data.nextStep);
+      await apiClient.creator.submitPricing(formData);
+      const reviewData = await apiClient.creator.submitReview();
+      router.push(reviewData.nextStep as Route);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {

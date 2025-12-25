@@ -1,0 +1,8 @@
+## 06 — DevOps (N/A for now)
+
+No production infrastructure changes will be made by the agent.
+
+If we need infra changes (e.g., Mux Live webhooks, VAPID keys, new env vars), we will:
+- Draft this file with a rollback plan
+- Request explicit human approval
+

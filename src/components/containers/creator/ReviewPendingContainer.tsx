@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 import { OnboardingProgress } from '@/components/creator/OnboardingProgress';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { apiClient } from '@/services/apiClient';
 
 export const ReviewPendingContainer = () => {
   const router = useRouter();
@@ -15,11 +16,9 @@ export const ReviewPendingContainer = () => {
   useEffect(() => {
     const checkStatus = async () => {
       try {
-        const response = await fetch('/api/creator/status');
-        const data = await response.json();
-
-        if (data.data) {
-          const currentStatus = data.data.onboardingStatus || data.data.status;
+        const data = await apiClient.creator.getStatus();
+        if (data) {
+          const currentStatus = (data as any).onboardingStatus || (data as any).status; // eslint-disable-line @typescript-eslint/no-explicit-any
 
           // If already approved, redirect to next step
           if (
@@ -28,7 +27,7 @@ export const ReviewPendingContainer = () => {
             currentStatus === 'kyc_in_progress' ||
             currentStatus === 'active'
           ) {
-            router.push(data.data.nextStep);
+            router.push((data as any).nextStep); // eslint-disable-line @typescript-eslint/no-explicit-any
           }
 
           // If rejected, redirect to rejected page

@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
 
 import { successResponse } from '@/lib/api/response';
-import { prisma } from '@/lib/db/prisma';
 import {
   AppError,
   handleAsyncRoute,
   VALIDATION_MISSING_FIELD,
   VALIDATION_ERROR,
 } from '@/lib/errors/errorHandler';
+import { PaymentService } from '@/services/payments/paymentService';
 import { PayoutService } from '@/services/payments/payoutService';
 import { PpvService } from '@/services/payments/ppvService';
 import { SubscriptionService } from '@/services/payments/subscriptionService';
@@ -18,6 +18,7 @@ import type { SubscriptionPlanType, SendTipInput } from '@/types/payments';
 
 const subscriptionService = new SubscriptionService();
 const walletService = new WalletService();
+const paymentService = new PaymentService();
 const ppvService = new PpvService();
 const tipService = new TipService();
 const payoutService = new PayoutService();
@@ -101,13 +102,18 @@ export const paymentController = {
     });
   },
 
-  async topupWallet(userId: string, amount: number) {
+  async topupWallet(userId: string, amount: number, baseUrl?: string) {
     return handleAsyncRoute(async () => {
       if (!amount || amount <= 0) {
         throw new AppError(VALIDATION_ERROR, 'Amount must be greater than 0', 400);
       }
-      const result = await walletService.topup(userId, amount);
-      return successResponse(result, 'Wallet topped up successfully', 201);
+      // Use PaymentService to create checkout session (proper payment gateway integration)
+      const appUrl = baseUrl || process.env['NEXT_PUBLIC_APP_URL'] || 'http://localhost:3000';
+      const successUrl = `${appUrl}/wallet?topup=success`;
+      const cancelUrl = `${appUrl}/wallet?topup=cancelled`;
+
+      const result = await paymentService.topUpWallet(userId, amount, successUrl, cancelUrl);
+      return successResponse(result, 'Checkout session created', 201);
     });
   },
 
@@ -243,11 +249,4 @@ export const paymentController = {
   // ============================================
   // HELPERS
   // ============================================
-
-  async getCreatorProfile(userId: string) {
-    return prisma.creatorProfile.findFirst({
-      where: { userId },
-      select: { id: true },
-    });
-  },
 };

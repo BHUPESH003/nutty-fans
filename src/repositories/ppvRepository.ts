@@ -50,6 +50,23 @@ export class PpvRepository {
   }
 
   /**
+   * Get purchased post IDs for a set of posts
+   */
+  async getPurchasedPostIds(userId: string, postIds: string[]): Promise<string[]> {
+    if (postIds.length === 0) return [];
+
+    const purchases = await prisma.ppvPurchase.findMany({
+      where: {
+        userId,
+        postId: { in: postIds },
+      },
+      select: { postId: true },
+    });
+
+    return purchases.filter((p) => p.postId !== null).map((p) => p.postId as string);
+  }
+
+  /**
    * Get purchase by transaction ID
    */
   async findByTransactionId(transactionId: string) {

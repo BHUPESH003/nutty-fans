@@ -1,20 +1,19 @@
 export interface SettingsResponse {
   email: string;
   legalName?: string | null;
-  emailNotificationsEnabled: boolean;
-  marketingEmailsEnabled: boolean;
-  platformUpdatesEnabled: boolean;
-  isDiscoverable: boolean;
-  showLocation: boolean;
+  notifications: {
+    emailNotifications: boolean;
+    marketingEmails: boolean;
+    platformUpdates: boolean;
+    pushNotifications: boolean;
+  };
+  privacy: {
+    profileDiscoverable: boolean;
+    showLocation: boolean;
+  };
 }
 
-export type UpdateSettingsPayload = Partial<
-  Pick<
-    SettingsResponse,
-    | 'emailNotificationsEnabled'
-    | 'marketingEmailsEnabled'
-    | 'platformUpdatesEnabled'
-    | 'isDiscoverable'
-    | 'showLocation'
-  >
->;
+export type UpdateSettingsPayload = Partial<{
+  notifications: Partial<SettingsResponse['notifications']>;
+  privacy: Partial<SettingsResponse['privacy']>;
+}>;

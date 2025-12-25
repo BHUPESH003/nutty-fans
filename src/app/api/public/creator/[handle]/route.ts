@@ -1,21 +1,10 @@
-import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
 
-import { CreatorRepository } from '@/repositories/creatorRepository';
-import { UserRepository } from '@/repositories/userRepository';
-import { CreatorService } from '@/services/creator/creatorService';
-
-const creatorService = new CreatorService(new CreatorRepository(), new UserRepository());
+import { publicCreatorController } from '@/app/api/_controllers/publicCreatorController';
+import { authOptions } from '@/lib/auth/authOptions';
 
 export async function GET(_req: Request, { params }: { params: Promise<{ handle: string }> }) {
   const { handle } = await params;
-
-  const profile = await creatorService.getPublicProfile(handle);
-  if (!profile) {
-    return NextResponse.json(
-      { error: { code: 'NOT_FOUND', message: 'Creator not found' } },
-      { status: 404 }
-    );
-  }
-
-  return NextResponse.json(profile);
+  const session = await getServerSession(authOptions);
+  return publicCreatorController.getPublicProfile(handle, session?.user?.id);
 }

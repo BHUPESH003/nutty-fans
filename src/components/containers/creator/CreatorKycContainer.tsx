@@ -131,18 +131,12 @@ export const CreatorKycContainer = () => {
                   onClick={async () => {
                     setError(null);
                     try {
-                      const response = await fetch('/api/creator/kyc/sync', { method: 'POST' });
-                      const data = await response.json();
-                      if (response.ok) {
-                        if (data.data?.updated) {
-                          // Status was updated, reload to get new state
-                          window.location.reload();
-                        } else {
-                          // No update, show message
-                          setError(data.data?.message || 'Verification is still in progress');
-                        }
+                      const data = await apiClient.creator.syncKycStatus();
+                      if (data.updated) {
+                        // Status was updated, reload to get new state
+                        window.location.reload();
                       } else {
-                        setError(data.error?.message || 'Failed to check status');
+                        setError(data.message || 'Verification is still in progress');
                       }
                     } catch (err) {
                       console.error('Failed to sync status:', err);

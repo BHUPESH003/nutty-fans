@@ -1,8 +1,12 @@
-import { prisma } from '@/lib/db/prisma';
 import { BookmarkRepository } from '@/repositories/bookmarkRepository';
+import { BundlePurchaseRepository } from '@/repositories/bundlePurchaseRepository';
+import { CreatorRepository } from '@/repositories/creatorRepository';
 import { LikeRepository } from '@/repositories/likeRepository';
 import { MediaRepository } from '@/repositories/mediaRepository';
 import { PostRepository } from '@/repositories/postRepository';
+import { PpvRepository } from '@/repositories/ppvRepository';
+import { SubscriptionRepository } from '@/repositories/subscriptionRepository';
+import { TagService } from '@/services/content/tagService';
 import type {
   CreatePostInput,
   UpdatePostInput,
@@ -16,12 +20,22 @@ export class PostService {
   private mediaRepo: MediaRepository;
   private likeRepo: LikeRepository;
   private bookmarkRepo: BookmarkRepository;
+  private creatorRepo: CreatorRepository;
+  private subscriptionRepo: SubscriptionRepository;
+  private ppvRepo: PpvRepository;
+  private bundlePurchaseRepo: BundlePurchaseRepository;
+  private tagService: TagService;
 
   constructor() {
     this.postRepo = new PostRepository();
     this.mediaRepo = new MediaRepository();
     this.likeRepo = new LikeRepository();
     this.bookmarkRepo = new BookmarkRepository();
+    this.creatorRepo = new CreatorRepository();
+    this.subscriptionRepo = new SubscriptionRepository();
+    this.ppvRepo = new PpvRepository();
+    this.bundlePurchaseRepo = new BundlePurchaseRepository();
+    this.tagService = new TagService();
   }
 
   /**
@@ -55,6 +69,10 @@ export class PostService {
     // Attach media if provided
     if (input.mediaIds?.length) {
       await this.mediaRepo.bulkAttachToPost(input.mediaIds, post.id);
+    }
+
+    if (input.tags) {
+      await this.tagService.setPostTags(post.id, input.tags);
     }
 
     return post;
@@ -98,7 +116,7 @@ export class PostService {
     if (!post) throw new Error('Post not found');
     if (post.creatorId !== creatorId) throw new Error('Unauthorized');
 
-    return this.postRepo.update(id, {
+    const updated = await this.postRepo.update(id, {
       content: input.content,
       accessLevel: input.accessLevel,
       ppvPrice: input.ppvPrice,
@@ -106,6 +124,12 @@ export class PostService {
       commentsEnabled: input.commentsEnabled,
       isPinned: input.isPinned,
     });
+
+    if (input.tags) {
+      await this.tagService.setPostTags(id, input.tags);
+    }
+
+    return updated;
   }
 
   /**
@@ -183,34 +207,32 @@ export class PostService {
       };
     }
 
-    // Check if user is the creator (via their profile)
-    const creatorProfile = await prisma.creatorProfile.findFirst({
-      where: { id: post.creatorId, userId },
-    });
-    if (creatorProfile) {
+    // Owner access
+    const viewerCreatorProfile = await this.creatorRepo.findByUserId(userId);
+    if (viewerCreatorProfile && viewerCreatorProfile.id === post.creatorId) {
       return { hasAccess: true, reason: 'owner', canPurchase: false };
     }
 
     // Check subscription for subscriber-only content
     if (post.accessLevel === 'subscribers') {
-      const subscription = await prisma.subscription.findFirst({
-        where: {
-          userId,
-          creatorId: post.creatorId,
-          status: 'active',
-        },
-      });
-      if (subscription) {
+      const isSubscribed = await this.subscriptionRepo.isSubscribed(userId, post.creatorId);
+      if (isSubscribed) {
         return { hasAccess: true, reason: 'subscribed', canPurchase: false };
+      }
+      const viaBundle = await this.bundlePurchaseRepo.hasPurchasedPost(userId, postId);
+      if (viaBundle) {
+        return { hasAccess: true, reason: 'purchased', canPurchase: false };
       }
     }
 
     // Check PPV purchase
     if (post.accessLevel === 'ppv') {
-      const purchase = await prisma.ppvPurchase.findFirst({
-        where: { postId, userId },
-      });
-      if (purchase) {
+      const hasPurchased = await this.ppvRepo.hasPurchased(userId, postId);
+      if (hasPurchased) {
+        return { hasAccess: true, reason: 'purchased', canPurchase: false };
+      }
+      const viaBundle = await this.bundlePurchaseRepo.hasPurchasedPost(userId, postId);
+      if (viaBundle) {
         return { hasAccess: true, reason: 'purchased', canPurchase: false };
       }
       return {
@@ -263,6 +285,11 @@ export class PostService {
         avatarUrl: user.avatarUrl,
         isVerified: creator.isVerified,
       },
+      tags: (post.postTags ?? []).map((pt) => ({
+        id: pt.tag.id,
+        name: pt.tag.name,
+        slug: pt.tag.slug,
+      })),
       media: post.media.map((m) => ({
         id: m.id,
         mediaType: m.mediaType,

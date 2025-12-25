@@ -2,9 +2,8 @@ import { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth';
 
+import { SubscriptionsPageContainer } from '@/components/containers/subscriptions/SubscriptionsPageContainer';
 import { authOptions } from '@/lib/auth/authOptions';
-
-import { SubscriptionListClient } from './client';
 
 export const metadata: Metadata = {
   title: 'My Subscriptions | NuttyFans',
@@ -17,10 +16,6 @@ export default async function SubscriptionsPage() {
     redirect('/auth/signin' as any); // eslint-disable-line @typescript-eslint/no-explicit-any
   }
 
-  const { SubscriptionService } = await import('@/services/payments/subscriptionService');
-  const subscriptionService = new SubscriptionService();
-  const result = await subscriptionService.getUserSubscriptions(session.user.id);
-
   return (
     <div className="container max-w-4xl space-y-8 py-8">
       <div>
@@ -28,7 +23,7 @@ export default async function SubscriptionsPage() {
         <p className="text-muted-foreground">Manage your active subscriptions and billing.</p>
       </div>
 
-      <SubscriptionListClient initialSubscriptions={result.subscriptions} />
+      <SubscriptionsPageContainer />
     </div>
   );
 }

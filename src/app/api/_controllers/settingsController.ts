@@ -4,9 +4,10 @@ import { getServerSession } from 'next-auth';
 import { successResponse, errorResponse } from '@/lib/api/response';
 import { authOptions } from '@/lib/auth/authOptions';
 import { SettingsRepository } from '@/repositories/settingsRepository';
+import { UserRepository } from '@/repositories/userRepository';
 import { SettingsService } from '@/services/settingsService';
 
-const settingsService = new SettingsService(new SettingsRepository());
+const settingsService = new SettingsService(new SettingsRepository(), new UserRepository());
 
 export class SettingsController {
   async get() {

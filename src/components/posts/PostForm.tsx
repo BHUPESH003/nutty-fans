@@ -1,6 +1,5 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import * as React from 'react';
 
 import { Badge } from '@/components/ui/badge';
@@ -14,11 +13,18 @@ import type { CreatePostInput } from '@/types/content';
 interface PostFormProps {
   initialData?: Partial<CreatePostInput>;
   onSubmit: (_data: CreatePostInput) => Promise<void>;
+  onUploadFiles: (_files: File[]) => Promise<string[]>;
+  onCancel: () => void;
   isSubmitting?: boolean;
 }
 
-export function PostForm({ initialData, onSubmit, isSubmitting }: PostFormProps) {
-  const router = useRouter();
+export function PostForm({
+  initialData,
+  onSubmit,
+  onUploadFiles,
+  onCancel,
+  isSubmitting,
+}: PostFormProps) {
   const [content, setContent] = React.useState(initialData?.content || '');
   const [postType, setPostType] = React.useState<'post' | 'story' | 'reel'>(
     initialData?.postType || 'post'
@@ -33,64 +39,33 @@ export function PostForm({ initialData, onSubmit, isSubmitting }: PostFormProps)
   );
   const [uploadedMedia, setUploadedMedia] = React.useState<string[]>(initialData?.mediaIds || []);
   const [uploading, setUploading] = React.useState(false);
+  const [uploadError, setUploadError] = React.useState<string | null>(null);
+  const [tagsText, setTagsText] = React.useState<string>(
+    (initialData as any)?.tags?.join(', ') || ''
+  ); // eslint-disable-line @typescript-eslint/no-explicit-any
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const parsedTags = React.useMemo(() => {
+    const parts = tagsText
+      .split(',')
+      .map((t) => t.trim())
+      .filter(Boolean);
+    // Unique + cap
+    return Array.from(new Set(parts)).slice(0, 10);
+  }, [tagsText]);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files?.length) return;
 
     setUploading(true);
+    setUploadError(null);
     try {
-      const mediaIds: string[] = [];
-
-      for (const file of Array.from(files)) {
-        // Request upload URL
-        const urlRes = await fetch('/api/media/upload-url', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            filename: file.name,
-            contentType: file.type,
-            size: file.size,
-          }),
-        });
-
-        if (!urlRes.ok) throw new Error('Failed to get upload URL');
-
-        // API returns { data: { uploadUrl, mediaId, key } } structure
-        const response = await urlRes.json();
-        const { uploadUrl, mediaId, key } = response.data || response;
-
-        if (!uploadUrl || !mediaId || !key) {
-          console.error('Invalid upload URL response:', response);
-          throw new Error('Invalid upload URL response');
-        }
-
-        // Upload directly to S3
-        const uploadRes = await fetch(uploadUrl, {
-          method: 'PUT',
-          headers: { 'Content-Type': file.type },
-          body: file,
-        });
-
-        if (!uploadRes.ok) throw new Error('Upload failed');
-
-        // Confirm upload - mediaId goes in body, not URL
-        const confirmRes = await fetch('/api/media/confirm', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mediaId, key }),
-        });
-
-        if (!confirmRes.ok) throw new Error('Failed to confirm upload');
-
-        mediaIds.push(mediaId);
-      }
-
+      const mediaIds = await onUploadFiles(Array.from(files));
       setUploadedMedia((prev) => [...prev, ...mediaIds]);
-    } catch (error) {
-      console.error('Upload error:', error);
-      alert('Failed to upload media');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Failed to upload media';
+      setUploadError(message);
     } finally {
       setUploading(false);
     }
@@ -107,6 +82,7 @@ export function PostForm({ initialData, onSubmit, isSubmitting }: PostFormProps)
       isNsfw,
       commentsEnabled,
       mediaIds: uploadedMedia,
+      tags: parsedTags,
       status: publishNow ? 'published' : 'draft',
     });
   };
@@ -173,6 +149,7 @@ export function PostForm({ initialData, onSubmit, isSubmitting }: PostFormProps)
               >
                 {uploading ? 'Uploading...' : '📷 Add Media'}
               </Button>
+              {uploadError && <p className="mt-3 text-sm text-destructive">{uploadError}</p>}
               {uploadedMedia.length > 0 && (
                 <div className="mt-4 flex flex-wrap justify-center gap-2">
                   {uploadedMedia.map((id, i) => (
@@ -183,6 +160,28 @@ export function PostForm({ initialData, onSubmit, isSubmitting }: PostFormProps)
                 </div>
               )}
             </div>
+          </div>
+
+          {/* Tags */}
+          <div className="space-y-2">
+            <Label htmlFor="tags">Tags (comma separated)</Label>
+            <Input
+              id="tags"
+              value={tagsText}
+              onChange={(e) => setTagsText(e.target.value)}
+              placeholder="fitness, yoga, behindthescenes"
+              maxLength={200}
+            />
+            {parsedTags.length > 0 && (
+              <div className="flex flex-wrap gap-2 pt-1">
+                {parsedTags.map((t) => (
+                  <Badge key={t} variant="secondary">
+                    #{t.replace(/^#/, '')}
+                  </Badge>
+                ))}
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">Up to 10 tags.</p>
           </div>
 
           {/* Access Level */}
@@ -262,7 +261,7 @@ export function PostForm({ initialData, onSubmit, isSubmitting }: PostFormProps)
             >
               Publish Now
             </Button>
-            <Button type="button" variant="ghost" onClick={() => router.back()}>
+            <Button type="button" variant="ghost" onClick={onCancel}>
               Cancel
             </Button>
           </div>

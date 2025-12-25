@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { authOptions } from '@/lib/auth/authOptions';
+import { creatorAccessService } from '@/services/creator/creatorAccess';
 
 export const metadata: Metadata = {
   title: 'Payout Settings | NuttyFans Creator',
@@ -19,16 +20,16 @@ export default async function PayoutSettingsPage() {
   if (!session?.user?.id) {
     redirect('/auth/signin' as any); // eslint-disable-line @typescript-eslint/no-explicit-any
   }
-
-  const { paymentController } = await import('@/app/api/_controllers/paymentController');
-  const creator = await paymentController.getCreatorProfile(session.user.id);
-  if (!creator) {
+  let creatorId: string;
+  try {
+    creatorId = await creatorAccessService.requireCreatorIdByUserId(session.user.id);
+  } catch {
     redirect('/creator/onboarding' as any); // eslint-disable-line @typescript-eslint/no-explicit-any
   }
 
   const { PayoutService } = await import('@/services/payments/payoutService');
   const payoutService = new PayoutService();
-  const settings = await payoutService.getSettings(creator.id);
+  const settings = await payoutService.getSettings(creatorId);
 
   return (
     <div className="space-y-8">

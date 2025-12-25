@@ -153,15 +153,11 @@ Client → Mux Direct Upload → Process → Playback (hardcoded URLs)
 
 ### B.4 Payment Gateway Mismatch ⚠️
 
-**Documented:**
+**Documented:** Square (OAuth + Checkout/Webhooks)
 
-- Stripe Connect (docs/03-TECHNICAL-ARCHITECTURE.md:355)
+**Implemented:** Square (`SquareAdapter` and Square webhook routes)
 
-**Implemented:**
-
-- Square (squareAdapter used throughout)
-
-**Impact:** Medium - Documentation needs updating OR implementation needs changing
+**Impact:** Documentation has been aligned to Square. Verify Square credentials/webhook configuration for deployment.
 
 **Locations:**
 
@@ -170,14 +166,9 @@ Client → Mux Direct Upload → Process → Playback (hardcoded URLs)
 
 ### B.5 Commission Rate Mismatch ⚠️
 
-**Documented:**
+**Documented:** Tiered commission (default 4–16% by subscriber tier)
 
-- 15% commission (BRD Section 10.1.1, PRD Section 3.3.4)
-
-**Notes:**
-
-- Code references 16% in README.md
-- Need to verify actual implementation
+**Implemented:** Tiered commission in `CommissionService` (seeds `commission_tiers` and snapshots per transaction)
 
 ### B.6 Missing Workflows
 

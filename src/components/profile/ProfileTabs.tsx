@@ -2,10 +2,11 @@
 
 import * as TabsPrimitive from '@radix-ui/react-tabs';
 import { motion } from 'framer-motion';
-import { CreditCard, Settings } from 'lucide-react';
+import { CreditCard, Settings, ShoppingBag } from 'lucide-react';
 import * as React from 'react';
 
 import { SettingsPageContainer } from '@/components/containers/settings/SettingsPageContainer';
+import { PurchasesTab } from '@/components/profile/tabs/PurchasesTab';
 import { WalletTab } from '@/components/profile/tabs/WalletTab';
 import { cn } from '@/lib/utils';
 
@@ -28,6 +29,7 @@ export function ProfileTabs({ defaultValue = 'wallet', className }: ProfileTabsP
   // Posts, media, and about are creator-specific
   const tabs = [
     { id: 'wallet', label: 'Wallet', icon: CreditCard },
+    { id: 'purchases', label: 'Purchases', icon: ShoppingBag },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
@@ -64,9 +66,12 @@ export function ProfileTabs({ defaultValue = 'wallet', className }: ProfileTabsP
         </TabsPrimitive.List>
       </div>
 
-      <div className="mx-auto min-h-[50vh] max-w-2xl p-4">
+      <div className="min-h-[50vh] max-w-2xl px-4 py-4 sm:px-6 sm:py-6">
         <TabsPrimitive.Content value="wallet" className="outline-none focus-visible:ring-0">
           <WalletTab />
+        </TabsPrimitive.Content>
+        <TabsPrimitive.Content value="purchases" className="outline-none focus-visible:ring-0">
+          <PurchasesTab />
         </TabsPrimitive.Content>
         <TabsPrimitive.Content value="settings" className="outline-none focus-visible:ring-0">
           <SettingsPageContainer />

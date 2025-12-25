@@ -1,19 +1,27 @@
 import { cacheService, cacheKeys } from '@/lib/cache/cacheService';
-import { prisma } from '@/lib/db/prisma';
 import { BookmarkRepository } from '@/repositories/bookmarkRepository';
+import { BundlePurchaseRepository } from '@/repositories/bundlePurchaseRepository';
 import { LikeRepository } from '@/repositories/likeRepository';
 import { PostRepository } from '@/repositories/postRepository';
+import { PpvRepository } from '@/repositories/ppvRepository';
+import { SubscriptionRepository } from '@/repositories/subscriptionRepository';
 import type { FeedResult, PostWithCreator } from '@/types/content';
 
 export class FeedService {
   private postRepo: PostRepository;
   private likeRepo: LikeRepository;
   private bookmarkRepo: BookmarkRepository;
+  private subscriptionRepo: SubscriptionRepository;
+  private ppvRepo: PpvRepository;
+  private bundlePurchaseRepo: BundlePurchaseRepository;
 
   constructor() {
     this.postRepo = new PostRepository();
     this.likeRepo = new LikeRepository();
     this.bookmarkRepo = new BookmarkRepository();
+    this.subscriptionRepo = new SubscriptionRepository();
+    this.ppvRepo = new PpvRepository();
+    this.bundlePurchaseRepo = new BundlePurchaseRepository();
   }
 
   /**
@@ -170,38 +178,28 @@ export class FeedService {
     const postIds = posts.map((p) => p.id);
     const creatorIds = [...new Set(posts.map((p) => p.creatorId))];
 
-    // Batch fetch subscriptions and PPV purchases
-    const [activeSubscriptions, ppvPurchases] = await Promise.all([
-      prisma.subscription.findMany({
-        where: {
-          userId,
-          creatorId: { in: creatorIds },
-          status: 'active',
-        },
-        select: { creatorId: true },
-      }),
-      prisma.ppvPurchase.findMany({
-        where: {
-          userId,
-          postId: { in: postIds },
-        },
-        select: { postId: true },
-      }),
-    ]);
+    const [subscribedCreatorIdsArr, ppvPurchasedPostIds, bundlePurchasedPostIds] =
+      await Promise.all([
+        this.subscriptionRepo.getActiveCreatorIds(userId, creatorIds),
+        this.ppvRepo.getPurchasedPostIds(userId, postIds),
+        this.bundlePurchaseRepo.getPurchasedPostIds(userId, postIds),
+      ]);
 
-    const subscribedCreatorIds = new Set(activeSubscriptions.map((s) => s.creatorId));
-    const purchasedPostIds = new Set(
-      ppvPurchases.filter((p) => p.postId !== null).map((p) => p.postId as string)
-    );
+    const subscribedCreatorIds = new Set(subscribedCreatorIdsArr);
+    const purchasedPostIds = new Set(ppvPurchasedPostIds);
+    const bundlePostIds = new Set(bundlePurchasedPostIds);
 
     for (const post of posts) {
       if (post.accessLevel === 'free') {
         post.hasAccess = true;
       } else if (post.accessLevel === 'subscribers') {
-        post.hasAccess = subscribedCreatorIds.has(post.creatorId);
+        post.hasAccess = subscribedCreatorIds.has(post.creatorId) || bundlePostIds.has(post.id);
       } else if (post.accessLevel === 'ppv') {
         // PPV can be accessed via subscription OR purchase
-        post.hasAccess = subscribedCreatorIds.has(post.creatorId) || purchasedPostIds.has(post.id);
+        post.hasAccess =
+          subscribedCreatorIds.has(post.creatorId) ||
+          purchasedPostIds.has(post.id) ||
+          bundlePostIds.has(post.id);
       } else {
         post.hasAccess = false;
       }
@@ -262,6 +260,11 @@ export class FeedService {
         avatarUrl: user.avatarUrl,
         isVerified: creator.isVerified,
       },
+      tags: (post.postTags ?? []).map((pt) => ({
+        id: pt.tag.id,
+        name: pt.tag.name,
+        slug: pt.tag.slug,
+      })),
       media: post.media.map((m) => ({
         id: m.id,
         mediaType: m.mediaType,
@@ -309,6 +312,11 @@ export class FeedService {
         avatarUrl: null,
         isVerified: false,
       },
+      tags: (post.postTags ?? []).map((pt) => ({
+        id: pt.tag.id,
+        name: pt.tag.name,
+        slug: pt.tag.slug,
+      })),
       media: post.media.map((m) => ({
         id: m.id,
         mediaType: m.mediaType,

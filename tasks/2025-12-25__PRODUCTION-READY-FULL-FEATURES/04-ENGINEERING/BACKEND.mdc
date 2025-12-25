@@ -1,0 +1,25 @@
+## 04 — Engineering (Backend) (Draft)
+
+### Goal
+- Ensure all backend features exist per docs and strictly follow:
+  - Route → Controller → Service → Repository
+  - Centralized error formatting (`src/lib/errors/errorHandler.ts`)
+
+### Immediate compliance refactors (must-do)
+- Refactor any route handlers with DB access into services/repositories (especially public endpoints).
+
+### Planned deliverables (initial wave)
+- Tags:
+  - Tag parsing/normalization on post create/update
+  - Tag search endpoints, trending tags
+  - Post listing filtered by tag
+- Bundles:
+  - CRUD bundles + add/remove posts
+  - Purchase bundle (wallet debit + transaction + bundle purchase record)
+  - Purchased bundle access checks
+- PPV purchase library:
+  - list user PPV purchases (post + message) with metadata
+- Live streaming (Mux Live):
+  - create stream, start/end, list live, get details
+  - access control & paywall (subscribers/paid entry)
+

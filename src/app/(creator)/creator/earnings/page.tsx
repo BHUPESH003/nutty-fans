@@ -7,6 +7,7 @@ import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { authOptions } from '@/lib/auth/authOptions';
 import { formatCurrency } from '@/lib/utils';
+import { creatorAccessService } from '@/services/creator/creatorAccess';
 
 export const metadata: Metadata = {
   title: 'Earnings | NuttyFans Creator',
@@ -18,12 +19,10 @@ export default async function EarningsPage() {
   if (!session?.user?.id) {
     redirect('/auth/signin' as any); // eslint-disable-line @typescript-eslint/no-explicit-any
   }
-
-  const { paymentController } = await import('@/app/api/_controllers/paymentController');
-
-  // Get creator profile first
-  const creator = await paymentController.getCreatorProfile(session.user.id);
-  if (!creator) {
+  let creatorId: string;
+  try {
+    creatorId = await creatorAccessService.requireCreatorIdByUserId(session.user.id);
+  } catch {
     redirect('/creator/onboarding' as any); // eslint-disable-line @typescript-eslint/no-explicit-any
   }
 
@@ -32,7 +31,7 @@ export default async function EarningsPage() {
   // I should use the service directly.
   const { PayoutService } = await import('@/services/payments/payoutService');
   const payoutService = new PayoutService();
-  const earnings = await payoutService.getEarningsSummary(creator.id);
+  const earnings = await payoutService.getEarningsSummary(creatorId);
 
   return (
     <div className="space-y-6">

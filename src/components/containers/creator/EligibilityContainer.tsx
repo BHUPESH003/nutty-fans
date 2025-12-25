@@ -1,6 +1,7 @@
 'use client';
 
 import { AlertCircle } from 'lucide-react';
+import type { Route } from 'next';
 import { useRouter } from 'next/navigation';
 import React, { useState, useEffect } from 'react';
 
@@ -16,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { apiClient } from '@/services/apiClient';
 
 const COUNTRIES = [
   { code: 'US', name: 'United States' },
@@ -69,18 +71,15 @@ export const EligibilityContainer = () => {
   useEffect(() => {
     const fetchSavedData = async () => {
       try {
-        const response = await fetch('/api/creator/status');
-        if (response.ok) {
-          const data = await response.json();
-          const profile = data.data?.profile;
-          if (profile) {
-            setFormData((prev) => ({
-              ...prev,
-              ageConfirmed: Boolean(profile.eligibilityCountry), // If country was saved, age was confirmed
-              country: profile.eligibilityCountry || '',
-              contentTypeIntent: profile.contentTypeIntent || '',
-            }));
-          }
+        const data = await apiClient.creator.getStatus();
+        const profile = data?.profile;
+        if (profile) {
+          setFormData((prev) => ({
+            ...prev,
+            ageConfirmed: Boolean(profile.eligibilityCountry), // If country was saved, age was confirmed
+            country: profile.eligibilityCountry || '',
+            contentTypeIntent: profile.contentTypeIntent || '',
+          }));
         }
       } catch (err) {
         console.error('Failed to fetch saved data:', err);
@@ -113,19 +112,8 @@ export const EligibilityContainer = () => {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch('/api/creator/apply/eligibility', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error?.message || 'Failed to submit eligibility');
-      }
-
-      router.push(data.data.nextStep);
+      const data = await apiClient.creator.submitEligibility(formData);
+      router.push(data.nextStep as Route);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {

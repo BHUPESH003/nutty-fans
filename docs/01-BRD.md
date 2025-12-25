@@ -793,14 +793,16 @@ FEATURES                  │                     FEATURES
 
 #### 10.1.1 Transaction Commission (Primary)
 
-| Transaction Type | Commission Rate | Est. % of Revenue |
-| ---------------- | --------------- | ----------------- |
-| Subscriptions    | 15%             | 60%               |
-| PPV Content      | 15%             | 20%               |
-| Tips             | 15%             | 10%               |
-| Paid Messages    | 15%             | 5%                |
-| Live Streaming   | 15%             | 3%                |
-| Digital Products | 15%             | 2%                |
+| Transaction Type | Commission Rate (Platform Take)                   | Est. % of Revenue |
+| ---------------- | ------------------------------------------------- | ----------------- |
+| Subscriptions    | Tiered (default 4–16% by creator subscriber tier) | 60%               |
+| PPV Content      | Tiered (default 4–16% by creator subscriber tier) | 20%               |
+| Tips             | Tiered (default 4–16% by creator subscriber tier) | 10%               |
+| Paid Messages    | Tiered (default 4–16% by creator subscriber tier) | 5%                |
+| Live Streaming   | Tiered (default 4–16% by creator subscriber tier) | 3%                |
+| Digital Products | Tiered (default 4–16% by creator subscriber tier) | 2%                |
+
+**Note:** Financial projection tables in this BRD may still use **15%** as a simplified modeling assumption. The implemented commission logic is **tiered and configurable** (see `CommissionService` / `commission_tiers`).
 
 #### 10.1.2 Secondary Revenue Streams (Future)
 
@@ -815,12 +817,12 @@ FEATURES                  │                     FEATURES
 
 #### 10.2.1 Year 1 Projections
 
-| Metric        | Q1    | Q2    | Q3    | Q4    | Total |
-| ------------- | ----- | ----- | ----- | ----- | ----- |
-| Creators      | 500   | 1,500 | 3,500 | 7,000 | -     |
-| Users         | 25K   | 100K  | 250K  | 500K  | -     |
-| GMV           | $500K | $1.5M | $3M   | $5M   | $10M  |
-| Revenue (15%) | $75K  | $225K | $450K | $750K | $1.5M |
+| Metric                                         | Q1    | Q2    | Q3    | Q4    | Total |
+| ---------------------------------------------- | ----- | ----- | ----- | ----- | ----- |
+| Creators                                       | 500   | 1,500 | 3,500 | 7,000 | -     |
+| Users                                          | 25K   | 100K  | 250K  | 500K  | -     |
+| GMV                                            | $500K | $1.5M | $3M   | $5M   | $10M  |
+| Revenue (modeled @ 15% simplifying assumption) | $75K  | $225K | $450K | $750K | $1.5M |
 
 #### 10.2.2 Year 2-3 Projections
 

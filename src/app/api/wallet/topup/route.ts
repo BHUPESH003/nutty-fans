@@ -16,5 +16,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: { message: 'Amount is required' } }, { status: 400 });
   }
 
-  return paymentController.topupWallet(session.user.id, body.amount);
+  // Get base URL from request headers for proper redirect URLs
+  const origin = request.headers.get('origin') || request.headers.get('host');
+  const baseUrl = origin ? (origin.startsWith('http') ? origin : `https://${origin}`) : undefined;
+
+  return paymentController.topupWallet(session.user.id, body.amount, baseUrl);
 }

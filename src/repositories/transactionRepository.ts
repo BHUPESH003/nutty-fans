@@ -164,6 +164,23 @@ export class TransactionRepository {
   }
 
   /**
+   * Check if a user has a completed transaction for a related entity.
+   * Useful for gating access (e.g. paid live stream entry) without a dedicated join table.
+   */
+  async hasCompletedRelatedTransaction(userId: string, relatedType: string, relatedId: string) {
+    const row = await prisma.transaction.findFirst({
+      where: {
+        userId,
+        status: 'completed',
+        relatedType,
+        relatedId,
+      },
+      select: { id: true },
+    });
+    return !!row;
+  }
+
+  /**
    * Find by related entity
    */
   async findByRelated(relatedType: string, relatedId: string) {

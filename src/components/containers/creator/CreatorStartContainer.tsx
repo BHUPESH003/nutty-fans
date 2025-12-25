@@ -15,6 +15,7 @@ import { useState, useEffect } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { apiClient } from '@/services/apiClient';
 
 const COMMISSION_TIERS = [
   { subscribers: '0-100', fee: '4%', highlight: true },
@@ -36,14 +37,12 @@ export const CreatorStartContainer = () => {
   useEffect(() => {
     const checkCreatorStatus = async () => {
       try {
-        const response = await fetch('/api/creator/status');
-        if (response.ok) {
-          const data = await response.json();
-          // If user has any onboarding status beyond not_started, redirect them appropriately
-          if (data.data?.onboardingStatus && data.data.onboardingStatus !== 'not_started') {
-            router.push(data.data.nextStep || '/creator/dashboard');
-            return;
-          }
+        const data = await apiClient.creator.getStatus();
+        // If user has any onboarding status beyond not_started, redirect them appropriately
+        if ((data as any)?.onboardingStatus && (data as any).onboardingStatus !== 'not_started') {
+          // eslint-disable-line @typescript-eslint/no-explicit-any
+          router.push((data as any).nextStep || '/creator/dashboard'); // eslint-disable-line @typescript-eslint/no-explicit-any
+          return;
         }
       } catch (err) {
         console.error('Failed to check creator status:', err);

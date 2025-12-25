@@ -1,0 +1,40 @@
+## 01 — PM Research (Draft)
+
+### Inputs (source of truth)
+- `docs/01-BRD.md`
+- `docs/02-PRD.md`
+- `docs/03-TECHNICAL-ARCHITECTURE.md`
+- `docs/04-DATABASE-SCHEMA.md`
+- `docs/05-API-SPECIFICATION.md`
+- `docs/06-UI-UX-BLUEPRINT.md`
+- `docs/07-PROJECT-TRACKER.md`
+
+### Product positioning (constraint-driven)
+- Build a **web-first** creator monetization platform with:
+  - subscriptions (multi-plan)
+  - PPV purchases (posts + messages)
+  - wallet top-up
+  - tipping (including tip goals)
+  - messaging (real-time updates)
+  - notifications (in-app + email + **web push**)
+  - reels/stories
+  - live streaming (**Mux Live**)
+  - discovery (categories, tags, search, trending)
+
+### Non-functional requirements (must-have)
+- Security: access control for locked media, payment integrity, rate limiting on sensitive endpoints.
+- Consistency: UI layout + nav must be stable across all routes; coherent empty/loading states.
+- Observability: consistent error responses + logs; no silent failures.
+- Quality gates: TypeScript + ESLint clean for touched files; QA plan executable.
+
+### Open questions (resolved by human)
+- Live streaming provider: **Mux Live**
+- Push notifications: **Web Push only**
+
+### Deliverable for this task (planning output)
+- A feature matrix: each doc-defined feature mapped to:
+  - Backend status (routes/controllers/services/repos)
+  - Frontend status (pages/containers/components)
+  - Missing links (nav, CTAs, deep links)
+  - QA cases
+

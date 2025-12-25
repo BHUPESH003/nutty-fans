@@ -1,0 +1,20 @@
+## 05 — QA Plan (Draft)
+
+### Goal
+- Provide an executable QA checklist that validates every doc-defined feature end-to-end.
+
+### Smoke suite (critical)
+- Auth: register/login/logout, email verify, password reset
+- Feed: for-you/following, explore, search, categories
+- Creator profile: posts, subscribe, tip, message
+- PPV: unlock post, verify access, verify purchase history
+- Wallet: topup checkout redirect, balance updates, transactions list
+- Notifications: in-app list, web push opt-in + delivery (where applicable)
+
+### Regression checklist per module
+- Subscriptions & payments
+- Content (posts, reels, stories)
+- Messaging (including paid/PPV messages)
+- Creator dashboard + earnings
+- Creator payouts + transactions
+

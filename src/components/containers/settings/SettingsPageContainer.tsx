@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { apiClient, ApiError } from '@/services/apiClient';
 import type { SettingsResponse } from '@/types/settings';
 
@@ -16,6 +17,7 @@ export function SettingsPageContainer() {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [savingField, setSavingField] = React.useState<string | null>(null);
+  const push = usePushNotifications();
 
   React.useEffect(() => {
     let cancelled = false;
@@ -47,22 +49,40 @@ export function SettingsPageContainer() {
   }, []);
 
   const handleToggle =
-    (field: keyof SettingsResponse) => async (event: React.ChangeEvent<HTMLInputElement>) => {
+    <S extends 'notifications' | 'privacy'>(section: S, field: keyof SettingsResponse[S]) =>
+    async (event: React.ChangeEvent<HTMLInputElement>) => {
       if (!settings) return;
 
-      const previous = settings[field];
       const nextValue = event.target.checked;
+      const key = `${section}.${String(field)}`;
+      setSavingField(key);
 
-      setSettings({ ...settings, [field]: nextValue });
-      setSavingField(field);
+      const previousSection = settings[section];
+      const previousValue = previousSection[field] as boolean;
+
+      setSettings({
+        ...settings,
+        [section]: {
+          ...settings[section],
+          [field]: nextValue,
+        },
+      });
 
       try {
         const updated = await apiClient.settings.update({
-          [field]: nextValue,
-        } as Partial<SettingsResponse>);
+          [section]: {
+            [field]: nextValue,
+          },
+        });
         setSettings(updated);
       } catch {
-        setSettings({ ...settings, [field]: previous });
+        setSettings({
+          ...settings,
+          [section]: {
+            ...previousSection,
+            [field]: previousValue,
+          },
+        });
       } finally {
         setSavingField(null);
       }
@@ -128,9 +148,9 @@ export function SettingsPageContainer() {
             </span>
             <input
               type="checkbox"
-              checked={settings.emailNotificationsEnabled}
-              onChange={handleToggle('emailNotificationsEnabled')}
-              disabled={savingField === 'emailNotificationsEnabled'}
+              checked={settings.notifications.emailNotifications}
+              onChange={handleToggle('notifications', 'emailNotifications')}
+              disabled={savingField === 'notifications.emailNotifications'}
             />
           </label>
           <label className="flex items-center justify-between text-sm">
@@ -142,9 +162,9 @@ export function SettingsPageContainer() {
             </span>
             <input
               type="checkbox"
-              checked={settings.marketingEmailsEnabled}
-              onChange={handleToggle('marketingEmailsEnabled')}
-              disabled={savingField === 'marketingEmailsEnabled'}
+              checked={settings.notifications.marketingEmails}
+              onChange={handleToggle('notifications', 'marketingEmails')}
+              disabled={savingField === 'notifications.marketingEmails'}
             />
           </label>
           <label className="flex items-center justify-between text-sm">
@@ -156,11 +176,62 @@ export function SettingsPageContainer() {
             </span>
             <input
               type="checkbox"
-              checked={settings.platformUpdatesEnabled}
-              onChange={handleToggle('platformUpdatesEnabled')}
-              disabled={savingField === 'platformUpdatesEnabled'}
+              checked={settings.notifications.platformUpdates}
+              onChange={handleToggle('notifications', 'platformUpdates')}
+              disabled={savingField === 'notifications.platformUpdates'}
             />
           </label>
+
+          <div className="rounded-lg border border-white/10 p-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="space-y-1">
+                <div className="text-sm font-medium">Web Push Notifications</div>
+                <div className="text-xs text-muted-foreground">
+                  Browser notifications (web only). Requires permission and a supported browser.
+                </div>
+              </div>
+              <input
+                type="checkbox"
+                checked={settings.notifications.pushNotifications}
+                onChange={handleToggle('notifications', 'pushNotifications')}
+                disabled={savingField === 'notifications.pushNotifications'}
+              />
+            </div>
+
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <div className="text-xs text-muted-foreground">
+                {push.isSupported
+                  ? push.isSubscribed
+                    ? 'Status: subscribed'
+                    : 'Status: not subscribed'
+                  : 'Not supported'}
+              </div>
+              {settings.notifications.pushNotifications && push.isSupported ? (
+                push.isSubscribed ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      void push.unsubscribe();
+                    }}
+                  >
+                    Unsubscribe
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => {
+                      void push.subscribe();
+                    }}
+                  >
+                    Subscribe
+                  </Button>
+                )
+              ) : null}
+            </div>
+          </div>
         </CardContent>
       </Card>
 
@@ -178,9 +249,9 @@ export function SettingsPageContainer() {
             </span>
             <input
               type="checkbox"
-              checked={settings.isDiscoverable}
-              onChange={handleToggle('isDiscoverable')}
-              disabled={savingField === 'isDiscoverable'}
+              checked={settings.privacy.profileDiscoverable}
+              onChange={handleToggle('privacy', 'profileDiscoverable')}
+              disabled={savingField === 'privacy.profileDiscoverable'}
             />
           </label>
           <label className="flex items-center justify-between text-sm">
@@ -192,9 +263,9 @@ export function SettingsPageContainer() {
             </span>
             <input
               type="checkbox"
-              checked={settings.showLocation}
-              onChange={handleToggle('showLocation')}
-              disabled={savingField === 'showLocation'}
+              checked={settings.privacy.showLocation}
+              onChange={handleToggle('privacy', 'showLocation')}
+              disabled={savingField === 'privacy.showLocation'}
             />
           </label>
         </CardContent>

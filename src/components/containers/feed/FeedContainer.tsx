@@ -122,6 +122,34 @@ export const FeedContainer = ({ feedType = 'for-you' }: FeedContainerProps) => {
     [fetchFeed]
   );
 
+  const handleLike = useCallback(
+    async (postId: string) => {
+      try {
+        await apiClient.content.toggleLike(postId);
+        // Update local state optimistically - PostInteractions handles this, but we refresh to sync
+        await fetchFeed();
+      } catch (error) {
+        console.error('Failed to toggle like:', error);
+        // PostInteractions will handle error state
+      }
+    },
+    [fetchFeed]
+  );
+
+  const handleBookmark = useCallback(
+    async (postId: string) => {
+      try {
+        await apiClient.content.toggleBookmark(postId);
+        // Update local state optimistically - PostInteractions handles this, but we refresh to sync
+        await fetchFeed();
+      } catch (error) {
+        console.error('Failed to toggle bookmark:', error);
+        // PostInteractions will handle error state
+      }
+    },
+    [fetchFeed]
+  );
+
   if (isLoading) {
     return (
       <div className="flex h-[50vh] items-center justify-center">
@@ -139,6 +167,8 @@ export const FeedContainer = ({ feedType = 'for-you' }: FeedContainerProps) => {
             post={post}
             onUnlock={() => handleUnlock(post.id)}
             onSubscribe={() => handleSubscribe(post.creator.id)}
+            onLike={() => handleLike(post.id)}
+            onBookmark={() => handleBookmark(post.id)}
           />
         ))}
 

@@ -73,7 +73,13 @@ export type MuxWebhookEventType =
   | 'video.asset.created'
   | 'video.asset.ready'
   | 'video.asset.errored'
-  | 'video.asset.deleted';
+  | 'video.asset.deleted'
+  | 'video.live_stream.created'
+  | 'video.live_stream.active'
+  | 'video.live_stream.idle'
+  | 'video.live_stream.disconnected'
+  | 'video.live_stream.ended'
+  | 'video.live_stream.deleted';
 
 export interface MuxWebhookPayload {
   type: MuxWebhookEventType;
@@ -118,4 +124,24 @@ export interface MuxAssetStatus {
   duration?: number;
   aspectRatio?: string;
   errorMessage?: string;
+}
+
+// ============================================
+// LIVE STREAMS
+// ============================================
+
+export interface MuxLiveStreamResponse {
+  data: {
+    id: string;
+    status: 'idle' | 'active' | 'disabled' | 'errored';
+    stream_key: string;
+    playback_ids?: Array<{ id: string; policy: 'public' | 'signed' }>;
+  };
+}
+
+export interface MuxCreateLiveStreamResult {
+  muxLiveStreamId: string;
+  streamKey: string;
+  playbackId: string;
+  rtmpUrl: string;
 }

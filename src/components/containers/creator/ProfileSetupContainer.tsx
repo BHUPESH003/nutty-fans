@@ -1,6 +1,7 @@
 'use client';
 
 import { AlertCircle } from 'lucide-react';
+import type { Route } from 'next';
 import { useRouter } from 'next/navigation';
 import React, { useState, useEffect } from 'react';
 
@@ -11,6 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { apiClient } from '@/services/apiClient';
 
 export const ProfileSetupContainer = () => {
   const router = useRouter();
@@ -35,38 +37,37 @@ export const ProfileSetupContainer = () => {
     const fetchData = async () => {
       try {
         // Fetch session and creator status in parallel
-        const [sessionResponse, statusResponse] = await Promise.all([
-          fetch('/api/auth/session'),
-          fetch('/api/creator/status'),
+        const [session, statusData] = await Promise.all([
+          apiClient.auth.getSession(),
+          apiClient.creator.getStatus(),
         ]);
 
         // Pre-fill from session (user data)
-        if (sessionResponse.ok) {
-          const session = await sessionResponse.json();
-          if (session?.user) {
-            setFormData((prev) => ({
-              ...prev,
-              displayName: session.user.displayName || session.user.name || '',
-              username: session.user.username || '',
-              avatarUrl: session.user.avatarUrl || session.user.image || '',
-            }));
-          }
+        if (session?.user) {
+          setFormData((prev) => ({
+            ...prev,
+            displayName: session.user.displayName || session.user.name || '',
+            username: session.user.username || '',
+            avatarUrl: session.user.avatarUrl || session.user.image || '',
+          }));
         }
 
         // Pre-fill from creator status (bio, socialLinks)
-        if (statusResponse.ok) {
-          const statusData = await statusResponse.json();
-          const profile = statusData.data?.profile;
-          if (profile) {
-            setFormData((prev) => ({
-              ...prev,
-              displayName: profile.displayName || prev.displayName,
-              username: profile.username || prev.username,
-              avatarUrl: profile.avatarUrl || prev.avatarUrl,
-              bio: profile.bio || '',
-              socialLinks: profile.socialLinks || prev.socialLinks,
-            }));
-          }
+        const profile = statusData?.profile;
+        if (profile) {
+          const socialLinks = (profile.socialLinks ?? {}) as Record<string, string>;
+          setFormData((prev) => ({
+            ...prev,
+            displayName: profile.displayName || prev.displayName,
+            username: profile.username || prev.username,
+            avatarUrl: profile.avatarUrl || prev.avatarUrl,
+            bio: profile.bio || '',
+            socialLinks: {
+              instagram: socialLinks['instagram'] ?? prev.socialLinks.instagram,
+              twitter: socialLinks['twitter'] ?? prev.socialLinks.twitter,
+              tiktok: socialLinks['tiktok'] ?? prev.socialLinks.tiktok,
+            },
+          }));
         }
       } catch (err) {
         console.error('Failed to fetch data:', err);
@@ -126,27 +127,14 @@ export const ProfileSetupContainer = () => {
       if (formData.socialLinks.twitter) socialLinks['twitter'] = formData.socialLinks.twitter;
       if (formData.socialLinks.tiktok) socialLinks['tiktok'] = formData.socialLinks.tiktok;
 
-      const response = await fetch('/api/creator/apply/profile', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          displayName: formData.displayName,
-          username: formData.username,
-          bio: formData.bio,
-          avatarUrl: formData.avatarUrl || undefined,
-          socialLinks: Object.keys(socialLinks).length > 0 ? socialLinks : undefined,
-        }),
+      const data = await apiClient.creator.submitProfile({
+        displayName: formData.displayName,
+        username: formData.username,
+        bio: formData.bio,
+        avatarUrl: formData.avatarUrl || undefined,
+        socialLinks: Object.keys(socialLinks).length > 0 ? socialLinks : undefined,
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        // Handle various error response formats
-        const errorMessage = data.message || data.error?.message || 'Failed to submit profile';
-        throw new Error(errorMessage);
-      }
-
-      router.push(data.data.nextStep);
+      router.push(data.nextStep as Route);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {

@@ -205,4 +205,14 @@ export class CreatorRepository {
       },
     });
   }
+
+  /**
+   * List active creators eligible for payout processing.
+   */
+  async findActiveCreatorsForPayouts() {
+    return prisma.creatorProfile.findMany({
+      where: { onboardingStatus: 'active' },
+      select: { id: true, userId: true },
+    });
+  }
 }

@@ -116,7 +116,7 @@ After analyzing requirements, we recommend starting with a **modular monolith** 
 │                        EXTERNAL SERVICES                                     │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐           │
-│  │   Stripe    │ │   Jumio     │ │  SendGrid   │ │   Mux       │           │
+│  │   Square    │ │   Jumio     │ │  SendGrid   │ │   Mux       │           │
 │  │  Payments   │ │    KYC      │ │   Email     │ │ Live/Video  │           │
 │  └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘           │
 │  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐           │
@@ -352,7 +352,7 @@ Token Structure:
 | **Storage**          | AWS S3                              | Media storage                |
 | **CDN**              | CloudFront                          | Content delivery             |
 | **Search**           | Meilisearch                         | Full-text search             |
-| **Payments**         | Stripe Connect                      | Payment processing           |
+| **Payments**         | Square (OAuth + Checkout/Webhooks)  | Payment processing + payouts |
 | **KYC**              | Jumio / Onfido                      | Identity verification        |
 | **Email**            | SendGrid                            | Transactional email          |
 | **Push**             | OneSignal                           | Push notifications           |

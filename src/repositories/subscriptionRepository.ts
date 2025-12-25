@@ -80,6 +80,21 @@ export class SubscriptionRepository {
   }
 
   /**
+   * Get active creator IDs for a user (optionally filtered to a set of creators)
+   */
+  async getActiveCreatorIds(userId: string, creatorIds?: string[]): Promise<string[]> {
+    const rows = await prisma.subscription.findMany({
+      where: {
+        userId,
+        status: 'active',
+        ...(creatorIds?.length ? { creatorId: { in: creatorIds } } : {}),
+      },
+      select: { creatorId: true },
+    });
+    return rows.map((r) => r.creatorId);
+  }
+
+  /**
    * Get user's subscriptions
    */
   async findByUser(userId: string, status?: SubscriptionStatus, cursor?: string, limit = 20) {
@@ -194,6 +209,28 @@ export class SubscriptionRepository {
       include: {
         user: { select: { id: true, email: true, displayName: true } },
         creator: { include: { user: { select: { displayName: true } } } },
+      },
+    });
+  }
+
+  /**
+   * Find subscriptions expiring within a window for auto-renew processing.
+   * Note: Grace-period filtering is handled at the service layer since metadata is JSON.
+   */
+  async findExpiringAutoRenewWithin(now: Date, renewalWindow: Date, limit = 100) {
+    return prisma.subscription.findMany({
+      where: {
+        status: 'active',
+        autoRenew: true,
+        expiresAt: {
+          lte: renewalWindow,
+          gt: now,
+        },
+      },
+      take: limit,
+      select: {
+        id: true,
+        metadata: true,
       },
     });
   }

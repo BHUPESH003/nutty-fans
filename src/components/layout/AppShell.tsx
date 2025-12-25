@@ -1,5 +1,6 @@
 'use client';
 
+import type { Route } from 'next';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import React from 'react';
@@ -21,12 +22,13 @@ interface AppShellProps {
   user?: UserSummary | null;
 }
 
-const navItems = [
-  { href: '/' as const, label: 'Home', icon: '🏠' },
-  { href: '/explore' as const, label: 'Explore', icon: '🔍' },
-  { href: '/reels' as const, label: 'Reels', icon: '🎬' },
-  { href: '/messages' as const, label: 'Messages', icon: '💬' },
-  { href: '/profile' as const, label: 'Profile', icon: '👤' },
+const navItems: Array<{ href: Route; label: string; icon: string }> = [
+  { href: '/' as Route, label: 'Home', icon: '🏠' },
+  { href: '/explore' as Route, label: 'Explore', icon: '🔍' },
+  { href: '/live' as Route, label: 'Live', icon: '🔴' },
+  { href: '/reels' as Route, label: 'Reels', icon: '🎬' },
+  { href: '/messages' as Route, label: 'Messages', icon: '💬' },
+  // { href: '/profile' as Route, label: 'Profile', icon: '👤' },
 ];
 
 export function AppShell({ children, user }: AppShellProps) {

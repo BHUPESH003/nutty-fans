@@ -233,6 +233,29 @@ export class MediaService {
   }
 
   /**
+   * Confirm upload (image or video) by looking up the media record
+   * and dispatching to the correct confirm handler.
+   */
+  async confirmUpload(
+    mediaId: string,
+    creatorId: string,
+    data: {
+      key: string;
+      width?: number;
+      height?: number;
+    }
+  ) {
+    const media = await this.mediaRepo.findById(mediaId);
+    if (!media) throw new Error('Media not found');
+
+    if (media.mediaType === 'video') {
+      return this.confirmVideoUpload(mediaId, creatorId, data);
+    }
+
+    return this.confirmImageUpload(mediaId, creatorId, data);
+  }
+
+  /**
    * Handle Mux webhook for video processing
    * NOTE: S3 URL remains in originalUrl (source of truth)
    * Mux playback URLs are stored in processedUrl for delivery

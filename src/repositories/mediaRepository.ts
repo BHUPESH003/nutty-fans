@@ -47,6 +47,22 @@ export class MediaRepository {
     return media ? serializeMedia(media) : null;
   }
 
+  async findVideoForPlayback(id: string) {
+    return prisma.media.findUnique({
+      where: { id },
+      include: {
+        post: {
+          select: {
+            id: true,
+            accessLevel: true,
+            ppvPrice: true,
+            creatorId: true,
+          },
+        },
+      },
+    });
+  }
+
   /**
    * Find media by post ID
    */

@@ -3,7 +3,6 @@ import { getServerSession } from 'next-auth';
 
 import { contentController } from '@/app/api/_controllers/contentController';
 import { authOptions } from '@/lib/auth/authOptions';
-import { prisma } from '@/lib/db/prisma';
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -18,16 +17,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     return NextResponse.json({ error: { message: 'Unauthorized' } }, { status: 401 });
   }
 
-  const creator = await prisma.creatorProfile.findUnique({
-    where: { userId: session.user.id },
-  });
-
-  if (!creator) {
-    return NextResponse.json({ error: { message: 'Creator profile not found' } }, { status: 403 });
-  }
-
   const body = await req.json();
-  return contentController.updatePost(id, creator.id, body);
+  return contentController.updateMyPost(id, session.user.id, body);
 }
 
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -37,13 +28,5 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     return NextResponse.json({ error: { message: 'Unauthorized' } }, { status: 401 });
   }
 
-  const creator = await prisma.creatorProfile.findUnique({
-    where: { userId: session.user.id },
-  });
-
-  if (!creator) {
-    return NextResponse.json({ error: { message: 'Creator profile not found' } }, { status: 403 });
-  }
-
-  return contentController.deletePost(id, creator.id);
+  return contentController.deleteMyPost(id, session.user.id);
 }

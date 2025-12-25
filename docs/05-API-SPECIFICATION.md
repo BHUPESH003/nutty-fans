@@ -663,20 +663,22 @@ Remove content.
 
 ## Webhooks
 
-### Stripe Webhooks
+### Square Webhooks
 
-**Endpoint:** `POST /webhooks/stripe`
+**Endpoints:**
 
-Events handled:
+- `POST /webhooks/square` (general Square events, e.g. payouts)
+- `POST /webhooks/square/payments` (wallet top-up payment events)
 
-- `payment_intent.succeeded`
-- `payment_intent.failed`
-- `customer.subscription.created`
-- `customer.subscription.updated`
-- `customer.subscription.deleted`
-- `transfer.created`
-- `payout.paid`
-- `payout.failed`
+Events handled (high-level):
+
+- Wallet top-ups:
+  - `payment.completed`
+  - `payment.failed`
+  - `payment.refunded`
+- Payout lifecycle (if/when enabled via Square):
+  - `payout.sent`
+  - `payout.failed`
 
 ### Mux Webhooks
 

@@ -167,6 +167,19 @@ export function PostCard({
         </div>
       )}
 
+      {/* Tags */}
+      {post.tags && post.tags.length > 0 && (
+        <div className="px-4 pb-4 pt-0">
+          <div className="flex flex-wrap gap-2">
+            {post.tags.slice(0, 10).map((t) => (
+              <Badge key={t.id} variant="secondary" className="text-xs">
+                #{t.slug}
+              </Badge>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* View Stats */}
       <div className="border-t border-white/5 px-4 py-2.5">
         <span className="text-xs text-muted-foreground">

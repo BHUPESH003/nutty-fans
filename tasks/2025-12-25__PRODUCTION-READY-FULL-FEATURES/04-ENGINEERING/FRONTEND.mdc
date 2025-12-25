@@ -1,0 +1,22 @@
+## 04 — Engineering (Frontend) (Draft)
+
+### Goal
+- Implement all missing doc-defined UI and ensure all screens are linked.
+- Keep all API interactions in `src/services/apiClient.ts`.
+
+### Planned deliverables (initial wave)
+- Tags UX:
+  - Tag input in post create/edit
+  - Tag browse page and tag search
+  - Update feed/explore filters to support tag filtering
+- Bundles UX:
+  - Creator: create/edit bundles, add posts to bundle
+  - Fan: browse bundles on creator profile, purchase, view purchased bundles
+- PPV UX:
+  - Purchases page (posts/messages) + re-access
+- Subscriptions management UX:
+  - Active subscriptions list + cancel
+- Live streaming UX:
+  - Live list + live detail
+  - Creator “Go Live” flow (Mux)
+

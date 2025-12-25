@@ -25,6 +25,7 @@ export class SettingsRepository {
       platformUpdates: boolean;
       profileDiscoverable: boolean;
       showLocation: boolean;
+      pushNotifications: boolean;
     }>
   ) {
     return prisma.userNotificationSettings.update({

@@ -1,0 +1,28 @@
+## 03 — UI/UX (Draft)
+
+### UX principles (from `docs/06-UI-UX-BLUEPRINT.md`)
+- Consistent layout + navigation across routes
+- Clear loading + error + empty states
+- Mobile-first responsiveness
+- Fast “happy path” interactions: like, bookmark, subscribe, tip, unlock
+
+### Key missing UX categories to validate/complete
+- Discovery:
+  - tags/hashtags UX (attach tags on create, browse by tag, trending tags)
+  - category browsing consistency
+- Monetization UX:
+  - subscription management page (cancel/renew/history)
+  - PPV library / purchase history
+  - creator earnings breakdown: subscriptions vs ppv vs tips
+  - bundles store UX (creator sells bundles, fan purchases, library)
+- Live:
+  - live list page
+  - stream detail page (paywall gating)
+  - “go live” creator flow (Mux Live)
+- Notifications:
+  - web push opt-in UI, preferences, graceful fallback
+
+### Navigation consistency requirement
+- AppShell should wrap all in-app and public pages that require consistent top/bottom nav.
+- Any route group bypassing the layout must have a `layout.tsx` wrapper.
+

@@ -27,6 +27,7 @@ export interface CreatePostInput {
   commentsEnabled?: boolean;
   scheduledAt?: Date;
   mediaIds?: string[];
+  tags?: string[];
   status?: PostStatus;
 }
 
@@ -37,6 +38,7 @@ export interface UpdatePostInput {
   isNsfw?: boolean;
   commentsEnabled?: boolean;
   isPinned?: boolean;
+  tags?: string[];
 }
 
 export interface CreateCommentInput {
@@ -80,6 +82,7 @@ export interface PostWithCreator {
     isVerified: boolean;
   };
   media: MediaItem[];
+  tags?: Array<{ id: string; name: string; slug: string }>;
   isLiked?: boolean;
   isBookmarked?: boolean;
   hasAccess?: boolean;

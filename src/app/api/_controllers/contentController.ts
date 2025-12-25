@@ -15,6 +15,7 @@ import { CommentService } from '@/services/content/commentService';
 import { FeedService } from '@/services/content/feedService';
 import { MediaService } from '@/services/content/mediaService';
 import { PostService } from '@/services/content/postService';
+import { CreatorAccessService } from '@/services/creator/creatorAccessService';
 import { AuthUser } from '@/types/auth';
 import type {
   CreatePostInput,
@@ -30,6 +31,7 @@ const commentService = new CommentService();
 const likeRepo = new LikeRepository();
 const bookmarkRepo = new BookmarkRepository();
 const postRepo = new PostRepository();
+const creatorAccessService = new CreatorAccessService();
 
 export const contentController = {
   // ============================================
@@ -42,18 +44,14 @@ export const contentController = {
       if (!user.id) {
         throw new AppError(VALIDATION_MISSING_FIELD, 'User ID is required', 400);
       }
-
-      // Look up creator profile by user ID
-      const { prisma } = await import('@/lib/db/prisma');
-      const creatorProfile = await prisma.creatorProfile.findUnique({
-        where: { userId: user.id },
-      });
-
-      if (!creatorProfile) {
+      let creatorId: string;
+      try {
+        creatorId = await creatorAccessService.requireCreatorIdByUserId(user.id);
+      } catch {
         throw new AppError(VALIDATION_MISSING_FIELD, 'You must be a creator to create posts', 403);
       }
 
-      const post = await postService.create(creatorProfile.id, body);
+      const post = await postService.create(creatorId, body);
       return successResponse(post, 'Post created successfully', 201);
     });
   },
@@ -84,6 +82,27 @@ export const contentController = {
     });
   },
 
+  async updateMyPost(postId: string, userId: string, body: UpdatePostInput) {
+    return handleAsyncRoute(async () => {
+      if (!postId) {
+        throw new AppError(VALIDATION_MISSING_FIELD, 'Post ID is required', 400);
+      }
+      if (!userId) {
+        throw new AppError(VALIDATION_MISSING_FIELD, 'User ID is required', 400);
+      }
+
+      let creatorId: string;
+      try {
+        creatorId = await creatorAccessService.requireCreatorIdByUserId(userId);
+      } catch {
+        throw new AppError(VALIDATION_MISSING_FIELD, 'Creator profile not found', 403);
+      }
+
+      const post = await postService.update(postId, creatorId, body);
+      return successResponse(post);
+    });
+  },
+
   async deletePost(postId: string, creatorId: string) {
     return handleAsyncRoute(async () => {
       if (!postId) {
@@ -91,6 +110,25 @@ export const contentController = {
       }
       if (!creatorId) {
         throw new AppError(VALIDATION_MISSING_FIELD, 'Creator ID is required', 400);
+      }
+      await postService.delete(postId, creatorId);
+      return successResponse({ success: true });
+    });
+  },
+
+  async deleteMyPost(postId: string, userId: string) {
+    return handleAsyncRoute(async () => {
+      if (!postId) {
+        throw new AppError(VALIDATION_MISSING_FIELD, 'Post ID is required', 400);
+      }
+      if (!userId) {
+        throw new AppError(VALIDATION_MISSING_FIELD, 'User ID is required', 400);
+      }
+      let creatorId: string;
+      try {
+        creatorId = await creatorAccessService.requireCreatorIdByUserId(userId);
+      } catch {
+        throw new AppError(VALIDATION_MISSING_FIELD, 'Creator profile not found', 403);
       }
       await postService.delete(postId, creatorId);
       return successResponse({ success: true });
@@ -110,6 +148,25 @@ export const contentController = {
     });
   },
 
+  async publishMyPost(postId: string, userId: string) {
+    return handleAsyncRoute(async () => {
+      if (!postId) {
+        throw new AppError(VALIDATION_MISSING_FIELD, 'Post ID is required', 400);
+      }
+      if (!userId) {
+        throw new AppError(VALIDATION_MISSING_FIELD, 'User ID is required', 400);
+      }
+      let creatorId: string;
+      try {
+        creatorId = await creatorAccessService.requireCreatorIdByUserId(userId);
+      } catch {
+        throw new AppError(VALIDATION_MISSING_FIELD, 'Creator profile not found', 403);
+      }
+      const post = await postService.publish(postId, creatorId);
+      return successResponse(post);
+    });
+  },
+
   async listCreatorPosts(
     creatorId: string,
     filters: { status?: string; cursor?: string; limit?: number }
@@ -117,6 +174,26 @@ export const contentController = {
     return handleAsyncRoute(async () => {
       if (!creatorId) {
         throw new AppError(VALIDATION_MISSING_FIELD, 'Creator ID is required', 400);
+      }
+      const result = await postService.listByCreator(creatorId, {
+        status: filters.status as 'draft' | 'published' | 'scheduled' | undefined,
+        cursor: filters.cursor,
+        limit: filters.limit,
+      });
+      return successResponse(result);
+    });
+  },
+
+  async listMyPosts(userId: string, filters: { status?: string; cursor?: string; limit?: number }) {
+    return handleAsyncRoute(async () => {
+      if (!userId) {
+        throw new AppError(VALIDATION_MISSING_FIELD, 'User ID is required', 400);
+      }
+      let creatorId: string;
+      try {
+        creatorId = await creatorAccessService.requireCreatorIdByUserId(userId);
+      } catch {
+        throw new AppError(VALIDATION_MISSING_FIELD, 'Creator profile not found', 403);
       }
       const result = await postService.listByCreator(creatorId, {
         status: filters.status as 'draft' | 'published' | 'scheduled' | undefined,
@@ -149,34 +226,27 @@ export const contentController = {
     }
   },
 
+  async getUploadUrlForUser(userId: string, file: FileMetadata) {
+    return handleAsyncRoute(async () => {
+      if (!userId) {
+        throw new AppError(VALIDATION_MISSING_FIELD, 'User ID is required', 400);
+      }
+      let creatorId: string;
+      try {
+        creatorId = await creatorAccessService.requireCreatorIdByUserId(userId);
+      } catch {
+        throw new AppError(VALIDATION_MISSING_FIELD, 'Creator profile not found', 403);
+      }
+      return await this.getUploadUrl(creatorId, file);
+    });
+  },
+
   async confirmUpload(
     creatorId: string,
     body: { mediaId: string; key: string; width?: number; height?: number; mediaType?: string }
   ) {
     try {
-      // Determine media type from the media record
-      const { prisma } = await import('@/lib/db/prisma');
-      const media = await prisma.media.findUnique({
-        where: { id: body.mediaId },
-        select: { mediaType: true },
-      });
-
-      if (!media) {
-        return NextResponse.json({ error: { message: 'Media not found' } }, { status: 404 });
-      }
-
-      // Handle video uploads (S3 -> Mux ingestion)
-      if (media.mediaType === 'video') {
-        const result = await mediaService.confirmVideoUpload(body.mediaId, creatorId, {
-          key: body.key,
-          width: body.width,
-          height: body.height,
-        });
-        return successResponse(result);
-      }
-
-      // Handle image uploads
-      const result = await mediaService.confirmImageUpload(body.mediaId, creatorId, {
+      const result = await mediaService.confirmUpload(body.mediaId, creatorId, {
         key: body.key,
         width: body.width,
         height: body.height,
@@ -186,6 +256,24 @@ export const contentController = {
       const message = error instanceof Error ? error.message : 'Failed to confirm upload';
       return NextResponse.json({ error: { message } }, { status: 400 });
     }
+  },
+
+  async confirmUploadForUser(
+    userId: string,
+    body: { mediaId: string; key: string; width?: number; height?: number; mediaType?: string }
+  ) {
+    return handleAsyncRoute(async () => {
+      if (!userId) {
+        throw new AppError(VALIDATION_MISSING_FIELD, 'User ID is required', 400);
+      }
+      let creatorId: string;
+      try {
+        creatorId = await creatorAccessService.requireCreatorIdByUserId(userId);
+      } catch {
+        throw new AppError(VALIDATION_MISSING_FIELD, 'Creator profile not found', 403);
+      }
+      return this.confirmUpload(creatorId, body);
+    });
   },
 
   async getMediaStatus(mediaId: string) {

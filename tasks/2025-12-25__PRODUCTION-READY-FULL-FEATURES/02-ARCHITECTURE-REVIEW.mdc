@@ -1,0 +1,44 @@
+## 02 — Architecture Review (Draft)
+
+### Rules to enforce (canonical)
+- `/rules/CODEBASE_ARCHITECTURE_RULES.md` layered architecture:
+  - Route Handler → Controller → Service → Repository
+  - No DB access in route handlers
+- Single frontend API client:
+  - All network calls via `src/services/apiClient.ts`
+
+### Findings (initial)
+- Some public API route handlers perform DB reads directly (violates layered backend rules).
+  - Fix will be to introduce controller/service/repository methods and keep routes as thin wiring.
+
+### Technical approach
+- **Backend**
+  - Add/extend controllers under `src/app/api/_controllers/*`
+  - Add/extend services under `src/services/*`
+  - Add/extend repositories under `src/repositories/*`
+  - Route handlers call exactly one controller method.
+- **Frontend**
+  - Pages use containers (`src/components/containers/*`) for orchestration.
+  - UI components remain dumb (`src/components/ui/*`).
+  - All API interactions go through `src/services/apiClient.ts`.
+- **Live Streaming (Mux Live)**
+  - Create a `LiveStreamService` integrating with Mux Live APIs.
+  - Add route handlers for:
+    - create stream (creator)
+    - start/end
+    - list live streams
+    - view stream details
+  - Ensure access control for subscriber-only streams.
+- **Web Push**
+  - Keep existing `/api/push/*` endpoints.
+  - Ensure UI to manage subscription + permission prompts.
+  - Ensure notification preferences integrated with UI.
+
+### Risks / trade-offs
+- Scope breadth: must be executed in sub-epics under this umbrella task using a feature matrix.
+- Streaming correctness: needs careful auth, rate limiting, and consistent UX fallbacks.
+
+### Required approvals before engineering
+- Human approval of this architecture draft
+- Human approval of the implementation sequencing (feature matrix priority)
+
