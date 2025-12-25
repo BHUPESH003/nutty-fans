@@ -1,6 +1,7 @@
 'use client';
 
 import { Lock, Wallet, Loader2 } from 'lucide-react';
+import Link from 'next/link';
 import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -12,7 +13,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { apiClient } from '@/services/apiClient';
+import { apiClient, ApiError } from '@/services/apiClient';
 
 interface UnlockButtonProps {
   postId: string;
@@ -68,12 +69,41 @@ export function UnlockButton({
       });
       setIsOpen(false);
       onSuccess?.();
-    } catch (error) {
-      toast({
-        title: 'Unlock Failed',
-        description: error instanceof Error ? error.message : 'Something went wrong',
-        variant: 'destructive',
-      });
+    } catch (error: unknown) {
+      // Extract error message and status
+      let errorMessage = 'Something went wrong';
+      let errorStatus: number | undefined;
+
+      if (error instanceof ApiError) {
+        errorMessage = error.message;
+        errorStatus = error.status;
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (error && typeof error === 'object' && 'message' in error) {
+        errorMessage = String((error as { message: unknown }).message);
+        if ('status' in error) {
+          errorStatus = Number((error as { status: unknown }).status);
+        }
+      }
+
+      // Handle insufficient balance error (402 status)
+      const isInsufficientBalance =
+        errorStatus === 402 || errorMessage.toLowerCase().includes('insufficient');
+
+      if (isInsufficientBalance) {
+        toast({
+          title: 'Insufficient Balance',
+          description: errorMessage || 'Please add funds to your wallet to unlock this content.',
+          variant: 'destructive',
+        });
+        // Keep dialog open so user can click "Add Funds" button
+      } else {
+        toast({
+          title: 'Unlock Failed',
+          description: errorMessage,
+          variant: 'destructive',
+        });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -166,8 +196,8 @@ export function UnlockButton({
                 )}
               </Button>
             ) : (
-              <Button asChild className="flex-1">
-                <a href="/wallet">Add Funds</a>
+              <Button asChild className="flex-1" variant="default">
+                <Link href="/profile?tab=wallet">Add Funds</Link>
               </Button>
             )}
           </div>

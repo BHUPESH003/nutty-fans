@@ -2,6 +2,15 @@ import useSWR from 'swr';
 
 import { apiClient } from '@/services/apiClient';
 
+/**
+ * Conversations Hook
+ *
+ * Note: Polling removed (was 30s). For real-time updates, consider:
+ * - Implementing SSE endpoint for conversation list updates
+ * - Or using mutation after sending messages (messages already trigger conversation updates)
+ *
+ * For now, manual refresh via mutate() or automatic refresh on component focus
+ */
 export function useConversations() {
   const { data, error, isLoading, mutate } = useSWR(
     '/api/conversations',
@@ -9,7 +18,9 @@ export function useConversations() {
       return apiClient.messaging.listConversations();
     },
     {
-      refreshInterval: 30000, // Poll every 30s
+      // Polling removed - use revalidateOnFocus for better UX
+      revalidateOnFocus: true,
+      revalidateOnReconnect: true,
     }
   );
 

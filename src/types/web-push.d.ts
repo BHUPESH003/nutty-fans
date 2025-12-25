@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 declare module 'web-push' {
   export interface PushSubscription {
     endpoint: string;

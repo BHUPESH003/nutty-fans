@@ -71,7 +71,7 @@ export interface WebhookEvent {
  * - NOT apply commission
  * - ONLY handle card payment mechanics
  */
-/* eslint-disable no-unused-vars */
+
 export interface PaymentGatewayAdapter {
   /** Gateway name for logging/audit */
   readonly name: string;
@@ -103,4 +103,3 @@ export interface PaymentGatewayAdapter {
    */
   isConfigured(): boolean;
 }
-/* eslint-enable no-unused-vars */

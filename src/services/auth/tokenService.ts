@@ -13,7 +13,6 @@ type CreateTokenOptions = {
 };
 
 export class TokenService {
-  // eslint-disable-next-line no-unused-vars
   constructor(private readonly repo: VerificationTokenRepository) {}
 
   private hashToken(token: string): string {

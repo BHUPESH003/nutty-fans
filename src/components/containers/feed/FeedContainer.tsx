@@ -5,7 +5,8 @@ import { useState, useEffect, useCallback } from 'react';
 
 import { PostCard } from '@/components/posts/PostCard';
 import { Button } from '@/components/ui/button';
-import { apiClient } from '@/services/apiClient';
+import { useToast } from '@/hooks/use-toast';
+import { apiClient, ApiError } from '@/services/apiClient';
 import type { PostWithCreator } from '@/types/content';
 
 interface FeedContainerProps {
@@ -13,6 +14,7 @@ interface FeedContainerProps {
 }
 
 export const FeedContainer = ({ feedType = 'for-you' }: FeedContainerProps) => {
+  const { toast } = useToast();
   const [posts, setPosts] = useState<PostWithCreator[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
@@ -56,6 +58,70 @@ export const FeedContainer = ({ feedType = 'for-you' }: FeedContainerProps) => {
     }
   };
 
+  const handleUnlock = useCallback(
+    async (postId: string) => {
+      try {
+        await apiClient.payments.unlockPpv(postId);
+        // Refresh feed to update access status
+        await fetchFeed();
+      } catch (error: unknown) {
+        console.error('Failed to unlock post in FeedContainer:', error);
+        // Extract error message and status
+        let errorMessage = 'Something went wrong. Please try again.';
+        let errorStatus: number | undefined;
+
+        if (error instanceof ApiError) {
+          errorMessage = error.message;
+          errorStatus = error.status;
+        } else if (error instanceof Error) {
+          errorMessage = error.message;
+        } else if (error && typeof error === 'object' && 'message' in error) {
+          errorMessage = String((error as { message: unknown }).message);
+          if ('status' in error) {
+            errorStatus = Number((error as { status: unknown }).status);
+          }
+        }
+
+        // Handle insufficient balance error (402 status)
+        const isInsufficientBalance =
+          errorStatus === 402 || errorMessage.toLowerCase().includes('insufficient');
+
+        if (isInsufficientBalance) {
+          toast({
+            title: 'Insufficient Balance',
+            description: errorMessage || 'Please add funds to your wallet to unlock this content.',
+            variant: 'destructive',
+          });
+        } else {
+          // Show generic error
+          toast({
+            title: 'Failed to Unlock',
+            description: errorMessage,
+            variant: 'destructive',
+          });
+        }
+
+        // Re-throw error so PostCard can also handle it if needed
+        throw error;
+      }
+    },
+    [fetchFeed, toast]
+  );
+
+  const handleSubscribe = useCallback(
+    async (creatorId: string) => {
+      try {
+        await apiClient.payments.subscribe(creatorId, 'monthly');
+        // Refresh feed to update subscription status
+        await fetchFeed();
+      } catch (error) {
+        console.error('Failed to subscribe:', error);
+        throw error;
+      }
+    },
+    [fetchFeed]
+  );
+
   if (isLoading) {
     return (
       <div className="flex h-[50vh] items-center justify-center">
@@ -68,7 +134,12 @@ export const FeedContainer = ({ feedType = 'for-you' }: FeedContainerProps) => {
     <div className="mx-auto max-w-2xl px-4 py-8">
       <div className="space-y-6">
         {posts.map((post) => (
-          <PostCard key={post.id} post={post} />
+          <PostCard
+            key={post.id}
+            post={post}
+            onUnlock={() => handleUnlock(post.id)}
+            onSubscribe={() => handleSubscribe(post.creator.id)}
+          />
         ))}
 
         {posts.length === 0 && (

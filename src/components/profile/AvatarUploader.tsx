@@ -10,7 +10,7 @@ interface AvatarUploaderProps {
   displayName?: string;
   isUploading: boolean;
   error?: string | null;
-  onFileSelected: (_file: File) => void; // eslint-disable-line no-unused-vars
+  onFileSelected: (_file: File) => void;
   onRemove: () => void;
 }
 

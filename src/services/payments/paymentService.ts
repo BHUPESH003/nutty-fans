@@ -16,6 +16,7 @@
 import type { TransactionType } from '@prisma/client';
 
 import { prisma } from '@/lib/db/prisma';
+import { AppError, PAYMENT_INSUFFICIENT_BALANCE } from '@/lib/errors/errorHandler';
 import { transactionService } from '@/services/finance/transactionService';
 import type { PaymentGatewayAdapter } from '@/services/gateways';
 import { squareAdapter } from '@/services/gateways';
@@ -185,8 +186,11 @@ export class PaymentService {
     const balance = await this.getWalletBalance(userId);
 
     if (balance < params.amount) {
-      throw new Error(
-        `Insufficient wallet balance. Required: $${params.amount.toFixed(2)}, Available: $${balance.toFixed(2)}`
+      throw new AppError(
+        PAYMENT_INSUFFICIENT_BALANCE,
+        `Insufficient wallet balance. Required: $${params.amount.toFixed(2)}, Available: $${balance.toFixed(2)}. Please add funds to your wallet.`,
+        402,
+        { required: params.amount, available: balance }
       );
     }
 

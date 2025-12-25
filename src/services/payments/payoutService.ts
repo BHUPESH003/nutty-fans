@@ -105,7 +105,7 @@ export class PayoutService {
   /**
    * Get payout settings
    */
-  // eslint-disable-next-line no-unused-vars
+
   async getSettings(_creatorId: string): Promise<PayoutSettings> {
     // For now, return defaults
     return {

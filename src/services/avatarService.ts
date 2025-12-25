@@ -20,7 +20,6 @@ const MAX_AVATAR_BYTES = 5 * 1024 * 1024; // 5MB
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 
 export class AvatarService {
-  // eslint-disable-next-line no-unused-vars
   constructor(private readonly profileRepo: ProfileRepository) {}
 
   validateFile(input: UploadUrlRequest): Record<string, string[]> {

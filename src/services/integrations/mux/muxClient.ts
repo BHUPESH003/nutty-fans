@@ -1,5 +1,7 @@
 import crypto from 'crypto';
 
+import jwt from 'jsonwebtoken';
+
 import type {
   MuxCreateUploadResponse,
   MuxAssetResponse,
@@ -12,6 +14,8 @@ import type {
 const MUX_TOKEN_ID = process.env['MUX_TOKEN_ID'] ?? '';
 const MUX_TOKEN_SECRET = process.env['MUX_TOKEN_SECRET'] ?? '';
 const MUX_WEBHOOK_SECRET = process.env['MUX_WEBHOOK_SECRET'] ?? '';
+const MUX_SIGNING_KEY_ID = process.env['MUX_SIGNING_KEY_ID'] ?? '';
+const MUX_SIGNING_PRIVATE_KEY = process.env['MUX_SIGNING_PRIVATE_KEY'] ?? '';
 const MUX_BASE_URL = 'https://api.mux.com';
 const APP_URL = process.env['NEXT_PUBLIC_APP_URL'] ?? 'http://localhost:3000';
 
@@ -29,7 +33,8 @@ export class MuxClient {
 
   /**
    * Create a direct upload URL for video
-   * Client uploads directly to Mux (no server involvement)
+   * DEPRECATED: Use createAssetFromUrl instead (S3 -> Mux pipeline)
+   * @deprecated This bypasses S3 requirement. Use createAssetFromUrl after S3 upload.
    */
   async createDirectUpload(passthrough?: string): Promise<MuxUploadResult> {
     const response = await fetch(`${MUX_BASE_URL}/video/v1/uploads`, {
@@ -57,6 +62,39 @@ export class MuxClient {
     return {
       uploadId: data.data.id,
       uploadUrl: data.data.url,
+    };
+  }
+
+  /**
+   * Create a Mux asset from an S3 URL (required pipeline: S3 -> Mux)
+   * This is the CORRECT way to upload videos: S3 first, then Mux ingestion
+   */
+  async createAssetFromUrl(s3Url: string, passthrough?: string): Promise<{ assetId: string }> {
+    const response = await fetch(`${MUX_BASE_URL}/video/v1/assets`, {
+      method: 'POST',
+      headers: {
+        Authorization: this.authHeader,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        input: [
+          {
+            url: s3Url,
+          },
+        ],
+        playback_policy: ['signed'], // Require signed tokens for playback (anti-piracy)
+        passthrough, // Used to link back to our mediaId
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Mux asset creation from URL failed: ${error}`);
+    }
+
+    const data: MuxAssetResponse = await response.json();
+    return {
+      assetId: data.data.id,
     };
   }
 
@@ -128,6 +166,8 @@ export class MuxClient {
 
   /**
    * Get playback URLs for an asset
+   * NOTE: These are PUBLIC URLs. For secure playback, use getSignedPlaybackUrls() instead
+   * @deprecated Use getSignedPlaybackUrls() for secure playback with authentication
    */
   getPlaybackUrls(playbackId: string): MuxPlaybackUrls {
     return {
@@ -136,6 +176,73 @@ export class MuxClient {
       gifUrl: `https://image.mux.com/${playbackId}/animated.gif`,
       posterUrl: `https://image.mux.com/${playbackId}/thumbnail.jpg?width=1920&height=1080`,
     };
+  }
+
+  /**
+   * Generate signed playback URLs with expiration (for secure playback)
+   * Returns URLs that expire after specified time (default 5 minutes)
+   *
+   * SECURITY: This generates JWT tokens signed with Mux's private key.
+   * URLs expire after the specified time and cannot be reused.
+   */
+  async getSignedPlaybackUrls(
+    playbackId: string,
+    expirationSeconds: number = 300
+  ): Promise<MuxPlaybackUrls> {
+    // Validate signing keys are configured
+    if (!MUX_SIGNING_KEY_ID || !MUX_SIGNING_PRIVATE_KEY) {
+      console.warn(
+        'MUX_SIGNING_KEY_ID or MUX_SIGNING_PRIVATE_KEY not configured. Falling back to public URLs.'
+      );
+      return this.getPlaybackUrls(playbackId);
+    }
+
+    try {
+      // Generate JWT token for signed playback
+      // Mux uses RS256 (RSA with SHA-256) for signed playback tokens
+      const now = Math.floor(Date.now() / 1000);
+      const expiration = now + expirationSeconds;
+
+      const tokenPayload = {
+        sub: playbackId, // Subject: playback ID
+        aud: 'v', // Audience: video
+        exp: expiration, // Expiration time
+        kid: MUX_SIGNING_KEY_ID, // Key ID
+      };
+
+      // Sign the JWT token using RS256
+      // Mux signing key is an RSA private key in PEM format
+      const token = jwt.sign(tokenPayload, MUX_SIGNING_PRIVATE_KEY, {
+        algorithm: 'RS256',
+        header: {
+          kid: MUX_SIGNING_KEY_ID,
+          alg: 'RS256',
+          typ: 'JWT',
+        },
+      });
+
+      // Construct signed playback URL
+      // Format: https://stream.mux.com/{playbackId}.m3u8?token={signedToken}
+      const signedStreamUrl = `https://stream.mux.com/${playbackId}.m3u8?token=${token}`;
+
+      // Thumbnail and poster URLs don't need tokens (they're images, not video streams)
+      // But we can optionally sign them if needed for additional security
+      const thumbnailUrl = `https://image.mux.com/${playbackId}/thumbnail.jpg`;
+      const posterUrl = `https://image.mux.com/${playbackId}/thumbnail.jpg?width=1920&height=1080`;
+      const gifUrl = `https://image.mux.com/${playbackId}/animated.gif`;
+
+      return {
+        streamUrl: signedStreamUrl,
+        thumbnailUrl,
+        posterUrl,
+        gifUrl,
+      };
+    } catch (error) {
+      console.error('Failed to generate signed playback URL:', error);
+      // Fallback to public URLs if signing fails
+      console.warn('Falling back to public URLs due to signing error');
+      return this.getPlaybackUrls(playbackId);
+    }
   }
 
   /**

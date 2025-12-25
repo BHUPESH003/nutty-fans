@@ -13,7 +13,7 @@ import type { CreatePostInput } from '@/types/content';
 
 interface PostFormProps {
   initialData?: Partial<CreatePostInput>;
-  onSubmit: (_data: CreatePostInput) => Promise<void>; // eslint-disable-line no-unused-vars
+  onSubmit: (_data: CreatePostInput) => Promise<void>;
   isSubmitting?: boolean;
 }
 

@@ -12,7 +12,7 @@ import { formatCurrency } from '@/lib/utils';
 
 interface WalletCardProps {
   balance: number;
-  // eslint-disable-next-line no-unused-vars
+
   onTopup: (amount: number) => Promise<void>;
 }
 
@@ -21,7 +21,6 @@ export function WalletCard({ balance, onTopup }: WalletCardProps) {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
-  // eslint-disable-next-line no-unused-vars
   const handleTopUp = async (_amount: number) => {
     const val = parseFloat(amount);
     if (isNaN(val) || val < 5) {

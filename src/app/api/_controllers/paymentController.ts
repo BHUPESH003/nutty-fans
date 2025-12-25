@@ -55,7 +55,7 @@ export const paymentController = {
     });
   },
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async renewSubscription(subscriptionId: string, userId: string, planType?: SubscriptionPlanType) {
     return handleAsyncRoute(async () => {
       if (!subscriptionId) {
@@ -122,7 +122,7 @@ export const paymentController = {
   // PPV
   // ============================================
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async purchasePpv(userId: string, postId: string, paymentSource: 'wallet' | 'card') {
     return handleAsyncRoute(async () => {
       if (!postId) {

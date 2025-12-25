@@ -21,7 +21,6 @@ type UpdateSettingsInput = {
 };
 
 export class SettingsService {
-  // eslint-disable-next-line no-unused-vars
   constructor(private readonly repo: SettingsRepository) {}
 
   async getSettings(userId: string): Promise<SettingsResponse | null> {

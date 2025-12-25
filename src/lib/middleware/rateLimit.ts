@@ -11,7 +11,7 @@ type RateLimitConfig = {
 const memoryStore = new Map<string, { count: number; resetAt: number }>();
 
 export function withRateLimit(
-  handler: (_req: NextRequest) => Promise<NextResponse>, // eslint-disable-line no-unused-vars
+  handler: (_req: NextRequest) => Promise<NextResponse>,
   config: RateLimitConfig
 ) {
   return async (req: NextRequest): Promise<NextResponse> => {

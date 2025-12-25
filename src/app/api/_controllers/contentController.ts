@@ -135,6 +135,7 @@ export const contentController = {
     try {
       const mediaType = mediaService.getMediaType(file.contentType);
 
+      // Both images and videos now use S3 presigned URLs
       if (mediaType === 'video') {
         const result = await mediaService.getVideoUploadUrl(creatorId, file);
         return successResponse(result);
@@ -150,15 +151,37 @@ export const contentController = {
 
   async confirmUpload(
     creatorId: string,
-    body: { mediaId: string; key: string; width?: number; height?: number }
+    body: { mediaId: string; key: string; width?: number; height?: number; mediaType?: string }
   ) {
     try {
-      const media = await mediaService.confirmImageUpload(body.mediaId, creatorId, {
+      // Determine media type from the media record
+      const { prisma } = await import('@/lib/db/prisma');
+      const media = await prisma.media.findUnique({
+        where: { id: body.mediaId },
+        select: { mediaType: true },
+      });
+
+      if (!media) {
+        return NextResponse.json({ error: { message: 'Media not found' } }, { status: 404 });
+      }
+
+      // Handle video uploads (S3 -> Mux ingestion)
+      if (media.mediaType === 'video') {
+        const result = await mediaService.confirmVideoUpload(body.mediaId, creatorId, {
+          key: body.key,
+          width: body.width,
+          height: body.height,
+        });
+        return successResponse(result);
+      }
+
+      // Handle image uploads
+      const result = await mediaService.confirmImageUpload(body.mediaId, creatorId, {
         key: body.key,
         width: body.width,
         height: body.height,
       });
-      return successResponse(media);
+      return successResponse(result);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to confirm upload';
       return NextResponse.json({ error: { message } }, { status: 400 });

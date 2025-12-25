@@ -47,9 +47,9 @@ export function ReelCard({
   return (
     <div ref={containerRef} className={cn('relative h-full w-full bg-black', className)}>
       {/* Full-screen Video */}
-      {isVideo && !isLocked ? (
+      {isVideo && !isLocked && primaryMedia?.id ? (
         <VideoPlayer
-          src={primaryMedia?.processedUrl || primaryMedia?.originalUrl || ''}
+          videoId={primaryMedia.id} // Use videoId for secure playback API
           poster={primaryMedia?.thumbnailUrl}
           duration={primaryMedia?.duration}
           variant="reels"

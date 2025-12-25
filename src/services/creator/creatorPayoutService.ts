@@ -5,9 +5,8 @@ import { squareTokenService } from '@/services/integrations/square/squareTokenSe
 
 export class PaymentService {
   constructor(
-    // eslint-disable-next-line no-unused-vars
     private readonly creatorRepo: CreatorRepository,
-    // eslint-disable-next-line no-unused-vars
+
     private readonly payoutRepo: PayoutRepository
   ) {}
 

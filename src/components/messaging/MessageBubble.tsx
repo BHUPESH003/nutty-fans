@@ -9,7 +9,7 @@ import { Message } from '@/types/messaging';
 interface MessageBubbleProps {
   message: Message;
   isSelf: boolean;
-  // eslint-disable-next-line no-unused-vars
+
   onUnlock?: (messageId: string) => Promise<void>;
 }
 

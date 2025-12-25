@@ -2,7 +2,7 @@
 
 import * as TabsPrimitive from '@radix-ui/react-tabs';
 import { motion } from 'framer-motion';
-import { CreditCard, Grid, Image as ImageIcon, Info, Settings } from 'lucide-react';
+import { CreditCard, Settings } from 'lucide-react';
 import * as React from 'react';
 
 import { SettingsPageContainer } from '@/components/containers/settings/SettingsPageContainer';
@@ -14,13 +14,19 @@ interface ProfileTabsProps {
   className?: string;
 }
 
-export function ProfileTabs({ defaultValue = 'posts', className }: ProfileTabsProps) {
+export function ProfileTabs({ defaultValue = 'wallet', className }: ProfileTabsProps) {
   const [activeTab, setActiveTab] = React.useState(defaultValue);
 
+  // Update active tab when defaultValue changes (e.g., from URL parameter)
+  React.useEffect(() => {
+    if (defaultValue) {
+      setActiveTab(defaultValue);
+    }
+  }, [defaultValue]);
+
+  // For user profiles (not creator profiles), only show wallet and settings
+  // Posts, media, and about are creator-specific
   const tabs = [
-    { id: 'posts', label: 'Posts', icon: Grid },
-    { id: 'media', label: 'Media', icon: ImageIcon },
-    { id: 'about', label: 'About', icon: Info },
     { id: 'wallet', label: 'Wallet', icon: CreditCard },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
@@ -59,27 +65,6 @@ export function ProfileTabs({ defaultValue = 'posts', className }: ProfileTabsPr
       </div>
 
       <div className="mx-auto min-h-[50vh] max-w-2xl p-4">
-        <TabsPrimitive.Content value="posts" className="outline-none focus-visible:ring-0">
-          <div className="grid grid-cols-1 gap-4">
-            {/* Placeholder for posts */}
-            <div className="rounded-xl border border-dashed border-white/10 p-8 text-center text-muted-foreground">
-              No posts yet
-            </div>
-          </div>
-        </TabsPrimitive.Content>
-        <TabsPrimitive.Content value="media" className="outline-none focus-visible:ring-0">
-          <div className="grid grid-cols-3 gap-1">
-            {/* Placeholder for media grid */}
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="aspect-square animate-pulse rounded-md bg-muted" />
-            ))}
-          </div>
-        </TabsPrimitive.Content>
-        <TabsPrimitive.Content value="about" className="outline-none focus-visible:ring-0">
-          <div className="space-y-4 text-sm text-muted-foreground">
-            <p>About content goes here...</p>
-          </div>
-        </TabsPrimitive.Content>
         <TabsPrimitive.Content value="wallet" className="outline-none focus-visible:ring-0">
           <WalletTab />
         </TabsPrimitive.Content>

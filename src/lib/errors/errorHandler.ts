@@ -1,29 +1,42 @@
 import { NextResponse } from 'next/server';
 
-// Authentication errors (1000-1099)
-export const AUTH_REQUIRED = 'AUTH_REQUIRED';
-export const AUTH_INVALID_CREDENTIALS = 'AUTH_INVALID_CREDENTIALS';
-export const AUTH_ACCOUNT_LOCKED = 'AUTH_ACCOUNT_LOCKED';
-export const AUTH_TOKEN_EXPIRED = 'AUTH_TOKEN_EXPIRED';
-export const AUTH_TOKEN_INVALID = 'AUTH_TOKEN_INVALID';
+// Import constants from shared constants file
+import {
+  AUTH_REQUIRED,
+  AUTH_INVALID_CREDENTIALS,
+  AUTH_ACCOUNT_LOCKED,
+  AUTH_TOKEN_EXPIRED,
+  AUTH_TOKEN_INVALID,
+  VALIDATION_ERROR,
+  VALIDATION_MISSING_FIELD,
+  VALIDATION_INVALID_FORMAT,
+  RESOURCE_NOT_FOUND,
+  RESOURCE_ALREADY_EXISTS,
+  RESOURCE_UNAUTHORIZED,
+  RESOURCE_FORBIDDEN,
+  PAYMENT_INSUFFICIENT_BALANCE,
+  UNKNOWN_ERROR,
+  INTERNAL_ERROR,
+} from '@/lib/constants/errorCodes';
 
-// Validation Errors
-export const VALIDATION_ERROR = 'VALIDATION_ERROR';
-export const VALIDATION_MISSING_FIELD = 'VALIDATION_MISSING_FIELD';
-export const VALIDATION_INVALID_FORMAT = 'VALIDATION_INVALID_FORMAT';
-
-// Resource Errors
-export const RESOURCE_NOT_FOUND = 'RESOURCE_NOT_FOUND';
-export const RESOURCE_ALREADY_EXISTS = 'RESOURCE_ALREADY_EXISTS';
-export const RESOURCE_UNAUTHORIZED = 'RESOURCE_UNAUTHORIZED';
-export const RESOURCE_FORBIDDEN = 'RESOURCE_FORBIDDEN';
-
-// Payment Errors
-export const PAYMENT_INSUFFICIENT_BALANCE = 'PAYMENT_INSUFFICIENT_BALANCE';
-
-// General
-export const UNKNOWN_ERROR = 'UNKNOWN_ERROR';
-export const INTERNAL_ERROR = 'INTERNAL_ERROR'; // Added this based on usage in createErrorResponse
+// Re-export constants for backward compatibility
+export {
+  AUTH_REQUIRED,
+  AUTH_INVALID_CREDENTIALS,
+  AUTH_ACCOUNT_LOCKED,
+  AUTH_TOKEN_EXPIRED,
+  AUTH_TOKEN_INVALID,
+  VALIDATION_ERROR,
+  VALIDATION_MISSING_FIELD,
+  VALIDATION_INVALID_FORMAT,
+  RESOURCE_NOT_FOUND,
+  RESOURCE_ALREADY_EXISTS,
+  RESOURCE_UNAUTHORIZED,
+  RESOURCE_FORBIDDEN,
+  PAYMENT_INSUFFICIENT_BALANCE,
+  UNKNOWN_ERROR,
+  INTERNAL_ERROR,
+};
 
 // Define ErrorCode type
 export type ErrorCode =
@@ -175,12 +188,17 @@ export function createErrorResponse(error: unknown): NextResponse {
       );
     }
 
-    if (error.message.includes('Insufficient balance')) {
+    if (
+      error.message.includes('Insufficient balance') ||
+      error.message.includes('Insufficient wallet balance')
+    ) {
       return NextResponse.json(
         {
           code: 402,
           data: { errorCode: PAYMENT_INSUFFICIENT_BALANCE },
-          message: 'Insufficient balance. Please add funds to continue.',
+          message: error.message.includes('Please add funds')
+            ? error.message
+            : 'Insufficient balance. Please add funds to continue.',
         },
         { status: 402 }
       );

@@ -15,10 +15,7 @@ type RegisterInput = {
 };
 
 export class AuthService {
-  constructor(
-    // eslint-disable-next-line no-unused-vars
-    private readonly userRepository: UserRepository
-  ) {}
+  constructor(private readonly userRepository: UserRepository) {}
 
   async register(input: RegisterInput): Promise<User> {
     if (input.password) {

@@ -19,7 +19,7 @@ import { apiClient } from '@/services/apiClient';
 
 interface NewMessageDialogProps {
   open: boolean;
-  // eslint-disable-next-line no-unused-vars
+
   onOpenChange: (_open: boolean) => void;
 }
 

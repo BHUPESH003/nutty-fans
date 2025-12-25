@@ -8,7 +8,7 @@ import type { MediaItem } from '@/types/content';
 
 interface MediaCarouselProps {
   media: MediaItem[];
-  // eslint-disable-next-line no-unused-vars
+
   onSlideChange?: (slideIndex: number) => void;
   className?: string;
 }
@@ -107,7 +107,13 @@ export function MediaCarousel({ media, onSlideChange, className }: MediaCarousel
                 </div>
               ) : item.mediaType === 'image' ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={mediaUrl} alt="Post media" className="h-full w-full object-cover" />
+                <img
+                  src={mediaUrl}
+                  alt="Post media"
+                  className="h-full w-full object-cover"
+                  draggable={false}
+                  onContextMenu={(e) => e.preventDefault()}
+                />
               ) : (
                 <video
                   src={mediaUrl}

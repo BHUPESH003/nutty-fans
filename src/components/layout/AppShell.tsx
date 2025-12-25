@@ -24,6 +24,7 @@ interface AppShellProps {
 const navItems = [
   { href: '/' as const, label: 'Home', icon: '🏠' },
   { href: '/explore' as const, label: 'Explore', icon: '🔍' },
+  { href: '/reels' as const, label: 'Reels', icon: '🎬' },
   { href: '/messages' as const, label: 'Messages', icon: '💬' },
   { href: '/profile' as const, label: 'Profile', icon: '👤' },
 ];

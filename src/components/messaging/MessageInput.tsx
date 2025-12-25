@@ -9,13 +9,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 
 interface MessageInputProps {
-  // eslint-disable-next-line no-unused-vars
   onSend: (_content: string, _mediaId?: string, _price?: number) => Promise<void>;
   isCreator: boolean;
   disabled?: boolean;
 }
 
-// eslint-disable-next-line no-unused-vars
 export function MessageInput({ onSend, isCreator, disabled: _disabled }: MessageInputProps) {
   const [content, setContent] = useState('');
   const [price, setPrice] = useState<number>(0);

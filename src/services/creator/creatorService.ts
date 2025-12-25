@@ -11,9 +11,8 @@ const MAX_SUBSCRIPTION_PRICE = 49.99;
 
 export class CreatorService {
   constructor(
-    // eslint-disable-next-line no-unused-vars
     private readonly creatorRepo: CreatorRepository,
-    // eslint-disable-next-line no-unused-vars
+
     private readonly userRepo: UserRepository
   ) {}
 

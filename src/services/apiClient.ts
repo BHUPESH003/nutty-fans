@@ -1,4 +1,16 @@
+import axios, {
+  type AxiosError,
+  type AxiosRequestConfig,
+  type InternalAxiosRequestConfig,
+} from 'axios';
+
+import { toast } from '@/hooks/use-toast';
 import type { ApiResponse } from '@/lib/api/response';
+import {
+  isInsufficientBalanceError,
+  isInsufficientBalanceStatus,
+} from '@/lib/constants/errorCodes';
+import { getGlobalLowBalanceHandler } from '@/lib/contexts/LowBalanceContext';
 import type {
   AuthUser,
   ForgotPasswordPayload,
@@ -25,9 +37,7 @@ import type { SettingsResponse, UpdateSettingsPayload } from '@/types/settings';
 
 const API_BASE_URL = process.env['NEXT_PUBLIC_API_BASE_URL'] ?? '';
 
-type HttpMethod = 'GET' | 'POST' | 'PATCH' | 'DELETE';
-
-class ApiError extends Error {
+export class ApiError extends Error {
   code?: string;
   status: number;
   details?: unknown;
@@ -41,51 +51,212 @@ class ApiError extends Error {
   }
 }
 
-// ... (imports)
+// Create axios instance
+const axiosInstance = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  withCredentials: true, // Include cookies for NextAuth sessions
+});
 
-async function request<TResponse>(
-  path: string,
-  options: { method?: HttpMethod; body?: unknown; signal?: AbortSignal } = {}
-): Promise<TResponse> {
-  const { method = 'GET', body, signal } = options;
+// Request interceptor - can be used for auth headers, logging, etc.
+axiosInstance.interceptors.request.use(
+  (config: InternalAxiosRequestConfig) => {
+    // Add any request-level logic here (e.g., auth tokens, request ID)
+    // Since we're using NextAuth with cookies, no need to add auth headers manually
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    method,
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: body ? JSON.stringify(body) : undefined,
-    credentials: 'include',
-    signal,
-  });
+// Response interceptor - handles standardized { code, data, message } response format
+axiosInstance.interceptors.response.use(
+  (response) => {
+    // Extract the ApiResponse wrapper
+    const apiResponse = response.data as ApiResponse<unknown>;
+    const requestMethod = (response.config.method || '').toUpperCase();
 
-  let parsed: ApiResponse<TResponse> | null = null;
-  const hasBody = response.status !== 204;
+    // Check if response follows our standard format
+    if (apiResponse && typeof apiResponse === 'object' && 'code' in apiResponse) {
+      // Success case: code is 2xx
+      if (apiResponse.code >= 200 && apiResponse.code < 300) {
+        // Show success toast for mutation operations (POST, PATCH, DELETE, PUT)
+        if (
+          typeof window !== 'undefined' &&
+          ['POST', 'PATCH', 'DELETE', 'PUT'].includes(requestMethod)
+        ) {
+          // Only show toast if there's a message
+          if (apiResponse.message && apiResponse.message !== 'Success') {
+            toast({
+              title: 'Success',
+              description: apiResponse.message,
+            });
+          }
+        }
 
-  if (hasBody) {
-    try {
-      parsed = (await response.json()) as ApiResponse<TResponse>;
-    } catch {
-      parsed = null;
+        // Replace response.data with the extracted data payload
+        response.data = apiResponse.data;
+        return response;
+      }
+
+      // Error case: code is not 2xx
+      // Extract errorCode from data if available
+      const errorCode =
+        apiResponse.data && typeof apiResponse.data === 'object' && 'errorCode' in apiResponse.data
+          ? (apiResponse.data as { errorCode?: string }).errorCode
+          : undefined;
+
+      // Throw ApiError to be caught by error handler
+      const apiError = new ApiError(
+        apiResponse.code,
+        errorCode,
+        apiResponse.message || 'An error occurred',
+        apiResponse.data
+      );
+
+      // Handle error toasts and low balance modal (only in browser)
+      if (typeof window !== 'undefined') {
+        handleApiError(apiError, apiResponse.code);
+      }
+
+      throw apiError;
     }
-  }
 
-  // Handle network/server errors that don't return our standard format
-  if (!response.ok && !parsed) {
-    throw new ApiError(
-      response.status,
+    // If response doesn't follow our format, return as-is (for backward compatibility)
+    return response;
+  },
+  (error: AxiosError) => {
+    // Handle axios errors (network errors, non-2xx HTTP status, etc.)
+    if (error.response) {
+      // Server responded with error status
+      const apiResponse = error.response.data as ApiResponse<unknown> | undefined;
+
+      if (apiResponse && typeof apiResponse === 'object' && 'code' in apiResponse) {
+        // Standardized error format
+        const errorCode =
+          apiResponse.data &&
+          typeof apiResponse.data === 'object' &&
+          'errorCode' in apiResponse.data
+            ? (apiResponse.data as { errorCode?: string }).errorCode
+            : undefined;
+
+        const apiError = new ApiError(
+          apiResponse.code,
+          errorCode,
+          apiResponse.message || 'An error occurred',
+          apiResponse.data
+        );
+
+        // Handle error toasts and low balance modal (only in browser)
+        if (typeof window !== 'undefined') {
+          handleApiError(apiError, apiResponse.code);
+        }
+
+        throw apiError;
+      }
+
+      // Non-standard error format - use HTTP status
+      const apiError = new ApiError(
+        error.response.status,
+        'UNKNOWN_ERROR',
+        error.message || 'Something went wrong. Please try again later.',
+        error.response.data
+      );
+
+      if (typeof window !== 'undefined') {
+        handleApiError(apiError, error.response.status);
+      }
+      throw apiError;
+    }
+
+    // Network error or request was cancelled
+    if (error.request) {
+      const apiError = new ApiError(
+        0,
+        'NETWORK_ERROR',
+        'Network error. Please check your connection and try again.',
+        null
+      );
+
+      if (typeof window !== 'undefined') {
+        toast({
+          title: 'Network Error',
+          description: 'Please check your connection and try again.',
+          variant: 'destructive',
+        });
+      }
+
+      throw apiError;
+    }
+
+    // Something else happened
+    const apiError = new ApiError(
+      500,
       'UNKNOWN_ERROR',
-      'Something went wrong. Please try again later.'
+      error.message || 'An unexpected error occurred',
+      null
     );
-  }
 
-  // Handle standardized errors (even if HTTP status is 200, though usually it matches)
-  if (parsed && (parsed.code < 200 || parsed.code >= 300)) {
-    throw new ApiError(parsed.code, 'API_ERROR', parsed.message, parsed.data);
+    if (typeof window !== 'undefined') {
+      handleApiError(apiError, 500);
+    }
+    throw apiError;
   }
+);
 
-  // Return the data payload directly
-  return parsed?.data as TResponse;
+/**
+ * Centralized error handling for API errors
+ * Shows toasts and triggers low balance modal when appropriate
+ */
+function handleApiError(error: ApiError, statusCode: number) {
+  // Check for insufficient balance
+  const isLowBalance =
+    isInsufficientBalanceError(error.code) || isInsufficientBalanceStatus(statusCode);
+
+  if (isLowBalance) {
+    // Try to extract balance details from error details
+    const details = error.details as
+      | { requiredAmount?: number; currentBalance?: number }
+      | undefined;
+    const requiredAmount = details?.requiredAmount;
+    const currentBalance = details?.currentBalance;
+
+    // Trigger low balance modal via global handler
+    const showLowBalanceModal = getGlobalLowBalanceHandler();
+    if (showLowBalanceModal) {
+      showLowBalanceModal(error.message, requiredAmount, currentBalance);
+    }
+
+    // Also show a toast
+    toast({
+      title: 'Insufficient Balance',
+      description: error.message || 'Please add funds to your wallet to continue.',
+      variant: 'destructive',
+    });
+  } else {
+    // Show generic error toast for other errors
+    toast({
+      title: 'Error',
+      description: error.message || 'Something went wrong. Please try again.',
+      variant: 'destructive',
+    });
+  }
+}
+
+/**
+ * Generic request function using axios
+ * Automatically handles { code, data, message } response format via interceptors
+ */
+async function request<TResponse>(path: string, config?: AxiosRequestConfig): Promise<TResponse> {
+  const response = await axiosInstance.request<TResponse>({
+    url: path,
+    ...config,
+  });
+  // Response interceptor returns response object with data already extracted
+  return response.data as TResponse;
 }
 
 async function getCurrentUser(): Promise<AuthUser> {
@@ -106,13 +277,13 @@ export const apiClient = {
     register(payload: RegisterPayload) {
       return request<RegisterResponse>('/api/auth/register', {
         method: 'POST',
-        body: payload,
+        data: payload,
       });
     },
     login(payload: LoginPayload) {
       return request<LoginResponse>('/api/auth/login', {
         method: 'POST',
-        body: payload,
+        data: payload,
       });
     },
     logout() {
@@ -123,25 +294,25 @@ export const apiClient = {
     forgotPassword(payload: ForgotPasswordPayload) {
       return request<SimpleMessageResponse>('/api/auth/forgot-password', {
         method: 'POST',
-        body: payload,
+        data: payload,
       });
     },
     resetPassword(payload: ResetPasswordPayload) {
       return request<SimpleMessageResponse>('/api/auth/reset-password', {
         method: 'POST',
-        body: payload,
+        data: payload,
       });
     },
     verifyEmail(payload: VerifyEmailPayload) {
       return request<VerifyEmailResponse>('/api/auth/email/verify', {
         method: 'POST',
-        body: payload,
+        data: payload,
       });
     },
     resendVerification(payload: ResendVerificationPayload) {
       return request<ResendVerificationResponse>('/api/auth/resend-verification', {
         method: 'POST',
-        body: payload,
+        data: payload,
       });
     },
   },
@@ -158,19 +329,19 @@ export const apiClient = {
     update(payload: UpdateProfilePayload) {
       return request<GetMyProfileResponse>('/api/profile', {
         method: 'PATCH',
-        body: payload,
+        data: payload,
       });
     },
     requestAvatarUpload(payload: AvatarUploadUrlPayload) {
       return request<AvatarUploadUrlResponse>('/api/profile/avatar/upload-url', {
         method: 'POST',
-        body: payload,
+        data: payload,
       });
     },
     confirmAvatar(payload: ConfirmAvatarPayload) {
       return request<{ avatarUrl: string }>('/api/profile/avatar/confirm', {
         method: 'POST',
-        body: payload,
+        data: payload,
       });
     },
     removeAvatar() {
@@ -186,7 +357,7 @@ export const apiClient = {
     update(payload: UpdateSettingsPayload) {
       return request<SettingsResponse>('/api/settings', {
         method: 'PATCH',
-        body: payload,
+        data: payload,
       });
     },
   },
@@ -219,7 +390,7 @@ export const apiClient = {
         '/api/creator/apply',
         {
           method: 'POST',
-          body: payload,
+          data: payload,
         }
       );
     },
@@ -255,7 +426,7 @@ export const apiClient = {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return request<any>('/api/posts', {
         method: 'POST',
-        body: data,
+        data: data,
       });
     },
     getFeed(params?: { cursor?: string; limit?: number; type?: 'for-you' | 'following' }) {
@@ -273,14 +444,14 @@ export const apiClient = {
     getUploadUrl(filename: string, contentType: string, size: number) {
       return request<{ uploadUrl: string; mediaId: string; key: string }>('/api/media/upload-url', {
         method: 'POST',
-        body: { filename, contentType, size },
+        data: { filename, contentType, size },
       });
     },
     confirmUpload(mediaId: string, key: string) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return request<any>('/api/media/confirm', {
         method: 'POST',
-        body: { mediaId, key },
+        data: { mediaId, key },
       });
     },
   },
@@ -301,7 +472,7 @@ export const apiClient = {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return request<any>('/api/conversations', {
         method: 'POST',
-        body: { participantId },
+        data: { participantId },
       });
     },
     listMessages(conversationId: string, cursor?: string) {
@@ -316,7 +487,7 @@ export const apiClient = {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return request<any>(`/api/conversations/${conversationId}/messages`, {
         method: 'POST',
-        body: { content, mediaId, price },
+        data: { content, mediaId, price },
       });
     },
     unlockMessage(messageId: string) {
@@ -401,13 +572,13 @@ export const apiClient = {
     async subscribe(subscription: { endpoint: string; keys: { p256dh: string; auth: string } }) {
       return request<{ success: boolean }>('/api/push/subscribe', {
         method: 'POST',
-        body: subscription,
+        data: subscription,
       });
     },
     async unsubscribe(endpoint: string) {
       return request<{ success: boolean }>('/api/push/unsubscribe', {
         method: 'POST',
-        body: { endpoint },
+        data: { endpoint },
       });
     },
     async getVapidKey() {
@@ -429,7 +600,7 @@ export const apiClient = {
     topup(amount: number) {
       return request<{ transactionId: string; balance: number }>('/api/wallet/topup', {
         method: 'POST',
-        body: { amount },
+        data: { amount },
       });
     },
   },
@@ -446,7 +617,7 @@ export const apiClient = {
         `/api/ppv/${postId}/purchase`,
         {
           method: 'POST',
-          body: { paymentSource: 'wallet' },
+          data: { paymentSource: 'wallet' },
         }
       );
     },
@@ -461,7 +632,7 @@ export const apiClient = {
         '/api/subscriptions',
         {
           method: 'POST',
-          body: { creatorId, planType },
+          data: { creatorId, planType },
         }
       );
     },
@@ -469,4 +640,3 @@ export const apiClient = {
 };
 
 export type ApiClient = typeof apiClient;
-export { ApiError };

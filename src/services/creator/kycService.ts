@@ -4,7 +4,6 @@ import { veriffClient } from '@/services/integrations/veriff/veriffClient';
 import type { KycSessionResponse } from '@/types/creator';
 
 export class KycService {
-  // eslint-disable-next-line no-unused-vars
   constructor(private readonly creatorRepo: CreatorRepository) {}
 
   /**

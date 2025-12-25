@@ -78,11 +78,17 @@ export function PaywallOverlay({
         {isSubscribers && onSubscribe && (
           <Button
             size="lg"
-            onClick={onSubscribe}
+            onClick={async () => {
+              try {
+                await onSubscribe();
+              } catch (error) {
+                console.error('Subscribe error:', error);
+              }
+            }}
             disabled={isLoading}
             className="min-w-[200px] font-semibold shadow-xl shadow-primary/20"
           >
-            Subscribe Now
+            {isLoading ? 'Subscribing...' : 'Subscribe Now'}
           </Button>
         )}
 

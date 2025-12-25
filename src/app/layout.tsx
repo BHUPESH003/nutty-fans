@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 
 import { VerificationBanner } from '@/components/common/VerificationBanner';
 import { SessionProvider } from '@/components/providers/SessionProvider';
+import { LowBalanceProvider } from '@/lib/contexts/LowBalanceContext';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
@@ -23,8 +24,10 @@ export default function RootLayout({
     <html lang="en" className="dark" suppressHydrationWarning>
       <body className={`${inter.variable} font-sans antialiased`}>
         <SessionProvider>
-          <VerificationBanner />
-          {children}
+          <LowBalanceProvider>
+            <VerificationBanner />
+            {children}
+          </LowBalanceProvider>
         </SessionProvider>
         <SpeedInsights />
       </body>

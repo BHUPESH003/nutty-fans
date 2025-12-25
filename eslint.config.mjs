@@ -54,7 +54,14 @@ const eslintConfig = [
     rules: {
       // TypeScript strict rules
       '@typescript-eslint/no-explicit-any': 'error',
-      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          args: 'after-used',
+        },
+      ],
       '@typescript-eslint/explicit-function-return-type': 'off',
       '@typescript-eslint/no-floating-promises': 'error',
 
@@ -80,6 +87,7 @@ const eslintConfig = [
       'import/no-duplicates': 'error',
 
       // General rules
+      'no-unused-vars': 'off', // Use @typescript-eslint/no-unused-vars instead
       'no-console': ['warn', { allow: ['warn', 'error'] }],
       'prefer-const': 'error',
       'no-var': 'error',

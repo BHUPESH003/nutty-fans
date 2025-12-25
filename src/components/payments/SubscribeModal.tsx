@@ -34,7 +34,7 @@ interface SubscribeModalProps {
     avatarUrl: string | null;
   };
   plans: Plan[];
-  // eslint-disable-next-line no-unused-vars
+
   onSubscribe: (_planType: string, _paymentSource: 'wallet' | 'card') => Promise<void>;
 }
 

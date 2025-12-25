@@ -28,7 +28,6 @@ type UpdateProfileInput = {
 };
 
 export class ProfileService {
-  // eslint-disable-next-line no-unused-vars
   constructor(private readonly repo: ProfileRepository) {}
 
   async getSelfProfile(userId: string): Promise<SelfProfile | null> {

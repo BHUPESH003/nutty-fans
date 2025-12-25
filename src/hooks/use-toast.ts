@@ -13,7 +13,7 @@ type ToasterToast = {
   description?: React.ReactNode;
   action?: ToastActionElement;
   open?: boolean;
-  // eslint-disable-next-line no-unused-vars
+
   onOpenChange?: (open: boolean) => void;
   variant?: 'default' | 'destructive';
 };
@@ -126,7 +126,7 @@ export const reducer = (state: State, action: Action): State => {
   }
 };
 
-const listeners: Array<(_state: State) => void> = []; // eslint-disable-line no-unused-vars
+const listeners: Array<(_state: State) => void> = [];
 
 let memoryState: State = { toasts: [] };
 

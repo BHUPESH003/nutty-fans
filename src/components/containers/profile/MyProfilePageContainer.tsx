@@ -1,5 +1,6 @@
 'use client';
 
+import { useSearchParams } from 'next/navigation';
 import * as React from 'react';
 
 import { ProfileHeader } from '@/components/profile/ProfileHeader';
@@ -10,6 +11,8 @@ import { apiClient, ApiError } from '@/services/apiClient';
 import type { Profile } from '@/types/profile';
 
 export function MyProfilePageContainer() {
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get('tab');
   const [profile, setProfile] = React.useState<Profile | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(true);
@@ -84,7 +87,7 @@ export function MyProfilePageContainer() {
           posts: profile.postsCount || 0,
         }}
       />
-      <ProfileTabs />
+      <ProfileTabs defaultValue={tabParam || 'wallet'} />
     </div>
   );
 }

@@ -5,9 +5,8 @@ import type { DashboardMetrics } from '@/types/creator';
 
 export class DashboardService {
   constructor(
-    // eslint-disable-next-line no-unused-vars
     private readonly creatorRepo: CreatorRepository,
-    // eslint-disable-next-line no-unused-vars
+
     private readonly payoutRepo: PayoutRepository
   ) {}
 

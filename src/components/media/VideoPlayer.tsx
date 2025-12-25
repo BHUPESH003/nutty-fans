@@ -5,10 +5,17 @@ import type { ErrorData } from 'hls.js';
 import { Play, Pause, Volume2, VolumeX, Maximize, Loader2 } from 'lucide-react';
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 
+import { useVideoPlayback } from '@/hooks/useVideoPlayback';
 import { cn } from '@/lib/utils';
 
+import { VideoWatermark } from './VideoWatermark';
+
 interface VideoPlayerProps {
-  src: string;
+  /** Video media ID - REQUIRED for secure playback (fetches URL from backend API) */
+  videoId?: string;
+  /** Direct src URL - DEPRECATED, use videoId instead. Only for backward compatibility */
+  src?: string;
+  /** Thumbnail/poster URL (optional, can be fetched from playback API) */
   poster?: string | null;
   duration?: number | null;
   variant?: 'feed' | 'reels' | 'detail';
@@ -21,8 +28,9 @@ interface VideoPlayerProps {
 }
 
 export function VideoPlayer({
-  src,
-  poster,
+  videoId,
+  src: srcProp, // Deprecated - for backward compatibility only
+  poster: posterProp,
   duration,
   variant = 'feed',
   autoplay = false,
@@ -41,6 +49,31 @@ export function VideoPlayer({
   const [progress, setProgress] = useState(0);
   const [showControls, setShowControls] = useState(variant !== 'reels');
   const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Fetch secure playback URL from backend API (REQUIRED for videos)
+  const {
+    playbackUrl,
+    posterUrl: securePosterUrl,
+    thumbnailUrl,
+    watermarkText,
+    isLoading: isPlaybackLoading,
+    error: playbackError,
+  } = useVideoPlayback(videoId || null, !!videoId);
+
+  // Use secure playback URL if available, otherwise fall back to deprecated src prop
+  const src = videoId ? playbackUrl : srcProp;
+  const poster = securePosterUrl || posterProp || thumbnailUrl;
+
+  // Set error state if playback URL fetch fails
+  useEffect(() => {
+    if (videoId && playbackError) {
+      setHasError(true);
+      setIsLoading(false);
+    }
+  }, [videoId, playbackError]);
+
+  // Combine loading states
+  const isLoadingVideo = isPlaybackLoading || (videoId && !playbackUrl && !playbackError);
 
   // Initialize HLS or native video
   useEffect(() => {
@@ -219,7 +252,7 @@ export function VideoPlayer({
       />
 
       {/* Loading State */}
-      {isLoading && (
+      {(isLoading || isLoadingVideo) && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/40">
           <Loader2 className="h-10 w-10 animate-spin text-white" />
         </div>
@@ -228,13 +261,22 @@ export function VideoPlayer({
       {/* Error State */}
       {hasError && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 text-white">
-          <p className="mb-3 text-sm">Failed to load video</p>
-          <button
-            onClick={handleRetry}
-            className="rounded-lg bg-white/20 px-4 py-2 text-sm font-medium backdrop-blur-sm hover:bg-white/30"
-          >
-            Retry
-          </button>
+          <p className="mb-3 text-sm">{playbackError?.message || 'Failed to load video'}</p>
+          {!playbackError && (
+            <button
+              onClick={handleRetry}
+              className="rounded-lg bg-white/20 px-4 py-2 text-sm font-medium backdrop-blur-sm hover:bg-white/30"
+            >
+              Retry
+            </button>
+          )}
+          {playbackError && videoId && (
+            <p className="text-xs text-white/60">
+              {playbackError.message.includes('Access denied')
+                ? 'Please subscribe or purchase to view this video'
+                : 'Unable to load video playback'}
+            </p>
+          )}
         </div>
       )}
 
@@ -303,6 +345,11 @@ export function VideoPlayer({
         >
           {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
         </button>
+      )}
+
+      {/* Watermark Overlay (Anti-Piracy) */}
+      {!isLoading && !hasError && watermarkText && (
+        <VideoWatermark text={watermarkText} variant={variant} />
       )}
     </div>
   );

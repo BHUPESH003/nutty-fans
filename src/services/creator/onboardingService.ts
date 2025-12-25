@@ -20,9 +20,8 @@ const BANNED_BIO_KEYWORDS = ['underage', 'minor', 'child'];
 
 export class OnboardingService {
   constructor(
-    // eslint-disable-next-line no-unused-vars
     private readonly creatorRepo: CreatorRepository,
-    // eslint-disable-next-line no-unused-vars
+
     private readonly userRepo: UserRepository
   ) {}
 

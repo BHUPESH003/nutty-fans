@@ -107,13 +107,15 @@ export function MediaRenderer({
 
   // Render video
   if (isVideo) {
+    // For videos, use videoId to fetch secure playback URL from backend API
+    // NEVER pass direct URLs for videos - must use secure playback endpoint
     return (
       <div
         className={containerStyles}
         style={{ aspectRatio: variant === 'reels' ? undefined : aspectRatio }}
       >
         <VideoPlayer
-          src={mediaUrl}
+          videoId={primaryMedia.id} // Use videoId for secure playback API
           poster={primaryMedia.thumbnailUrl}
           duration={primaryMedia.duration}
           variant={variant === 'reels' ? 'reels' : variant === 'detail' ? 'detail' : 'feed'}
@@ -146,7 +148,15 @@ export function MediaRenderer({
   // Render single image
   return (
     <div className={containerStyles} style={{ aspectRatio }}>
-      <Image src={mediaUrl} alt="Post media" fill className="object-cover" />
+      <Image
+        src={mediaUrl}
+        alt="Post media"
+        fill
+        className="object-cover"
+        draggable={false}
+        onContextMenu={(e) => e.preventDefault()}
+      />
+      {/* Watermark will be added on download only via download handler */}
     </div>
   );
 }

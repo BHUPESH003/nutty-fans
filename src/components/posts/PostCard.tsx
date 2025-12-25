@@ -8,6 +8,7 @@ import { useState, useCallback } from 'react';
 import { MediaRenderer } from '@/components/media/MediaRenderer';
 import { PostInteractions } from '@/components/posts/PostInteractions';
 import { Badge } from '@/components/ui/badge';
+import { apiClient } from '@/services/apiClient';
 import type { PostWithCreator } from '@/types/content';
 
 interface PostCardProps {
@@ -17,7 +18,8 @@ interface PostCardProps {
   onLike?: () => void;
   onBookmark?: () => void;
   onTip?: () => void;
-  onUnlock?: () => void;
+  onUnlock?: () => void | Promise<void>;
+  onSubscribe?: () => void | Promise<void>;
 }
 
 export function PostCard({
@@ -28,6 +30,7 @@ export function PostCard({
   onBookmark,
   onTip,
   onUnlock,
+  onSubscribe,
 }: PostCardProps) {
   const [isUnlocking, setIsUnlocking] = useState(false);
   const [hasAccess, setHasAccess] = useState(post.hasAccess ?? true);
@@ -35,16 +38,29 @@ export function PostCard({
   const isLocked = !hasAccess && post.accessLevel !== 'free';
 
   const handleUnlock = useCallback(async () => {
+    if (!post.ppvPrice || post.accessLevel !== 'ppv') return;
+
     setIsUnlocking(true);
     try {
-      onUnlock?.();
-      // The parent component should handle the actual unlock and trigger a refetch
-      // which will update hasAccess through the post prop
+      if (onUnlock) {
+        await onUnlock();
+      } else {
+        await apiClient.payments.unlockPpv(post.id);
+      }
+      // Only set access if no error was thrown
       setHasAccess(true);
+    } catch (error: unknown) {
+      console.error('[PostCard] Failed to unlock post:', error);
+
+      // Revert optimistic update on error
+      setHasAccess(false);
+
+      // Note: Toast and low balance modal are now handled at API client level
+      // The API client interceptor will show the toast and trigger the modal
     } finally {
       setIsUnlocking(false);
     }
-  }, [onUnlock]);
+  }, [onUnlock, post.id, post.ppvPrice, post.accessLevel]);
 
   return (
     <article className="group relative mb-6 overflow-hidden rounded-2xl bg-card/40 transition-all hover:bg-card/60">
@@ -121,6 +137,7 @@ export function PostCard({
           accessLevel={post.accessLevel}
           ppvPrice={post.ppvPrice}
           onUnlock={handleUnlock}
+          onSubscribe={onSubscribe}
           isUnlocking={isUnlocking}
         />
       )}

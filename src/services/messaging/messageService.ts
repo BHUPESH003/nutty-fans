@@ -9,6 +9,7 @@ import {
   VALIDATION_ERROR,
   PAYMENT_INSUFFICIENT_BALANCE,
 } from '@/lib/errors/errorHandler';
+import { messageEmitter } from '@/lib/realtime/messageEmitter';
 
 export class MessageService {
   async send(
@@ -64,6 +65,22 @@ export class MessageService {
         unreadCount1: isUser1 ? conversation.unreadCount1 : { increment: 1 },
         unreadCount2: isUser1 ? { increment: 1 } : conversation.unreadCount2,
       },
+    });
+
+    // Emit real-time event for new message
+    messageEmitter.emit(conversationId, {
+      type: 'message',
+      data: message,
+    });
+
+    // Also emit to conversation list subscribers (both participants)
+    messageEmitter.emit(`conversations:${conversation.participant1}`, {
+      type: 'conversation_updated',
+      conversationId,
+    });
+    messageEmitter.emit(`conversations:${conversation.participant2}`, {
+      type: 'conversation_updated',
+      conversationId,
     });
 
     return message;
@@ -203,6 +220,25 @@ export class MessageService {
         where: { userId: message.senderId },
         data: { totalEarnings: { increment: message.ppvPrice! } },
       });
+
+      // Get the updated message with media
+      const unlockedMessage = await tx.message.findUnique({
+        where: { id: messageId },
+        include: { media: true },
+      });
+
+      // Emit event for message unlock (so recipients can see unlocked content)
+      if (unlockedMessage) {
+        messageEmitter.emit(message.conversationId, {
+          type: 'messageUnlocked',
+          data: {
+            id: unlockedMessage.id,
+            content: unlockedMessage.content,
+            media: unlockedMessage.media,
+            isLocked: false,
+          },
+        });
+      }
 
       return { success: true };
     });

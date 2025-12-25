@@ -13,10 +13,10 @@ import {
 } from '@/components/ui/dialog';
 
 interface AuthPromptContextType {
-  showAuthPrompt: (_action?: string) => void; // eslint-disable-line no-unused-vars
+  showAuthPrompt: (_action?: string) => void;
   hideAuthPrompt: () => void;
   isAuthenticated: boolean;
-  requireAuth: (_action?: string) => boolean; // eslint-disable-line no-unused-vars
+  requireAuth: (_action?: string) => boolean;
 }
 
 const AuthPromptContext = createContext<AuthPromptContextType | null>(null);

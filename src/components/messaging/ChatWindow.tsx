@@ -8,7 +8,6 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useConversation as useConversationHook } from '@/hooks/useConversations';
 import { useMessages } from '@/hooks/useMessages';
 import { apiClient } from '@/services/apiClient';
-import { Message } from '@/types/messaging';
 
 import { MessageBubble } from './MessageBubble';
 import { MessageInput } from './MessageInput';
@@ -87,8 +86,8 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
           <ChevronLeft className="h-5 w-5" />
           <span className="sr-only">Back</span>
         </Link>
-        <Avatar>
-          <AvatarImage src={conversation?.otherUser?.avatarUrl || ''} />
+        <Avatar className="h-10 w-10 flex-shrink-0">
+          <AvatarImage src={conversation?.otherUser?.avatarUrl || ''} className="object-cover" />
           <AvatarFallback>{conversation?.otherUser?.displayName?.[0] ?? '?'}</AvatarFallback>
         </Avatar>
         <div>
@@ -104,7 +103,7 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
       {/* Messages */}
       <ScrollArea className="flex-1 p-4">
         <div className="space-y-4">
-          {messages.map((msg: Message) => (
+          {messages.map((msg) => (
             <MessageBubble
               key={msg.id}
               message={msg}

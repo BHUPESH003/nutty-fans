@@ -13,7 +13,7 @@ interface ConversationListProps {
   selectedId?: string;
   isLoading?: boolean;
   isError?: boolean;
-  // eslint-disable-next-line no-unused-vars
+
   onSelect?: (_id: string) => void;
 }
 
@@ -61,11 +61,14 @@ export function ConversationList({ conversations, isLoading, isError }: Conversa
                 isActive && 'bg-muted'
               )}
             >
-              <Avatar>
-                <AvatarImage src={conversation?.otherUser?.avatarUrl || ''} />
+              <Avatar className="h-12 w-12 flex-shrink-0">
+                <AvatarImage
+                  src={conversation?.otherUser?.avatarUrl || ''}
+                  className="object-cover"
+                />
                 <AvatarFallback>{conversation?.otherUser?.displayName?.[0] ?? '?'}</AvatarFallback>
               </Avatar>
-              <div className="flex-1 overflow-hidden">
+              <div className="min-w-0 flex-1 overflow-hidden">
                 <div className="flex items-center justify-between">
                   <span className="truncate font-medium">
                     {conversation?.otherUser?.displayName ?? 'Unknown User'}
