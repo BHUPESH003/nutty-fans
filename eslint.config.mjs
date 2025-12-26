@@ -39,6 +39,7 @@ const eslintConfig = [
   // TypeScript files - additional rules
   {
     files: ['**/*.ts', '**/*.tsx'],
+    ignores: ['**/*.test.ts', '**/*.test.tsx', '**/*.spec.ts', '**/*.spec.tsx', 'tests/**/*'],
     languageOptions: {
       parser: typescriptParser,
       parserOptions: {
@@ -89,6 +90,61 @@ const eslintConfig = [
       // General rules
       'no-unused-vars': 'off', // Use @typescript-eslint/no-unused-vars instead
       'no-console': ['warn', { allow: ['warn', 'error'] }],
+      'prefer-const': 'error',
+      'no-var': 'error',
+    },
+  },
+
+  // Test files - lighter rules without TypeScript project requirement
+  {
+    files: ['**/*.test.ts', '**/*.test.tsx', '**/*.spec.ts', '**/*.spec.tsx', 'tests/**/*.ts', 'tests/**/*.tsx'],
+    languageOptions: {
+      parser: typescriptParser,
+      parserOptions: {
+        ecmaVersion: 'latest',
+        sourceType: 'module',
+      },
+    },
+    plugins: {
+      '@typescript-eslint': typescriptPlugin,
+      import: importPlugin,
+    },
+    rules: {
+      // TypeScript basic rules without project requirement
+      '@typescript-eslint/no-explicit-any': 'error',
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          args: 'after-used',
+        },
+      ],
+
+      // Import rules
+      'import/order': [
+        'error',
+        {
+          groups: ['builtin', 'external', 'internal', 'parent', 'sibling', 'index'],
+          pathGroups: [
+            {
+              pattern: '@/**',
+              group: 'internal',
+              position: 'before',
+            },
+          ],
+          'newlines-between': 'always',
+          alphabetize: {
+            order: 'asc',
+            caseInsensitive: true,
+          },
+        },
+      ],
+      'import/no-duplicates': 'error',
+
+      // General rules
+      'no-unused-vars': 'off',
+      'no-console': 'off', // Allow console in tests
       'prefer-const': 'error',
       'no-var': 'error',
     },
