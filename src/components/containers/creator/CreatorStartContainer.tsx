@@ -1,15 +1,5 @@
 'use client';
 
-import {
-  ArrowRight,
-  ChevronDown,
-  ChevronUp,
-  CheckCircle2,
-  DollarSign,
-  ShieldCheck,
-  TrendingUp,
-  Users,
-} from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 
@@ -85,7 +75,7 @@ export const CreatorStartContainer = () => {
         <Card className="border-none bg-card/50 backdrop-blur-sm">
           <CardContent className="flex items-start gap-4 pt-6">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-500/10">
-              <DollarSign className="h-5 w-5 text-green-500" />
+              <span className="material-symbols-outlined text-[22px] text-green-600">payments</span>
             </div>
             <div>
               <h3 className="font-semibold">Earn Your Way</h3>
@@ -99,7 +89,9 @@ export const CreatorStartContainer = () => {
         <Card className="border-none bg-card/50 backdrop-blur-sm">
           <CardContent className="flex items-start gap-4 pt-6">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-500/10">
-              <TrendingUp className="h-5 w-5 text-blue-500" />
+              <span className="material-symbols-outlined text-[22px] text-secondary">
+                trending_up
+              </span>
             </div>
             <div>
               <h3 className="font-semibold">Fees That Grow With You</h3>
@@ -113,7 +105,7 @@ export const CreatorStartContainer = () => {
         <Card className="border-none bg-card/50 backdrop-blur-sm">
           <CardContent className="flex items-start gap-4 pt-6">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-500/10">
-              <ShieldCheck className="h-5 w-5 text-purple-500" />
+              <span className="material-symbols-outlined text-[22px] text-primary">shield</span>
             </div>
             <div>
               <h3 className="font-semibold">Safe & Secure</h3>
@@ -127,7 +119,9 @@ export const CreatorStartContainer = () => {
         <Card className="border-none bg-card/50 backdrop-blur-sm">
           <CardContent className="flex items-start gap-4 pt-6">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-orange-500/10">
-              <CheckCircle2 className="h-5 w-5 text-orange-500" />
+              <span className="material-symbols-outlined text-[22px] text-amber-600">
+                check_circle
+              </span>
             </div>
             <div>
               <h3 className="font-semibold">Quick Setup</h3>
@@ -148,7 +142,7 @@ export const CreatorStartContainer = () => {
           >
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                <Users className="h-5 w-5 text-primary" />
+                <span className="material-symbols-outlined text-[22px] text-primary">group</span>
               </div>
               <div>
                 <CardTitle className="text-lg">Transparent Fee Structure</CardTitle>
@@ -158,9 +152,13 @@ export const CreatorStartContainer = () => {
               </div>
             </div>
             {showCommissionDetails ? (
-              <ChevronUp className="h-5 w-5 text-muted-foreground" />
+              <span className="material-symbols-outlined text-[22px] text-muted-foreground">
+                expand_less
+              </span>
             ) : (
-              <ChevronDown className="h-5 w-5 text-muted-foreground" />
+              <span className="material-symbols-outlined text-[22px] text-muted-foreground">
+                expand_more
+              </span>
             )}
           </button>
         </CardHeader>
@@ -216,21 +214,29 @@ export const CreatorStartContainer = () => {
         <CardContent>
           <ul className="space-y-3 text-sm">
             <li className="flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-green-500" />
+              <span className="material-symbols-outlined text-[18px] text-green-600">
+                check_circle
+              </span>
               <span>Be 18 years or older</span>
             </li>
             <li className="flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-green-500" />
+              <span className="material-symbols-outlined text-[18px] text-green-600">
+                check_circle
+              </span>
               <span>
                 Valid government-issued ID (passport, driver&apos;s license, or national ID)
               </span>
             </li>
             <li className="flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-green-500" />
+              <span className="material-symbols-outlined text-[18px] text-green-600">
+                check_circle
+              </span>
               <span>Bank account or debit card for payouts</span>
             </li>
             <li className="flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-green-500" />
+              <span className="material-symbols-outlined text-[18px] text-green-600">
+                check_circle
+              </span>
               <span>A profile photo for your creator page</span>
             </li>
           </ul>
@@ -242,13 +248,15 @@ export const CreatorStartContainer = () => {
         <Button size="lg" className="gap-2 px-8" onClick={handleStart} disabled={isLoading}>
           {isLoading ? (
             <>
-              <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+              <span className="material-symbols-outlined animate-spin text-[18px]">
+                progress_activity
+              </span>
               Loading...
             </>
           ) : (
             <>
               Start Application
-              <ArrowRight className="h-4 w-4" />
+              <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
             </>
           )}
         </Button>

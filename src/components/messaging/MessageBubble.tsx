@@ -1,4 +1,3 @@
-import { Check, CheckCheck, Loader2, Lock } from 'lucide-react';
 import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -42,18 +41,26 @@ export function MessageBubble({ message, isSelf, onUnlock }: MessageBubbleProps)
   if (message.isLocked) {
     return (
       <div className={cn('flex w-full', isSelf ? 'justify-end' : 'justify-start')}>
-        <div className="max-w-[70%] space-y-3 rounded-lg border-2 border-dashed border-muted-foreground/20 bg-muted/50 p-4">
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Lock className="h-4 w-4" />
-            <span className="font-medium">Locked Message</span>
-          </div>
-          <div className="flex flex-col gap-2">
-            <p className="text-sm text-muted-foreground">Unlock to view this message.</p>
-            <Button onClick={handleUnlock} disabled={unlocking} className="w-full">
-              {unlocking && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        <div className="flex max-w-[75%] flex-col gap-3 rounded-[18px] bg-surface-container-low p-4">
+          <div className="flex items-center gap-2 text-primary">
+            <span className="material-symbols-outlined text-[20px]">lock</span>
+            <span className="text-sm font-bold">
               Unlock for {formatCurrency(message.ppvPrice || 0)}
-            </Button>
+            </span>
           </div>
+          <Button
+            onClick={handleUnlock}
+            disabled={unlocking}
+            size="sm"
+            className="w-fit rounded-full bg-primary-container px-4 py-2 text-xs font-bold text-white"
+          >
+            {unlocking && (
+              <span className="material-symbols-outlined mr-1 animate-spin text-[14px]">
+                progress_activity
+              </span>
+            )}
+            Unlock
+          </Button>
         </div>
       </div>
     );
@@ -63,13 +70,14 @@ export function MessageBubble({ message, isSelf, onUnlock }: MessageBubbleProps)
     <div className={cn('flex w-full', isSelf ? 'justify-end' : 'justify-start')}>
       <div
         className={cn(
-          'max-w-[70%] space-y-2 rounded-lg px-4 py-2',
-          isSelf ? 'bg-primary text-primary-foreground' : 'bg-muted'
+          'max-w-[75%] space-y-2 rounded-[18px] px-4 py-3 text-sm',
+          isSelf
+            ? 'rounded-br-[4px] bg-primary-container text-white'
+            : 'rounded-bl-[4px] bg-surface-container-lowest text-on-surface shadow-card'
         )}
       >
         {message.media && message.media.length > 0 && (
           <div className="mb-2 overflow-hidden rounded-md">
-            {/* Simple image rendering for MVP */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={message.media?.[0]?.processedUrl || message.media?.[0]?.originalUrl}
@@ -79,12 +87,12 @@ export function MessageBubble({ message, isSelf, onUnlock }: MessageBubbleProps)
           </div>
         )}
 
-        {message.content && <p className="text-sm">{message.content}</p>}
+        {message.content && <p>{message.content}</p>}
 
         <div
           className={cn(
             'flex items-center justify-end gap-1 text-[10px]',
-            isSelf ? 'text-primary-foreground/70' : 'text-muted-foreground'
+            isSelf ? 'text-white/80' : 'text-on-surface-variant'
           )}
         >
           {new Date(message.createdAt).toLocaleTimeString([], {
@@ -92,8 +100,8 @@ export function MessageBubble({ message, isSelf, onUnlock }: MessageBubbleProps)
             minute: '2-digit',
           })}
           {isSelf && (
-            <span>
-              {message.isRead ? <CheckCheck className="h-3 w-3" /> : <Check className="h-3 w-3" />}
+            <span className="material-symbols-outlined text-[12px]">
+              {message.isRead ? 'done_all' : 'done'}
             </span>
           )}
         </div>

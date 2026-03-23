@@ -19,7 +19,14 @@ interface Creator {
   categoryName: string | null;
 }
 
-export function TrendingCreators() {
+interface TrendingCreatorsProps {
+  /** Compact vertical list for home right rail */
+  variant?: 'grid' | 'rail';
+  /** When rail + parent supplies RailHeading */
+  hideHeading?: boolean;
+}
+
+export function TrendingCreators({ variant = 'grid', hideHeading = false }: TrendingCreatorsProps) {
   const [creators, setCreators] = useState<Creator[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -38,16 +45,24 @@ export function TrendingCreators() {
     void loadTrending();
   }, []);
 
+  const heading = variant === 'rail' ? 'Suggested Creators' : 'Trending Creators';
+
   if (loading) {
     return (
       <div className="space-y-4">
-        <h2 className="text-lg font-semibold">Trending Creators</h2>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {!hideHeading && <h2 className="font-headline text-lg font-bold">{heading}</h2>}
+        <div
+          className={
+            variant === 'rail'
+              ? 'space-y-3'
+              : 'grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3'
+          }
+        >
           {[1, 2, 3].map((i) => (
             <Card key={i}>
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
-                  <Skeleton className="h-12 w-12 rounded-full" />
+                  <Skeleton className="h-9 w-9 shrink-0 rounded-full" />
                   <div className="flex-1 space-y-2">
                     <Skeleton className="h-4 w-24" />
                     <Skeleton className="h-3 w-32" />
@@ -65,23 +80,68 @@ export function TrendingCreators() {
     return null;
   }
 
+  if (variant === 'rail') {
+    return (
+      <div className="space-y-4">
+        {!hideHeading && <h2 className="font-headline text-lg font-bold">{heading}</h2>}
+        <ul className="space-y-3">
+          {creators.slice(0, 8).map((creator) => (
+            <li key={creator.id} className="flex items-center gap-3">
+              <Link
+                href={`/c/${creator.handle}`}
+                className="flex min-w-0 flex-1 items-center gap-3 overflow-hidden"
+              >
+                <Avatar className="h-9 w-9 shrink-0 ring-2 ring-transparent ring-offset-0">
+                  <AvatarImage src={creator.avatarUrl || ''} alt="" />
+                  <AvatarFallback className="text-xs">{creator.displayName[0]}</AvatarFallback>
+                </Avatar>
+                <div className="min-w-0 flex-1 text-left">
+                  <p className="truncate text-sm font-bold leading-tight text-on-surface">
+                    {creator.displayName}
+                  </p>
+                  <p className="truncate text-xs text-on-surface-variant">@{creator.handle}</p>
+                </div>
+              </Link>
+              <Link
+                href={`/c/${creator.handle}`}
+                className="shrink-0 rounded-full border border-primary/20 px-3 py-1 text-xs font-bold text-primary transition-colors hover:bg-primary/5"
+              >
+                Follow
+              </Link>
+            </li>
+          ))}
+        </ul>
+        <Link
+          href="/explore"
+          className="block py-1 text-center text-xs font-bold text-primary hover:underline"
+        >
+          View all recommendations
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
-      <h2 className="text-lg font-semibold">Trending Creators</h2>
+      {!hideHeading && <h2 className="font-headline text-lg font-bold">{heading}</h2>}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {creators.map((creator) => (
           <Link key={creator.id} href={`/c/${creator.handle}`}>
-            <Card className="transition-colors hover:bg-muted/50">
+            <Card className="transition-colors hover:bg-surface-container-low">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
-                  <Avatar>
+                  <Avatar className="h-10 w-10 shrink-0">
                     <AvatarImage src={creator.avatarUrl || ''} />
                     <AvatarFallback>{creator.displayName[0]}</AvatarFallback>
                   </Avatar>
                   <div className="flex-1 overflow-hidden">
                     <div className="flex items-center gap-1">
                       <p className="truncate font-medium">{creator.displayName}</p>
-                      {creator.isVerified && <span className="text-primary">✓</span>}
+                      {creator.isVerified && (
+                        <span className="material-symbols-outlined text-sm text-secondary">
+                          verified
+                        </span>
+                      )}
                     </div>
                     <p className="truncate text-sm text-muted-foreground">@{creator.handle}</p>
                     <p className="text-xs text-muted-foreground">

@@ -1,8 +1,7 @@
 'use client';
 
-import { Heart, MessageCircle, Bookmark, DollarSign, Share2 } from 'lucide-react';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
 
 import { cn } from '@/lib/utils';
 
@@ -63,16 +62,25 @@ export function PostInteractions({
         >
           <div
             className={cn(
-              'rounded-full bg-black/20 p-3 backdrop-blur-sm transition-transform active:scale-90',
+              'flex h-12 w-12 items-center justify-center rounded-full bg-black/20 backdrop-blur-sm transition-transform active:scale-90',
               optimisticLiked && 'bg-primary/20'
             )}
           >
-            <Heart
+            <span
               className={cn(
-                'h-7 w-7',
-                optimisticLiked ? 'fill-primary text-primary' : 'text-white'
+                'material-symbols-outlined text-[28px]',
+                optimisticLiked ? 'text-primary' : 'text-white'
               )}
-            />
+              style={
+                optimisticLiked
+                  ? ({
+                      fontVariationSettings: "'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24",
+                    } as CSSProperties)
+                  : undefined
+              }
+            >
+              favorite
+            </span>
           </div>
           <span className="text-xs font-medium text-white">{optimisticCount}</span>
         </button>
@@ -83,8 +91,8 @@ export function PostInteractions({
           className="flex flex-col items-center gap-1"
           aria-label="View comments"
         >
-          <div className="rounded-full bg-black/20 p-3 backdrop-blur-sm">
-            <MessageCircle className="h-7 w-7 text-white" />
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-black/20 backdrop-blur-sm">
+            <span className="material-symbols-outlined text-[28px] text-white">chat_bubble</span>
           </div>
           <span className="text-xs font-medium text-white">{commentCount}</span>
         </Link>
@@ -97,16 +105,25 @@ export function PostInteractions({
         >
           <div
             className={cn(
-              'rounded-full bg-black/20 p-3 backdrop-blur-sm transition-transform active:scale-90',
+              'flex h-12 w-12 items-center justify-center rounded-full bg-black/20 backdrop-blur-sm transition-transform active:scale-90',
               optimisticBookmarked && 'bg-primary/20'
             )}
           >
-            <Bookmark
+            <span
               className={cn(
-                'h-7 w-7',
-                optimisticBookmarked ? 'fill-primary text-primary' : 'text-white'
+                'material-symbols-outlined text-[28px]',
+                optimisticBookmarked ? 'text-primary' : 'text-white'
               )}
-            />
+              style={
+                optimisticBookmarked
+                  ? ({
+                      fontVariationSettings: "'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24",
+                    } as CSSProperties)
+                  : undefined
+              }
+            >
+              bookmark
+            </span>
           </div>
         </button>
 
@@ -117,8 +134,8 @@ export function PostInteractions({
             className="flex flex-col items-center gap-1"
             aria-label="Send tip"
           >
-            <div className="rounded-full bg-black/20 p-3 backdrop-blur-sm transition-transform hover:bg-green-500/20 active:scale-90">
-              <DollarSign className="h-7 w-7 text-white" />
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-black/20 backdrop-blur-sm transition-transform hover:bg-green-500/20 active:scale-90">
+              <span className="material-symbols-outlined text-[28px] text-white">toll</span>
             </div>
           </button>
         )}
@@ -126,8 +143,8 @@ export function PostInteractions({
         {/* Share */}
         {onShare && (
           <button onClick={onShare} className="flex flex-col items-center gap-1" aria-label="Share">
-            <div className="rounded-full bg-black/20 p-3 backdrop-blur-sm transition-transform active:scale-90">
-              <Share2 className="h-7 w-7 text-white" />
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-black/20 backdrop-blur-sm transition-transform active:scale-90">
+              <span className="material-symbols-outlined text-[28px] text-white">share</span>
             </div>
           </button>
         )}
@@ -138,32 +155,38 @@ export function PostInteractions({
   // Feed variant - horizontal bar
   return (
     <div className={cn('flex items-center justify-between', className)}>
-      <div className="flex items-center gap-6">
+      <div className="flex items-center gap-1">
         {/* Like */}
         <button
           onClick={handleLike}
           className={cn(
-            'group flex items-center gap-2 transition-colors',
-            optimisticLiked ? 'text-primary' : 'text-muted-foreground hover:text-primary'
+            'group flex items-center gap-1 rounded-full px-2 py-2 transition-colors hover:bg-surface-container-low',
+            optimisticLiked ? 'text-primary' : 'text-on-surface-variant hover:text-primary'
           )}
           aria-label={optimisticLiked ? 'Unlike' : 'Like'}
         >
-          <Heart
-            className={cn(
-              'h-5 w-5 transition-transform group-active:scale-75',
-              optimisticLiked && 'scale-110 fill-current'
-            )}
-          />
+          <span
+            className="material-symbols-outlined text-[20px] transition-transform group-active:scale-95"
+            style={
+              optimisticLiked
+                ? ({
+                    fontVariationSettings: "'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24",
+                  } as CSSProperties)
+                : undefined
+            }
+          >
+            favorite
+          </span>
           <span className="text-sm font-medium">{optimisticCount}</span>
         </button>
 
         {/* Comment */}
         <Link
           href={`/post/${postId}`}
-          className="group flex items-center gap-2 text-muted-foreground transition-colors hover:text-foreground"
+          className="group flex items-center gap-1 rounded-full px-2 py-2 text-on-surface-variant transition-colors hover:bg-surface-container-low hover:text-on-surface"
           aria-label="View comments"
         >
-          <MessageCircle className="h-5 w-5" />
+          <span className="material-symbols-outlined text-[20px]">chat_bubble</span>
           <span className="text-sm font-medium">{commentCount}</span>
         </Link>
 
@@ -171,36 +194,47 @@ export function PostInteractions({
         {tipEnabled && onTip && (
           <button
             onClick={onTip}
-            className="group flex items-center gap-2 text-muted-foreground transition-colors hover:text-green-500"
+            className="group flex items-center gap-1 rounded-full px-2 py-2 text-on-surface-variant transition-colors hover:bg-surface-container-low hover:text-secondary"
             aria-label="Send tip"
           >
-            <DollarSign className="h-5 w-5" />
+            <span className="material-symbols-outlined text-[20px]">toll</span>
             <span className="hidden text-sm font-medium sm:inline">Tip</span>
           </button>
         )}
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-1">
         {/* Bookmark */}
         <button
           onClick={handleBookmark}
           className={cn(
-            'transition-colors',
-            optimisticBookmarked ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+            'rounded-full p-2 transition-colors hover:bg-surface-container-low',
+            optimisticBookmarked ? 'text-primary' : 'text-on-surface-variant hover:text-on-surface'
           )}
           aria-label={optimisticBookmarked ? 'Remove bookmark' : 'Bookmark'}
         >
-          <Bookmark className={cn('h-5 w-5', optimisticBookmarked && 'fill-current')} />
+          <span
+            className="material-symbols-outlined text-[20px]"
+            style={
+              optimisticBookmarked
+                ? ({
+                    fontVariationSettings: "'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24",
+                  } as CSSProperties)
+                : undefined
+            }
+          >
+            bookmark
+          </span>
         </button>
 
         {/* Share */}
         {onShare && (
           <button
             onClick={onShare}
-            className="text-muted-foreground transition-colors hover:text-foreground"
+            className="rounded-full p-2 text-on-surface-variant transition-colors hover:bg-surface-container-low hover:text-on-surface"
             aria-label="Share"
           >
-            <Share2 className="h-5 w-5" />
+            <span className="material-symbols-outlined text-[20px]">share</span>
           </button>
         )}
       </div>

@@ -2,7 +2,6 @@
 
 import * as TabsPrimitive from '@radix-ui/react-tabs';
 import { motion } from 'framer-motion';
-import { CreditCard, Settings, ShoppingBag } from 'lucide-react';
 import * as React from 'react';
 
 import { SettingsPageContainer } from '@/components/containers/settings/SettingsPageContainer';
@@ -15,6 +14,12 @@ interface ProfileTabsProps {
   className?: string;
 }
 
+const tabs = [
+  { id: 'wallet', label: 'Wallet', icon: 'credit_card' as const },
+  { id: 'purchases', label: 'Purchases', icon: 'shopping_bag' as const },
+  { id: 'settings', label: 'Settings', icon: 'settings' as const },
+];
+
 export function ProfileTabs({ defaultValue = 'wallet', className }: ProfileTabsProps) {
   const [activeTab, setActiveTab] = React.useState(defaultValue);
 
@@ -25,14 +30,6 @@ export function ProfileTabs({ defaultValue = 'wallet', className }: ProfileTabsP
     }
   }, [defaultValue]);
 
-  // For user profiles (not creator profiles), only show wallet and settings
-  // Posts, media, and about are creator-specific
-  const tabs = [
-    { id: 'wallet', label: 'Wallet', icon: CreditCard },
-    { id: 'purchases', label: 'Purchases', icon: ShoppingBag },
-    { id: 'settings', label: 'Settings', icon: Settings },
-  ];
-
   return (
     <TabsPrimitive.Root
       defaultValue={defaultValue}
@@ -40,18 +37,18 @@ export function ProfileTabs({ defaultValue = 'wallet', className }: ProfileTabsP
       onValueChange={setActiveTab}
       className={cn('w-full', className)}
     >
-      <div className="sticky top-[60px] z-30 w-full border-b border-white/5 bg-background/80 backdrop-blur-md md:top-[0px]">
+      <div className="sticky top-[60px] z-30 w-full border-b border-surface-container-high bg-background/80 backdrop-blur-md md:top-[0px]">
         <TabsPrimitive.List className="no-scrollbar mx-auto flex w-full max-w-2xl overflow-x-auto">
           {tabs.map((tab) => (
             <TabsPrimitive.Trigger
               key={tab.id}
               value={tab.id}
               className={cn(
-                'group relative flex min-w-[80px] flex-1 items-center justify-center gap-2 py-4 text-sm font-medium transition-colors',
-                'text-muted-foreground hover:text-foreground data-[state=active]:text-primary'
+                'group relative flex min-w-[80px] flex-1 items-center justify-center gap-2 py-4 font-headline text-sm font-semibold transition-colors',
+                'text-on-surface-variant hover:text-on-surface data-[state=active]:text-primary'
               )}
             >
-              <tab.icon className="size-4" />
+              <span className="material-symbols-outlined text-[18px]">{tab.icon}</span>
               <span className="hidden sm:inline">{tab.label}</span>
               {activeTab === tab.id && (
                 <motion.div

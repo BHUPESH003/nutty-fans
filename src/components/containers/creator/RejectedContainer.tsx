@@ -1,7 +1,5 @@
 'use client';
 
-import { XCircle, Mail } from 'lucide-react';
-
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -11,7 +9,7 @@ export const RejectedContainer = () => {
       <Card className="border-none bg-card/50 shadow-xl backdrop-blur-sm">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-destructive/10">
-            <XCircle className="h-8 w-8 text-destructive" />
+            <span className="material-symbols-outlined text-4xl text-destructive">cancel</span>
           </div>
           <CardTitle className="text-2xl">Application Not Approved</CardTitle>
           <CardDescription>
@@ -44,7 +42,7 @@ export const RejectedContainer = () => {
               If you believe this was a mistake, please contact our support team.
             </p>
             <Button className="gap-2">
-              <Mail className="h-4 w-4" />
+              <span className="material-symbols-outlined text-[18px]">mail</span>
               Contact Support
             </Button>
           </div>

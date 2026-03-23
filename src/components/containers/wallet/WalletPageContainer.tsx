@@ -1,6 +1,5 @@
 'use client';
 
-import { Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { TransactionList } from '@/components/payments/TransactionList';
@@ -49,7 +48,9 @@ export function WalletPageContainer() {
   if (isLoading) {
     return (
       <div className="flex h-[40vh] items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <span className="material-symbols-outlined animate-spin text-[36px] text-on-surface-variant">
+          progress_activity
+        </span>
       </div>
     );
   }

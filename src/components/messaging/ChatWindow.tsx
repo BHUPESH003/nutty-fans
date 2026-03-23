@@ -1,4 +1,3 @@
-import { ChevronLeft, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { useEffect, useRef } from 'react';
@@ -44,7 +43,9 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
   if (conversationLoading || messagesLoading) {
     return (
       <div className="flex h-full items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <span className="material-symbols-outlined animate-spin text-[40px] text-on-surface-variant">
+          progress_activity
+        </span>
       </div>
     );
   }
@@ -78,12 +79,12 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
-      <div className="flex items-center gap-3 border-b bg-background/95 p-4 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="flex items-center gap-3 border-b border-surface-container-high bg-white/90 p-4 backdrop-blur-sm">
         <Link
           href="/messages"
-          className="mr-2 inline-flex h-8 w-8 items-center justify-center rounded-full hover:bg-muted md:hidden"
+          className="mr-2 inline-flex h-9 w-9 items-center justify-center rounded-full hover:bg-surface-container-low md:hidden"
         >
-          <ChevronLeft className="h-5 w-5" />
+          <span className="material-symbols-outlined text-[22px] text-on-surface">arrow_back</span>
           <span className="sr-only">Back</span>
         </Link>
         <Avatar className="h-10 w-10 flex-shrink-0">
@@ -91,18 +92,16 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
           <AvatarFallback>{conversation?.otherUser?.displayName?.[0] ?? '?'}</AvatarFallback>
         </Avatar>
         <div>
-          <h2 className="font-semibold">
+          <h2 className="font-headline text-base font-bold text-on-surface">
             {conversation?.otherUser?.displayName ?? 'Unknown User'}
           </h2>
-          <p className="text-xs text-muted-foreground">
-            @{conversation?.otherUser?.username ?? 'unknown'}
-          </p>
+          <p className="text-xs text-secondary">Online</p>
         </div>
       </div>
 
       {/* Messages */}
-      <ScrollArea className="flex-1 p-4">
-        <div className="space-y-4">
+      <ScrollArea className="flex-1 bg-surface p-6">
+        <div className="no-scrollbar space-y-4">
           {messages.map((msg) => (
             <MessageBubble
               key={msg.id}

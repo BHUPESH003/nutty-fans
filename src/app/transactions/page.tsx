@@ -1,4 +1,3 @@
-import { Download } from 'lucide-react';
 import { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth';
@@ -36,7 +35,7 @@ export default async function TransactionsPage() {
         </div>
         <Button variant="outline" asChild>
           <a href="/api/transactions/export" download>
-            <Download className="mr-2 h-4 w-4" />
+            <span className="material-symbols-outlined mr-2 text-[18px]">download</span>
             Export CSV
           </a>
         </Button>

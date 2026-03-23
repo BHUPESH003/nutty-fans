@@ -1,6 +1,5 @@
 'use client';
 
-import { Lock, Wallet, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 
@@ -114,7 +113,8 @@ export function UnlockButton({
   if (variant === 'compact') {
     return (
       <Button size="sm" onClick={handleOpenDialog} className={className}>
-        <Lock className="mr-1.5 h-3.5 w-3.5" />${price.toFixed(2)}
+        <span className="material-symbols-outlined mr-1.5 text-[16px]">lock</span>$
+        {price.toFixed(2)}
       </Button>
     );
   }
@@ -122,7 +122,7 @@ export function UnlockButton({
   return (
     <>
       <Button size="lg" onClick={handleOpenDialog} className={className}>
-        <Lock className="mr-2 h-4 w-4" />
+        <span className="material-symbols-outlined mr-2 text-[20px]">lock</span>
         Unlock for ${price.toFixed(2)}
       </Button>
 
@@ -148,7 +148,9 @@ export function UnlockButton({
             {/* Wallet Balance */}
             <div className="flex items-center justify-between rounded-lg border p-4">
               <div className="flex items-center gap-2">
-                <Wallet className="h-5 w-5 text-muted-foreground" />
+                <span className="material-symbols-outlined text-[22px] text-on-surface-variant">
+                  account_balance_wallet
+                </span>
                 <span className="text-sm">Wallet Balance</span>
               </div>
               <span
@@ -188,7 +190,9 @@ export function UnlockButton({
               <Button onClick={handleUnlock} disabled={isLoading} className="flex-1">
                 {isLoading ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <span className="material-symbols-outlined mr-2 animate-spin text-[18px]">
+                      progress_activity
+                    </span>
                     Processing...
                   </>
                 ) : (

@@ -1,6 +1,5 @@
 'use client';
 
-import { AlertCircle, CheckCircle2, Clock, ShieldCheck, XCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 
@@ -72,7 +71,9 @@ export const CreatorKycContainer = () => {
   if (isLoading) {
     return (
       <div className="flex h-[50vh] items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary" />
+        <span className="material-symbols-outlined animate-spin text-[36px] text-primary">
+          progress_activity
+        </span>
       </div>
     );
   }
@@ -84,7 +85,7 @@ export const CreatorKycContainer = () => {
       <Card className="mt-8 border-none bg-card/50 shadow-xl backdrop-blur-sm">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-            <ShieldCheck className="h-8 w-8 text-primary" />
+            <span className="material-symbols-outlined text-4xl text-primary">verified_user</span>
           </div>
           <CardTitle className="text-3xl font-bold">Identity Verification</CardTitle>
           <CardDescription>
@@ -95,7 +96,7 @@ export const CreatorKycContainer = () => {
         <CardContent className="space-y-6">
           {error && (
             <div className="flex items-center gap-2 rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-              <AlertCircle className="h-4 w-4" />
+              <span className="material-symbols-outlined text-[18px]">error</span>
               <span>{error}</span>
             </div>
           )}
@@ -104,7 +105,7 @@ export const CreatorKycContainer = () => {
             {kycStatus === 'pending' && (
               <div className="space-y-4">
                 <div className="flex items-center justify-center gap-2 text-muted-foreground">
-                  <AlertCircle className="h-5 w-5" />
+                  <span className="material-symbols-outlined text-[22px]">warning</span>
                   <span>Verification Required</span>
                 </div>
                 <p className="text-sm text-muted-foreground">
@@ -119,7 +120,7 @@ export const CreatorKycContainer = () => {
             {kycStatus === 'submitted' && (
               <div className="space-y-4">
                 <div className="flex items-center justify-center gap-2 text-yellow-500">
-                  <Clock className="h-6 w-6" />
+                  <span className="material-symbols-outlined text-[28px]">schedule</span>
                   <span className="text-lg font-medium">Verification in Progress</span>
                 </div>
                 <p className="text-sm text-muted-foreground">
@@ -152,7 +153,9 @@ export const CreatorKycContainer = () => {
             {kycStatus === 'approved' && (
               <div className="space-y-4">
                 <div className="flex items-center justify-center gap-2 text-green-500">
-                  <CheckCircle2 className="h-6 w-6" />
+                  <span className="material-symbols-outlined text-[28px] text-green-600">
+                    check_circle
+                  </span>
                   <span className="text-lg font-medium">Verified Successfully</span>
                 </div>
                 <p className="text-sm text-muted-foreground">
@@ -165,7 +168,9 @@ export const CreatorKycContainer = () => {
             {kycStatus === 'rejected' && (
               <div className="space-y-4">
                 <div className="flex items-center justify-center gap-2 text-destructive">
-                  <XCircle className="h-6 w-6" />
+                  <span className="material-symbols-outlined text-[28px] text-destructive">
+                    cancel
+                  </span>
                   <span className="text-lg font-medium">Verification Failed</span>
                 </div>
                 <p className="text-sm text-muted-foreground">

@@ -1,6 +1,5 @@
 'use client';
 
-import { AlertCircle, DollarSign } from 'lucide-react';
 import type { Route } from 'next';
 import { useRouter } from 'next/navigation';
 import React, { useState, useEffect } from 'react';
@@ -96,7 +95,7 @@ export const PricingSetupContainer = () => {
           <form onSubmit={handleSubmit} className="space-y-8">
             {error && (
               <div className="flex items-center gap-2 rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-                <AlertCircle className="h-4 w-4" />
+                <span className="material-symbols-outlined text-[18px] text-error">error</span>
                 <span>{error}</span>
               </div>
             )}
@@ -151,7 +150,7 @@ export const PricingSetupContainer = () => {
             <Card className="border-dashed bg-primary/5">
               <CardContent className="pt-6">
                 <div className="mb-4 flex items-center gap-2 text-sm font-medium">
-                  <DollarSign className="h-4 w-4" />
+                  <span className="material-symbols-outlined text-[18px]">payments</span>
                   Estimated Monthly Earnings
                 </div>
                 <div className="grid grid-cols-3 gap-2 text-center sm:gap-4">

@@ -16,7 +16,12 @@ const nextConfig: NextConfig = {
         hostname: 'd12yj2uf2lejnl.cloudfront.net',
         pathname: '/**',
       },
-      // Add allowed image domains here as needed
+      // Mux static assets (thumbnails, posters, animated GIFs)
+      {
+        protocol: 'https',
+        hostname: 'image.mux.com',
+        pathname: '/**',
+      },
     ],
   },
 

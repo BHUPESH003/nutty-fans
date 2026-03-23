@@ -1,6 +1,5 @@
 'use client';
 
-import { AlertTriangle, ArrowRight, Sparkles, Palette } from 'lucide-react';
 import type { Route } from 'next';
 import Link from 'next/link';
 
@@ -59,7 +58,7 @@ export function CreatorCTA({ variant = 'sidebar', className }: CreatorCTAProps) 
       return (
         <Button variant="default" className={cn('rounded-full', className)} asChild>
           <Link href="/creator/dashboard">
-            <Palette className="mr-2 h-4 w-4" />
+            <span className="material-symbols-outlined mr-2 text-[18px]">palette</span>
             Creator Dashboard
           </Link>
         </Button>
@@ -67,21 +66,16 @@ export function CreatorCTA({ variant = 'sidebar', className }: CreatorCTAProps) 
     }
 
     return (
-      <div
-        className={cn(
-          'rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 to-purple-900/20 p-4',
-          className
-        )}
-      >
+      <div className={cn('rounded-2xl border border-primary/15 bg-primary/5 p-4', className)}>
         <div className="mb-2 flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-primary" />
-          <h3 className="text-sm font-semibold text-white">Creator Mode</h3>
+          <span className="material-symbols-outlined text-[18px] text-primary">auto_awesome</span>
+          <h3 className="font-headline text-sm font-semibold text-on-surface">Creator Mode</h3>
         </div>
-        <p className="mb-3 text-xs text-muted-foreground">Manage your content and earnings.</p>
+        <p className="mb-3 text-xs text-on-surface-variant">Manage your content and earnings.</p>
         <Button size="sm" className="w-full text-xs" asChild>
           <Link href="/creator/dashboard">
             Open Dashboard
-            <ArrowRight className="ml-2 h-3 w-3" />
+            <span className="material-symbols-outlined ml-2 text-[14px]">arrow_forward</span>
           </Link>
         </Button>
       </div>
@@ -117,7 +111,9 @@ export function CreatorCTA({ variant = 'sidebar', className }: CreatorCTAProps) 
       return (
         <Button variant="secondary" className={cn('relative rounded-full', className)} asChild>
           <Link href={targetUrl as Route}>
-            <AlertTriangle className="mr-2 h-4 w-4 text-yellow-500" />
+            <span className="material-symbols-outlined mr-2 text-[18px] text-amber-600">
+              warning
+            </span>
             Continue Setup
           </Link>
         </Button>
@@ -125,29 +121,24 @@ export function CreatorCTA({ variant = 'sidebar', className }: CreatorCTAProps) 
     }
 
     return (
-      <div
-        className={cn(
-          'rounded-2xl border border-yellow-500/30 bg-gradient-to-br from-yellow-900/20 to-orange-900/10 p-4',
-          className
-        )}
-      >
+      <div className={cn('rounded-2xl border border-amber-200 bg-amber-50/80 p-4', className)}>
         <div className="mb-2 flex items-center gap-2">
-          <AlertTriangle className="h-4 w-4 text-yellow-500" />
-          <h3 className="text-sm font-semibold text-white">Setup Incomplete</h3>
+          <span className="material-symbols-outlined text-[18px] text-amber-600">warning</span>
+          <h3 className="font-headline text-sm font-semibold text-on-surface">Setup Incomplete</h3>
         </div>
-        <p className="mb-1 text-xs text-muted-foreground">
+        <p className="mb-1 text-xs text-on-surface-variant">
           {getProgressLabel()} - Continue where you left off.
         </p>
-        <div className="mb-3 h-1 w-full overflow-hidden rounded-full bg-white/10">
+        <div className="mb-3 h-1 w-full overflow-hidden rounded-full bg-surface-container-high">
           <div
-            className="h-full rounded-full bg-yellow-500 transition-all"
+            className="h-full rounded-full bg-amber-500 transition-all"
             style={{ width: getProgressPercent(onboardingStatus as OnboardingStatus) }}
           />
         </div>
         <Button size="sm" className="w-full text-xs" variant="secondary" asChild>
           <Link href={targetUrl as Route}>
             Continue Setup
-            <ArrowRight className="ml-2 h-3 w-3" />
+            <span className="material-symbols-outlined ml-2 text-[14px]">arrow_forward</span>
           </Link>
         </Button>
       </div>
@@ -166,13 +157,13 @@ export function CreatorCTA({ variant = 'sidebar', className }: CreatorCTAProps) 
   return (
     <div
       className={cn(
-        'rounded-2xl border border-white/5 bg-gradient-to-br from-purple-900/20 to-primary/10 p-4',
+        'rounded-2xl border border-surface-container-high bg-surface-container-low p-4',
         className
       )}
     >
-      <h3 className="mb-1 text-sm font-semibold text-white">Become a Creator</h3>
-      <p className="mb-3 text-xs text-muted-foreground">Start earning from your content today.</p>
-      <Button size="sm" className="w-full text-xs" variant="secondary" asChild>
+      <h3 className="mb-1 font-headline text-sm font-semibold text-on-surface">Become a Creator</h3>
+      <p className="mb-3 text-xs text-on-surface-variant">Start earning from your content today.</p>
+      <Button size="sm" className="w-full text-xs" variant="default" asChild>
         <Link href="/creator/start">Apply Now</Link>
       </Button>
     </div>

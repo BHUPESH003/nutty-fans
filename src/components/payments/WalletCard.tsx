@@ -1,6 +1,5 @@
 'use client';
 
-import { Loader2, Wallet, Plus } from 'lucide-react';
 import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -47,57 +46,85 @@ export function WalletCard({ balance, onTopup }: WalletCardProps) {
   };
 
   return (
-    <Card>
+    <Card className="overflow-hidden border-0 bg-gradient-to-br from-primary to-primary-container text-white shadow-ambient">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Wallet className="h-5 w-5" />
+        <CardTitle className="flex items-center gap-2 font-headline text-white">
+          <span className="material-symbols-outlined text-[22px]">account_balance_wallet</span>
           Wallet Balance
         </CardTitle>
-        <CardDescription>Use your wallet for instant purchases and tips.</CardDescription>
+        <CardDescription className="text-white/80">
+          Use your wallet for instant purchases and tips.
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="flex flex-col gap-6">
-          <div className="text-4xl font-bold">{formatCurrency(balance)}</div>
+          <div>
+            <p className="text-sm opacity-80">Available Balance</p>
+            <div className="font-headline text-4xl font-black">{formatCurrency(balance)}</div>
+          </div>
 
           <div className="space-y-4">
-            <Label>Add Funds</Label>
+            <Label className="text-white/90">Add Funds</Label>
             <div className="flex flex-col gap-2 sm:flex-row">
               <div className="relative flex-1">
-                <span className="absolute left-3 top-2.5 text-muted-foreground">$</span>
+                <span className="absolute left-3 top-2.5 text-white/80">$</span>
                 <Input
                   type="number"
                   min="5"
                   step="1"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
-                  className="pl-6"
+                  className="border-white/20 bg-white/10 pl-6 text-white placeholder:text-white/50"
                   placeholder="Amount"
                 />
               </div>
               <Button
                 onClick={() => handleTopUp(parseFloat(amount))}
                 disabled={loading}
-                className="w-full sm:w-auto"
+                variant="secondary"
+                className="w-full border-0 bg-white/20 text-white backdrop-blur-sm hover:bg-white/30 sm:w-auto"
               >
                 {loading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span className="material-symbols-outlined animate-spin text-[18px]">
+                    progress_activity
+                  </span>
                 ) : (
-                  <Plus className="mr-2 h-4 w-4" />
+                  <span className="material-symbols-outlined mr-2 text-[18px]">add</span>
                 )}
                 Top Up
               </Button>
             </div>
             <div className="flex flex-wrap gap-2 text-sm">
-              <Button variant="outline" size="sm" onClick={() => setAmount('10')}>
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-white/30 bg-transparent text-white hover:bg-white/10"
+                onClick={() => setAmount('10')}
+              >
                 $10
               </Button>
-              <Button variant="outline" size="sm" onClick={() => setAmount('25')}>
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-white/30 bg-transparent text-white hover:bg-white/10"
+                onClick={() => setAmount('25')}
+              >
                 $25
               </Button>
-              <Button variant="outline" size="sm" onClick={() => setAmount('50')}>
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-white/30 bg-transparent text-white hover:bg-white/10"
+                onClick={() => setAmount('50')}
+              >
                 $50
               </Button>
-              <Button variant="outline" size="sm" onClick={() => setAmount('100')}>
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-white/30 bg-transparent text-white hover:bg-white/10"
+                onClick={() => setAmount('100')}
+              >
                 $100
               </Button>
             </div>

@@ -1,6 +1,5 @@
 'use client';
 
-import { Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { PostCard } from '@/components/posts/PostCard';
@@ -47,7 +46,9 @@ export function ExploreFeed() {
   if (loading && posts.length === 0) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <span className="material-symbols-outlined animate-spin text-[40px] text-on-surface-variant">
+          progress_activity
+        </span>
       </div>
     );
   }
@@ -75,7 +76,9 @@ export function ExploreFeed() {
           >
             {loading ? (
               <>
-                <Loader2 className="mr-2 inline h-4 w-4 animate-spin" />
+                <span className="material-symbols-outlined mr-2 inline animate-spin text-[18px]">
+                  progress_activity
+                </span>
                 Loading...
               </>
             ) : (

@@ -1,4 +1,3 @@
-import { DollarSign, Image as ImageIcon, Send, X } from 'lucide-react';
 import React, { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -52,29 +51,33 @@ export function MessageInput({ onSend, isCreator, disabled: _disabled }: Message
   };
 
   return (
-    <div className="border-t bg-background p-4">
+    <div className="sticky bottom-0 border-t border-surface-container-high bg-white/90 p-4 backdrop-blur-xl">
       {price > 0 && (
-        <div className="mb-2 flex w-fit items-center gap-2 rounded-md bg-green-50 p-2 text-sm text-green-600">
-          <DollarSign className="h-4 w-4" />
+        <div className="mb-2 flex w-fit items-center gap-2 rounded-md bg-secondary-fixed/10 p-2 text-sm text-secondary">
+          <span className="material-symbols-outlined text-[18px]">toll</span>
           <span>Locked for ${price}</span>
-          <button onClick={() => setPrice(0)} className="hover:text-green-800">
-            <X className="h-3 w-3" />
+          <button type="button" onClick={() => setPrice(0)} className="hover:text-secondary">
+            <span className="material-symbols-outlined text-[16px]">close</span>
           </button>
         </div>
       )}
 
-      <div className="flex items-end gap-2">
-        <div className="flex gap-2 pb-2">
+      <div className="flex items-end gap-3">
+        <div className="flex gap-1 pb-2">
           {/* Media Upload Trigger (Placeholder) */}
-          <Button variant="ghost" size="icon" className="h-8 w-8" disabled>
-            <ImageIcon className="h-5 w-5 text-muted-foreground" />
+          <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full" disabled>
+            <span className="material-symbols-outlined text-[22px] text-on-surface-variant">
+              image
+            </span>
           </Button>
 
           {isCreator && (
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
-                  <DollarSign className="h-5 w-5 text-muted-foreground" />
+                <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full">
+                  <span className="material-symbols-outlined text-[22px] text-on-surface-variant">
+                    toll
+                  </span>
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-60">
@@ -105,12 +108,17 @@ export function MessageInput({ onSend, isCreator, disabled: _disabled }: Message
           onChange={(e) => setContent(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Type a message..."
-          className="max-h-[120px] min-h-[40px] resize-none"
+          className="max-h-[120px] min-h-[44px] flex-1 resize-none rounded-full border-none bg-surface-container-low px-4 py-3 text-sm focus-visible:ring-2 focus-visible:ring-primary-fixed"
           rows={1}
         />
 
-        <Button onClick={handleSend} disabled={!content.trim() || sending} size="icon">
-          <Send className="h-4 w-4" />
+        <Button
+          onClick={handleSend}
+          disabled={!content.trim() || sending}
+          size="icon"
+          className="h-10 w-10 shrink-0 rounded-full bg-primary-container text-white hover:opacity-90"
+        >
+          <span className="material-symbols-outlined text-[20px]">send</span>
         </Button>
       </div>
     </div>

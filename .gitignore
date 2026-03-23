@@ -50,3 +50,6 @@ prisma/generated/
 .vercel
 
 node_modules
+
+
+stitch/*

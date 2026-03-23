@@ -1,6 +1,5 @@
 'use client';
 
-import { Loader2 } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 
 import { SubscribeModal } from '@/components/payments/SubscribeModal';
@@ -234,7 +233,9 @@ export function CreatorProfileContainer({ handle }: CreatorProfileContainerProps
   if (isLoading || !creator) {
     return (
       <div className="flex h-[50vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="material-symbols-outlined animate-spin text-[40px] text-primary">
+          progress_activity
+        </span>
       </div>
     );
   }

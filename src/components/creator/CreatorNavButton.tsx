@@ -1,6 +1,5 @@
 'use client';
 
-import { Plus } from 'lucide-react';
 import Link from 'next/link';
 
 import { Button } from '@/components/ui/button';
@@ -23,8 +22,8 @@ export function CreatorNavButton({ className, variant = 'default' }: CreatorNavB
   if (variant === 'icon') {
     return (
       <Button size="icon" className={cn('h-10 w-10 rounded-full', className)} asChild>
-        <Link href="/creator/posts/new">
-          <Plus className="h-5 w-5" />
+        <Link href="/creator/posts/new" aria-label="Create post">
+          <span className="material-symbols-outlined text-[22px]">add</span>
         </Link>
       </Button>
     );
@@ -33,7 +32,7 @@ export function CreatorNavButton({ className, variant = 'default' }: CreatorNavB
   return (
     <Button className={cn('gap-2 rounded-full', className)} asChild>
       <Link href="/creator/posts/new">
-        <Plus className="h-4 w-4" />
+        <span className="material-symbols-outlined text-[18px]">add</span>
         Create
       </Link>
     </Button>

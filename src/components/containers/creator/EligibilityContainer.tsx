@@ -1,6 +1,5 @@
 'use client';
 
-import { AlertCircle } from 'lucide-react';
 import type { Route } from 'next';
 import { useRouter } from 'next/navigation';
 import React, { useState, useEffect } from 'react';
@@ -144,7 +143,7 @@ export const EligibilityContainer = () => {
           <form onSubmit={handleSubmit} className="space-y-6">
             {error && (
               <div className="flex items-center gap-2 rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-                <AlertCircle className="h-4 w-4" />
+                <span className="material-symbols-outlined text-[18px] text-error">error</span>
                 <span>{error}</span>
               </div>
             )}

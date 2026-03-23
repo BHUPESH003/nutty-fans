@@ -1,6 +1,5 @@
 'use client';
 
-import { Heart, Loader2 } from 'lucide-react';
 import { useState } from 'react';
 
 import { Button, type ButtonProps } from '@/components/ui/button';
@@ -74,7 +73,7 @@ export function TipButton({
   return (
     <>
       <Button variant={variant} size={size} onClick={() => setIsOpen(true)} className={className}>
-        <Heart className="mr-2 h-4 w-4" />
+        <span className="material-symbols-outlined mr-2 text-[18px]">favorite</span>
         Tip
       </Button>
 
@@ -139,7 +138,11 @@ export function TipButton({
               Cancel
             </Button>
             <Button onClick={handleSubmit} disabled={!isValid || isSubmitting}>
-              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isSubmitting && (
+                <span className="material-symbols-outlined mr-2 animate-spin text-[18px]">
+                  progress_activity
+                </span>
+              )}
               Send ${numericAmount.toFixed(2)}
             </Button>
           </DialogFooter>

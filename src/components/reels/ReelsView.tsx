@@ -1,6 +1,5 @@
 'use client';
 
-import { Loader2, ChevronUp, ChevronDown } from 'lucide-react';
 import { useState, useRef, useEffect, useCallback } from 'react';
 
 import { ReelCard } from '@/components/reels/ReelCard';
@@ -150,7 +149,9 @@ export function ReelsView({ initialPosts = [] }: ReelsViewProps) {
   if (isLoading && reels.length === 0) {
     return (
       <div className="flex h-screen items-center justify-center bg-black">
-        <Loader2 className="h-10 w-10 animate-spin text-white" />
+        <span className="material-symbols-outlined animate-spin text-5xl text-white">
+          progress_activity
+        </span>
       </div>
     );
   }
@@ -175,7 +176,7 @@ export function ReelsView({ initialPosts = [] }: ReelsViewProps) {
             activeIndex === 0 ? 'opacity-30' : 'opacity-100 hover:bg-white/20'
           }`}
         >
-          <ChevronUp className="h-6 w-6" />
+          <span className="material-symbols-outlined text-[28px]">keyboard_arrow_up</span>
         </button>
         <button
           onClick={goToNext}
@@ -184,7 +185,7 @@ export function ReelsView({ initialPosts = [] }: ReelsViewProps) {
             activeIndex === reels.length - 1 ? 'opacity-30' : 'opacity-100 hover:bg-white/20'
           }`}
         >
-          <ChevronDown className="h-6 w-6" />
+          <span className="material-symbols-outlined text-[28px]">keyboard_arrow_down</span>
         </button>
       </div>
 
@@ -225,7 +226,9 @@ export function ReelsView({ initialPosts = [] }: ReelsViewProps) {
         {/* Loading indicator at bottom */}
         {isLoading && reels.length > 0 && (
           <div className="flex h-20 items-center justify-center">
-            <Loader2 className="h-6 w-6 animate-spin text-white" />
+            <span className="material-symbols-outlined animate-spin text-[28px] text-white">
+              progress_activity
+            </span>
           </div>
         )}
       </div>

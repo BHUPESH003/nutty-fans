@@ -1,6 +1,5 @@
 'use client';
 
-import { Loader2, Search } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
 
@@ -82,7 +81,9 @@ export function NewMessageDialog({ open, onOpenChange }: NewMessageDialogProps) 
           <div className="space-y-2">
             <Label htmlFor="username">Username</Label>
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <span className="material-symbols-outlined pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[20px] text-on-surface-variant">
+                search
+              </span>
               <Input
                 id="username"
                 placeholder="Enter username..."
@@ -110,7 +111,11 @@ export function NewMessageDialog({ open, onOpenChange }: NewMessageDialogProps) 
               Cancel
             </Button>
             <Button type="submit" disabled={!username.trim() || loading}>
-              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {loading && (
+                <span className="material-symbols-outlined mr-2 animate-spin text-[18px]">
+                  progress_activity
+                </span>
+              )}
               Start Conversation
             </Button>
           </div>

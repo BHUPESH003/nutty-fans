@@ -1,4 +1,3 @@
-import { Settings } from 'lucide-react';
 import { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth';
@@ -47,7 +46,7 @@ export default async function PayoutsPage() {
         </div>
         <Button variant="outline" asChild>
           <a href="/creator/payouts/settings">
-            <Settings className="mr-2 h-4 w-4" />
+            <span className="material-symbols-outlined mr-2 text-[18px]">settings</span>
             Payout Settings
           </a>
         </Button>

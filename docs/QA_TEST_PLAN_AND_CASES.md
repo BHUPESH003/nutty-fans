@@ -45,7 +45,7 @@ NuttyFans is a creator monetization platform with:
 
 - **Stack**: Next.js 15+ (App Router), TypeScript, PostgreSQL (Neon), Prisma ORM
 - **Payments**: Square (OAuth, Checkout, Payouts)
-- **Video**: Mux (ingestion, transcoding, signed playback)
+- **Video**: Mux (ingestion, transcoding, public playback)
 - **Storage**: AWS S3 + CloudFront CDN
 - **Real-time**: Pusher (messaging), Web Push API (notifications)
 - **Search**: Meilisearch (with database fallback)
@@ -148,14 +148,14 @@ NuttyFans is a creator monetization platform with:
 
 ### Areas Prone to Regression
 
-| Area                         | Risk Level | Reason                                |
-| ---------------------------- | ---------- | ------------------------------------- |
-| Payment flows                | 🔴 HIGH    | Multiple integrations, money involved |
-| Video playback authorization | 🔴 HIGH    | Signed URLs, expiry logic             |
-| Subscription access control  | 🔴 HIGH    | Complex entitlement checks            |
-| Real-time messaging          | 🟡 MEDIUM  | WebSocket/SSE state management        |
-| Creator earnings calculation | 🔴 HIGH    | Commission tiers, payout logic        |
-| Content watermarking         | 🟡 MEDIUM  | Dynamic watermark generation          |
+| Area                         | Risk Level | Reason                                          |
+| ---------------------------- | ---------- | ----------------------------------------------- |
+| Payment flows                | 🔴 HIGH    | Multiple integrations, money involved           |
+| Video playback authorization | 🔴 HIGH    | Public Mux playback URLs; sharing risk to watch |
+| Subscription access control  | 🔴 HIGH    | Complex entitlement checks                      |
+| Real-time messaging          | 🟡 MEDIUM  | WebSocket/SSE state management                  |
+| Creator earnings calculation | 🔴 HIGH    | Commission tiers, payout logic                  |
+| Content watermarking         | 🟡 MEDIUM  | Dynamic watermark generation                    |
 
 ### Architecture Review Findings (December 26, 2025)
 
@@ -172,11 +172,11 @@ NuttyFans is a creator monetization platform with:
 - **Polling Interval**: 30 seconds for notifications list, 60 seconds for unread count
 - **Quality Gate Status**: ⚠️ ACCEPTABLE - Notifications are separate from messaging requirement
 
-#### ✅ Video Playback Security
+#### ⚠️ Video Playback Security
 
-- **Signed URLs**: Implemented via `muxClient.getSignedPlaybackUrls()` with configurable expiration (default 300 seconds)
+- **Playback Policy**: Mux assets now use `public` playback policy (no signed tokens). Access is gated by backend checks and watermarking, but URLs can be shared.
 - **Webhook Handling**: Mux webhooks verified via signature validation in `/api/webhooks/mux/route.ts`
-- **Quality Gate Status**: ✅ PASSED - Video playback uses expiring signed URLs
+- **Quality Gate Status**: ⚠️ UPDATED - Public playback URLs; monitor for unauthorized sharing and consider re-introducing signing if abuse observed
 
 #### ✅ Subscription Service
 
@@ -387,13 +387,13 @@ NuttyFans is a creator monetization platform with:
 | VID-017 | Non-purchaser cannot play PPV video         | No purchase                     | 1. Attempt to play      | Access denied, purchase prompt | P0       | Sprint 5 |
 | VID-018 | Free video plays for all                    | Free access video               | 1. Any user clicks play | Video plays                    | P0       | Sprint 4 |
 
-### 4.5 Signed URL Expiry
+### 4.5 Public Playback Behavior
 
-| TC-ID   | Test Case                    | Preconditions         | Steps                                  | Expected Result                      | Priority | Sprint   |
-| ------- | ---------------------------- | --------------------- | -------------------------------------- | ------------------------------------ | -------- | -------- |
-| VID-019 | Valid signed URL plays video | Fresh signed URL      | 1. Request video 2. Play immediately   | Video plays                          | P0       | Sprint 4 |
-| VID-020 | Expired signed URL fails     | URL past expiry time  | 1. Wait for URL expiry 2. Attempt play | Error: URL expired, refresh needed   | P0       | Sprint 4 |
-| VID-021 | Signed URL cannot be shared  | Copy URL to incognito | 1. Copy URL 2. Open in incognito       | Access denied (user-bound signature) | P0       | Sprint 4 |
+| TC-ID   | Test Case                                | Preconditions          | Steps                                   | Expected Result                                         | Priority | Sprint   |
+| ------- | ---------------------------------------- | ---------------------- | --------------------------------------- | ------------------------------------------------------- | -------- | -------- |
+| VID-019 | Public playback URL streams video        | Playback ID available  | 1. Request video playback 2. Play URL   | Video plays                                             | P0       | Sprint 4 |
+| VID-020 | Playback URL remains valid over time     | Playback URL generated | 1. Wait 30+ minutes 2. Attempt playback | Video still plays (no token expiry)                     | P1       | Sprint 4 |
+| VID-021 | Shared playback URL works for other user | Playback URL copied    | 1. Open URL in incognito 2. Play        | Video plays; watermark overlays viewer identifier if on | P1       | Sprint 4 |
 
 ### 4.6 Playback Failure Scenarios
 
@@ -625,15 +625,15 @@ NuttyFans is a creator monetization platform with:
 
 ### NON-NEGOTIABLE Requirements
 
-| Gate   | Requirement                          | Status    | Evidence                                          |
-| ------ | ------------------------------------ | --------- | ------------------------------------------------- |
-| QG-001 | No critical or high-severity bugs    | ✅ PASS   | 102/102 unit tests pass                           |
-| QG-002 | All core user journeys pass          | ✅ PASS   | E2E test suites created for all journeys          |
-| QG-003 | Security & anti-piracy validated     | ✅ PASS   | Signed URLs, watermarking implemented             |
-| QG-004 | Payments & subscriptions reliable    | ✅ PASS   | SubscriptionService fully tested                  |
-| QG-005 | Video playback authorized & expiring | ✅ PASS   | MuxClient.getSignedPlaybackUrls() verified        |
-| QG-006 | Messaging does NOT rely on polling   | ✅ PASS   | SSE implementation verified in codebase           |
-| QG-007 | No dummy or mocked behavior          | ⚠️ REVIEW | In-memory MessageEmitter needs production upgrade |
+| Gate   | Requirement                        | Status    | Evidence                                                |
+| ------ | ---------------------------------- | --------- | ------------------------------------------------------- |
+| QG-001 | No critical or high-severity bugs  | ✅ PASS   | 102/102 unit tests pass                                 |
+| QG-002 | All core user journeys pass        | ✅ PASS   | E2E test suites created for all journeys                |
+| QG-003 | Security & anti-piracy validated   | ⚠️ REVIEW | Public playback; relies on access checks + watermarking |
+| QG-004 | Payments & subscriptions reliable  | ✅ PASS   | SubscriptionService fully tested                        |
+| QG-005 | Video playback authorization       | ⚠️ REVIEW | Public Mux playback URLs, no expiry tokens              |
+| QG-006 | Messaging does NOT rely on polling | ✅ PASS   | SSE implementation verified in codebase                 |
+| QG-007 | No dummy or mocked behavior        | ⚠️ REVIEW | In-memory MessageEmitter needs production upgrade       |
 
 ### Core User Journeys
 

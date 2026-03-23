@@ -1,6 +1,5 @@
 'use client';
 
-import { Lock } from 'lucide-react';
 import Image from 'next/image';
 
 import { Button } from '@/components/ui/button';
@@ -45,10 +44,10 @@ export function PaywallOverlay({
       )}
 
       {/* Overlay */}
-      <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 p-6 text-center backdrop-blur-sm">
+      <div className="absolute inset-0 flex flex-col items-center justify-center bg-surface/70 p-6 text-center backdrop-blur-md">
         {/* Lock Icon */}
         <div className="mb-4 rounded-full bg-white/10 p-4 backdrop-blur-md">
-          <Lock className="h-8 w-8 text-white" />
+          <span className="material-symbols-outlined text-4xl text-white">lock</span>
         </div>
 
         {/* Title */}

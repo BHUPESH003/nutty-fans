@@ -90,11 +90,11 @@ export function LoginContainer({ onLoggedIn }: LoginContainerProps) {
   };
 
   return (
-    <div className="flex min-h-[calc(100vh_-_var(--header-h))] w-full bg-background lg:grid">
+    <div className="flex min-h-screen w-full bg-background lg:grid">
       {/* Left Side - Lifestyle Image */}
-      <div className="relative hidden h-full flex-col bg-muted p-8 text-white dark:border-r dark:border-white/5 lg:flex">
+      <div className="relative hidden h-full flex-col bg-surface-container-high p-8 text-white lg:flex">
         <div className="absolute inset-0 bg-zinc-900" />
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-purple-900/40" />
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/30 to-secondary/30" />
         {/* Placeholder for actual image - using a gradient for now */}
         <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1616469829581-73993eb86b02?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center opacity-40 mix-blend-overlay" />
 
@@ -117,10 +117,13 @@ export function LoginContainer({ onLoggedIn }: LoginContainerProps) {
 
       {/* Right Side - Form */}
       <div className="flex flex-1 items-center justify-center p-6 lg:p-8 lg:pb-0">
-        <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
+        <div className="mx-auto flex w-full max-w-[420px] flex-col justify-center space-y-6 rounded-[24px] bg-surface-container-lowest p-8 shadow-modal sm:w-[420px]">
           <div className="flex flex-col space-y-2 text-center">
-            <h1 className="text-2xl font-semibold tracking-tight">Welcome back</h1>
-            <p className="text-sm text-muted-foreground">
+            <p className="font-headline text-3xl font-black text-primary">NuttyFans</p>
+            <h1 className="font-headline text-2xl font-bold tracking-tight text-on-surface">
+              Welcome back
+            </h1>
+            <p className="text-sm text-on-surface-variant">
               Enter your email to sign in to your account
             </p>
           </div>
@@ -139,7 +142,6 @@ export function LoginContainer({ onLoggedIn }: LoginContainerProps) {
                     value={form.email}
                     onChange={handleChange}
                     placeholder="name@example.com"
-                    className="border-white/10 bg-muted/50 focus:border-primary/50"
                   />
                 </div>
                 <div className="grid gap-2">
@@ -147,7 +149,7 @@ export function LoginContainer({ onLoggedIn }: LoginContainerProps) {
                     <Label htmlFor="password">Password</Label>
                     <a
                       href="/forgot-password"
-                      className="text-xs font-medium text-primary hover:underline"
+                      className="text-xs font-semibold text-primary hover:underline"
                     >
                       Forgot password?
                     </a>
@@ -160,17 +162,16 @@ export function LoginContainer({ onLoggedIn }: LoginContainerProps) {
                     required
                     value={form.password}
                     onChange={handleChange}
-                    className="border-white/10 bg-muted/50 focus:border-primary/50"
                   />
                 </div>
 
                 {error && (
-                  <div className="rounded-md bg-destructive/15 p-3 text-sm text-destructive">
+                  <div className="rounded-md bg-error-container/10 p-3 text-sm text-error">
                     {error}
                   </div>
                 )}
 
-                <Button disabled={isSubmitting} className="w-full shadow-lg shadow-primary/20">
+                <Button disabled={isSubmitting} className="w-full shadow-ambient">
                   {isSubmitting ? 'Signing in...' : 'Sign In'}
                 </Button>
               </div>
@@ -178,10 +179,10 @@ export function LoginContainer({ onLoggedIn }: LoginContainerProps) {
 
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-muted" />
+                <span className="w-full border-t border-surface-container-high" />
               </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
+              <div className="relative flex justify-center text-xs text-on-surface-variant">
+                <span className="bg-surface-container-lowest px-2">or continue with</span>
               </div>
             </div>
 
@@ -189,16 +190,16 @@ export function LoginContainer({ onLoggedIn }: LoginContainerProps) {
               <Button
                 variant="outline"
                 onClick={() => void signIn('google', { callbackUrl: '/' })}
-                className="bg-background hover:bg-muted"
+                className="border-outline-variant/50 bg-surface-container-low hover:bg-surface-container"
               >
                 Google
               </Button>
             </div>
           </div>
 
-          <p className="px-8 text-center text-sm text-muted-foreground">
+          <p className="px-8 text-center text-sm text-on-surface-variant">
             Don&apos;t have an account?{' '}
-            <Link href="/register" className="underline underline-offset-4 hover:text-primary">
+            <Link href="/register" className="font-semibold text-primary hover:underline">
               Sign up
             </Link>
           </p>

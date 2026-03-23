@@ -1,7 +1,6 @@
 'use client';
 
 import { formatDistanceToNow } from 'date-fns';
-import { CheckCheck, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -50,7 +49,9 @@ export function NotificationList({ showHeader = false, limit = 10 }: Notificatio
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <span className="material-symbols-outlined animate-spin text-[28px] text-on-surface-variant">
+          progress_activity
+        </span>
       </div>
     );
   }
@@ -75,14 +76,14 @@ export function NotificationList({ showHeader = false, limit = 10 }: Notificatio
         {displayedNotifications.length === 0 ? (
           <div className="p-8 text-center text-sm text-muted-foreground">No notifications yet</div>
         ) : (
-          <div className="divide-y">
+          <div className="flex flex-col gap-4 p-2">
             {displayedNotifications.map((notification) => (
               <button
                 key={notification.id}
                 onClick={() => handleNotificationClick(notification)}
                 className={cn(
-                  'w-full p-4 text-left transition-colors hover:bg-muted/50',
-                  !notification.isRead && 'bg-muted/30'
+                  'w-full rounded-[12px] p-4 text-left transition-colors hover:bg-surface-container-low',
+                  !notification.isRead && 'bg-primary/5'
                 )}
               >
                 <div className="flex items-start gap-3">
@@ -97,7 +98,9 @@ export function NotificationList({ showHeader = false, limit = 10 }: Notificatio
                         {notification.title}
                       </p>
                       {notification.isRead && (
-                        <CheckCheck className="h-4 w-4 text-muted-foreground" />
+                        <span className="material-symbols-outlined text-[18px] text-on-surface-variant">
+                          done_all
+                        </span>
                       )}
                     </div>
                     {notification.body && (

@@ -1,7 +1,6 @@
 'use client';
 
 import { formatDistanceToNow } from 'date-fns';
-import { Plus } from 'lucide-react';
 import Link from 'next/link';
 import * as React from 'react';
 
@@ -99,7 +98,7 @@ export default function CreatorPostsPage() {
         actions={
           <Button asChild>
             <Link href="/creator/posts/new">
-              <Plus className="mr-2 h-4 w-4" />
+              <span className="material-symbols-outlined mr-2 text-[18px]">add</span>
               New Post
             </Link>
           </Button>

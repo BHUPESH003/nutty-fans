@@ -1,10 +1,12 @@
 'use client';
 
 import Image from 'next/image';
+import type { CSSProperties } from 'react';
 
 import { cn } from '@/lib/utils';
 import type { MediaItem, AccessLevel } from '@/types/content';
 
+import { getMediaAspectRatio } from './mediaAspect';
 import { MediaCarousel } from './MediaCarousel';
 import { PaywallOverlay } from './PaywallOverlay';
 import { VideoPlayer } from './VideoPlayer';
@@ -45,13 +47,8 @@ export function MediaRenderer({
   const hasMultipleMedia = media.length > 1;
   const isVideo = primaryMedia?.mediaType === 'video';
 
-  // Calculate aspect ratio
-  const aspectRatio =
-    primaryMedia?.width && primaryMedia?.height
-      ? primaryMedia.width / primaryMedia.height
-      : variant === 'reels'
-        ? 9 / 16
-        : 4 / 5;
+  const aspectRatio = getMediaAspectRatio(primaryMedia, variant);
+  const isPortrait = aspectRatio < 1;
 
   // Variant-specific styling
   const containerStyles = cn(
@@ -59,6 +56,14 @@ export function MediaRenderer({
     variant === 'reels' && 'h-full',
     className
   );
+
+  const frameStyle: CSSProperties =
+    variant === 'reels'
+      ? {}
+      : {
+          aspectRatio,
+          ...(isPortrait ? { maxHeight: 'min(85vh, 920px)' } : {}),
+        };
 
   // Get a valid image URL for rendering
   const getMediaUrl = () => {
@@ -75,10 +80,7 @@ export function MediaRenderer({
   // Render locked state - show paywall overlay
   if (isLocked && accessLevel !== 'free') {
     return (
-      <div
-        className={containerStyles}
-        style={{ aspectRatio: variant === 'reels' ? undefined : aspectRatio }}
-      >
+      <div className={containerStyles} style={frameStyle}>
         <PaywallOverlay
           accessLevel={accessLevel}
           ppvPrice={ppvPrice}
@@ -91,31 +93,12 @@ export function MediaRenderer({
     );
   }
 
-  // If no valid URL, show placeholder (this happens when content is locked)
-  if (!mediaUrl) {
+  // Video: playback is resolved via videoId + API — do not require a direct file URL
+  if (isVideo && !isLocked) {
     return (
-      <div
-        className={containerStyles}
-        style={{ aspectRatio: variant === 'reels' ? undefined : aspectRatio }}
-      >
-        <div className="flex h-full w-full items-center justify-center bg-muted/50">
-          <span className="text-sm text-muted-foreground">Media unavailable</span>
-        </div>
-      </div>
-    );
-  }
-
-  // Render video
-  if (isVideo) {
-    // For videos, use videoId to fetch secure playback URL from backend API
-    // NEVER pass direct URLs for videos - must use secure playback endpoint
-    return (
-      <div
-        className={containerStyles}
-        style={{ aspectRatio: variant === 'reels' ? undefined : aspectRatio }}
-      >
+      <div className={containerStyles} style={frameStyle}>
         <VideoPlayer
-          videoId={primaryMedia.id} // Use videoId for secure playback API
+          videoId={primaryMedia.id}
           poster={primaryMedia.thumbnailUrl}
           duration={primaryMedia.duration}
           variant={variant === 'reels' ? 'reels' : variant === 'detail' ? 'detail' : 'feed'}
@@ -123,6 +106,17 @@ export function MediaRenderer({
           muted={variant === 'reels'}
           loop={variant === 'reels'}
         />
+      </div>
+    );
+  }
+
+  // If no valid URL, show placeholder
+  if (!mediaUrl) {
+    return (
+      <div className={containerStyles} style={frameStyle}>
+        <div className="flex h-full w-full items-center justify-center bg-muted/50">
+          <span className="text-sm text-muted-foreground">Media unavailable</span>
+        </div>
       </div>
     );
   }
@@ -135,7 +129,7 @@ export function MediaRenderer({
     );
     if (validMedia.length === 0) {
       return (
-        <div className={containerStyles} style={{ aspectRatio }}>
+        <div className={containerStyles} style={frameStyle}>
           <div className="flex h-full w-full items-center justify-center bg-muted/50">
             <span className="text-sm text-muted-foreground">Media unavailable</span>
           </div>
@@ -147,7 +141,7 @@ export function MediaRenderer({
 
   // Render single image
   return (
-    <div className={containerStyles} style={{ aspectRatio }}>
+    <div className={containerStyles} style={frameStyle}>
       <Image
         src={mediaUrl}
         alt="Post media"

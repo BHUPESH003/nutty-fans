@@ -1,6 +1,5 @@
 'use client';
 
-import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
@@ -97,7 +96,9 @@ export function SubscriptionsPageContainer() {
   if (isLoading) {
     return (
       <div className="flex h-[40vh] items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <span className="material-symbols-outlined animate-spin text-[36px] text-on-surface-variant">
+          progress_activity
+        </span>
       </div>
     );
   }
@@ -159,7 +160,11 @@ export function SubscriptionsPageContainer() {
                     className="w-full"
                     disabled={loadingId === sub.id}
                   >
-                    {loadingId === sub.id && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    {loadingId === sub.id && (
+                      <span className="material-symbols-outlined mr-2 animate-spin text-[18px]">
+                        progress_activity
+                      </span>
+                    )}
                     Cancel Subscription
                   </Button>
                 </AlertDialogTrigger>

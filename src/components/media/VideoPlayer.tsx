@@ -2,7 +2,6 @@
 
 import type Hls from 'hls.js';
 import type { ErrorData } from 'hls.js';
-import { Play, Pause, Volume2, VolumeX, Maximize, Loader2 } from 'lucide-react';
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 
 import { useVideoPlayback } from '@/hooks/useVideoPlayback';
@@ -25,6 +24,10 @@ interface VideoPlayerProps {
   className?: string;
   onPlay?: () => void;
   onPause?: () => void;
+  /**
+   * Mux Live HLS: disables worker (avoids blob/worker issues), retries while stream is idle (HTTP 412).
+   */
+  livePlayback?: boolean;
 }
 
 export function VideoPlayer({
@@ -39,10 +42,14 @@ export function VideoPlayer({
   className,
   onPlay,
   onPause,
+  livePlayback = false,
 }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
+  const liveRetryRef = useRef(0);
+  const liveRetryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [waitingForBroadcast, setWaitingForBroadcast] = useState(false);
   const [isMuted, setIsMuted] = useState(muted);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
@@ -82,8 +89,14 @@ export function VideoPlayer({
 
     setIsLoading(true);
     setHasError(false);
+    if (livePlayback) {
+      setWaitingForBroadcast(true);
+      liveRetryRef.current = 0;
+    }
 
     const isHls = src.includes('.m3u8');
+
+    const maxLiveRetries = 90; // ~3 min at 2s interval while Mux returns 412 (idle / no encoder yet)
 
     const initHls = async () => {
       if (isHls) {
@@ -92,7 +105,8 @@ export function VideoPlayer({
 
         if (HlsClass.isSupported()) {
           const hls = new HlsClass({
-            enableWorker: true,
+            // Workers use blob: URLs; disabling avoids ERR_FILE_NOT_FOUND worker issues on some browsers
+            enableWorker: !livePlayback,
             lowLatencyMode: true,
           });
           hlsRef.current = hls;
@@ -101,15 +115,35 @@ export function VideoPlayer({
 
           hls.on(HlsClass.Events.MANIFEST_PARSED, () => {
             setIsLoading(false);
+            setWaitingForBroadcast(false);
             if (autoplay) {
               void video.play().catch(() => {});
             }
           });
 
           hls.on(HlsClass.Events.ERROR, (_event: string, data: ErrorData) => {
+            const is412 =
+              data.response?.code === 412 ||
+              (typeof data.response?.text === 'string' && data.response.text.includes('412'));
+
+            if (livePlayback && (is412 || data.details === 'manifestLoadError')) {
+              liveRetryRef.current += 1;
+              if (liveRetryRef.current <= maxLiveRetries) {
+                setWaitingForBroadcast(true);
+                setIsLoading(true);
+                if (liveRetryTimerRef.current) clearTimeout(liveRetryTimerRef.current);
+                liveRetryTimerRef.current = setTimeout(() => {
+                  hls.loadSource(src);
+                  hls.startLoad();
+                }, 2000);
+                return;
+              }
+            }
+
             if (data.fatal) {
               setHasError(true);
               setIsLoading(false);
+              setWaitingForBroadcast(false);
             }
           });
         } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
@@ -132,12 +166,16 @@ export function VideoPlayer({
     void initHls();
 
     return () => {
+      if (liveRetryTimerRef.current) {
+        clearTimeout(liveRetryTimerRef.current);
+        liveRetryTimerRef.current = null;
+      }
       if (hlsRef.current) {
         hlsRef.current.destroy();
         hlsRef.current = null;
       }
     };
-  }, [src, autoplay]);
+  }, [src, autoplay, livePlayback]);
 
   // Update muted state
   useEffect(() => {
@@ -234,11 +272,7 @@ export function VideoPlayer({
 
   return (
     <div
-      className={cn(
-        'group relative overflow-hidden bg-black',
-        variant === 'reels' ? 'h-full w-full' : 'aspect-video w-full',
-        className
-      )}
+      className={cn('group relative h-full min-h-0 w-full overflow-hidden bg-black', className)}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
@@ -253,8 +287,16 @@ export function VideoPlayer({
 
       {/* Loading State */}
       {(isLoading || isLoadingVideo) && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-          <Loader2 className="h-10 w-10 animate-spin text-white" />
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/40 px-4 text-center">
+          <span className="material-symbols-outlined animate-spin text-5xl text-white">
+            progress_activity
+          </span>
+          {waitingForBroadcast && livePlayback ? (
+            <p className="max-w-sm text-sm text-white/90">
+              Waiting for the live broadcast to start. This is normal until the creator begins
+              sending video to Mux (encoder connected).
+            </p>
+          ) : null}
         </div>
       )}
 
@@ -290,7 +332,12 @@ export function VideoPlayer({
           )}
         >
           <div className="rounded-full bg-black/40 p-4 backdrop-blur-sm">
-            <Play className="h-12 w-12 text-white" fill="white" />
+            <span
+              className="material-symbols-outlined text-5xl text-white"
+              style={{ fontVariationSettings: "'FILL' 1" }}
+            >
+              play_arrow
+            </span>
           </div>
         </button>
       )}
@@ -310,16 +357,30 @@ export function VideoPlayer({
 
           {/* Controls */}
           <div className="flex items-center gap-3">
-            <button onClick={togglePlay} className="text-white hover:text-primary">
+            <button type="button" onClick={togglePlay} className="text-white hover:text-primary">
               {isPlaying ? (
-                <Pause className="h-5 w-5" fill="currentColor" />
+                <span
+                  className="material-symbols-outlined text-[22px]"
+                  style={{ fontVariationSettings: "'FILL' 1" }}
+                >
+                  pause
+                </span>
               ) : (
-                <Play className="h-5 w-5" fill="currentColor" />
+                <span
+                  className="material-symbols-outlined text-[22px]"
+                  style={{ fontVariationSettings: "'FILL' 1" }}
+                >
+                  play_arrow
+                </span>
               )}
             </button>
 
-            <button onClick={toggleMute} className="text-white hover:text-primary">
-              {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
+            <button type="button" onClick={toggleMute} className="text-white hover:text-primary">
+              {isMuted ? (
+                <span className="material-symbols-outlined text-[22px]">volume_off</span>
+              ) : (
+                <span className="material-symbols-outlined text-[22px]">volume_up</span>
+              )}
             </button>
 
             <span className="text-xs text-white/80">
@@ -330,8 +391,12 @@ export function VideoPlayer({
 
             <div className="flex-1" />
 
-            <button onClick={toggleFullscreen} className="text-white hover:text-primary">
-              <Maximize className="h-5 w-5" />
+            <button
+              type="button"
+              onClick={toggleFullscreen}
+              className="text-white hover:text-primary"
+            >
+              <span className="material-symbols-outlined text-[22px]">fullscreen</span>
             </button>
           </div>
         </div>
@@ -340,10 +405,15 @@ export function VideoPlayer({
       {/* Mute Toggle (Reels variant - top right) */}
       {variant === 'reels' && !isLoading && !hasError && (
         <button
+          type="button"
           onClick={toggleMute}
           className="absolute right-3 top-3 rounded-full bg-black/40 p-2 text-white backdrop-blur-sm hover:bg-black/60"
         >
-          {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
+          {isMuted ? (
+            <span className="material-symbols-outlined text-[22px]">volume_off</span>
+          ) : (
+            <span className="material-symbols-outlined text-[22px]">volume_up</span>
+          )}
         </button>
       )}
 

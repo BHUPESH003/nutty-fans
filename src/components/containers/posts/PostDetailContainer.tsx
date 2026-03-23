@@ -1,6 +1,5 @@
 'use client';
 
-import { Loader2 } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 
@@ -33,7 +32,9 @@ export const PostDetailContainer = () => {
   if (isLoading) {
     return (
       <div className="flex h-[50vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="material-symbols-outlined animate-spin text-[40px] text-primary">
+          progress_activity
+        </span>
       </div>
     );
   }

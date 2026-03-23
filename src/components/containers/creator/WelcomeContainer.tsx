@@ -1,6 +1,5 @@
 'use client';
 
-import { PartyPopper, ArrowRight, PlusCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
@@ -15,11 +14,11 @@ export const WelcomeContainer = () => {
         {/* Celebration */}
         <div className="mb-6 flex justify-center">
           <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-green-400 to-emerald-600">
-            <PartyPopper className="h-10 w-10 text-white" />
+            <span className="material-symbols-outlined text-5xl text-white">celebration</span>
           </div>
         </div>
 
-        <h1 className="mb-4 bg-gradient-to-r from-primary to-purple-400 bg-clip-text text-4xl font-bold text-transparent">
+        <h1 className="mb-4 bg-gradient-to-r from-primary to-secondary bg-clip-text font-headline text-4xl font-bold text-transparent">
           Welcome, Creator!
         </h1>
         <p className="mb-8 text-lg text-muted-foreground">
@@ -53,7 +52,7 @@ export const WelcomeContainer = () => {
             className="w-full gap-2"
             onClick={() => router.push('/creator/posts/new')}
           >
-            <PlusCircle className="h-5 w-5" />
+            <span className="material-symbols-outlined text-[22px]">add_circle</span>
             Create Your First Post
           </Button>
 
@@ -64,7 +63,7 @@ export const WelcomeContainer = () => {
             onClick={() => router.push('/creator/dashboard')}
           >
             Go to Dashboard
-            <ArrowRight className="h-4 w-4" />
+            <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
           </Button>
         </div>
 

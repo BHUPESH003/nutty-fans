@@ -566,11 +566,11 @@ export const apiClient = {
         data: { filename, contentType, size },
       });
     },
-    confirmUpload(mediaId: string, key: string) {
+    confirmUpload(mediaId: string, key: string, dimensions?: { width?: number; height?: number }) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return request<any>('/api/media/confirm', {
         method: 'POST',
-        data: { mediaId, key },
+        data: { mediaId, key, ...dimensions },
       });
     },
   },
@@ -917,6 +917,14 @@ export const apiClient = {
     getPlayback(streamId: string) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return request<any>(`/api/streams/${streamId}/playback`);
+    },
+    listMine() {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return request<any>('/api/creator/live-streams');
+    },
+    getCreatorStream(streamId: string) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return request<any>(`/api/creator/live-streams/${encodeURIComponent(streamId)}`);
     },
   },
 };

@@ -1,6 +1,5 @@
 'use client';
 
-import { ChevronLeft, ChevronRight, Home } from 'lucide-react';
 import type { Route } from 'next';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -93,21 +92,23 @@ export function PageHeader({
       {/* Breadcrumbs */}
       {crumbs.length > 0 && (
         <nav className="mb-2 flex items-center gap-1 text-sm text-muted-foreground">
-          <Link href="/" className="transition-colors hover:text-foreground">
-            <Home className="h-4 w-4" />
+          <Link href="/" className="transition-colors hover:text-on-surface">
+            <span className="material-symbols-outlined text-[18px]">home</span>
           </Link>
           {crumbs.map((crumb, index) => (
             <span key={index} className="flex items-center gap-1">
-              <ChevronRight className="h-3 w-3" />
+              <span className="material-symbols-outlined text-[14px] opacity-60">
+                chevron_right
+              </span>
               {crumb.href ? (
                 <Link
                   href={crumb.href as Route}
-                  className="transition-colors hover:text-foreground"
+                  className="transition-colors hover:text-on-surface"
                 >
                   {crumb.label}
                 </Link>
               ) : (
-                <span className="font-medium text-foreground">{crumb.label}</span>
+                <span className="font-medium text-on-surface">{crumb.label}</span>
               )}
             </span>
           ))}
@@ -120,13 +121,17 @@ export function PageHeader({
           {canGoBack && backUrl && (
             <Link
               href={backUrl as Route}
-              className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-background transition-colors hover:bg-muted"
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-surface-container-high bg-surface-container-lowest transition-colors hover:bg-surface-container-low"
             >
-              <ChevronLeft className="h-4 w-4" />
+              <span className="material-symbols-outlined text-[20px] text-on-surface">
+                chevron_left
+              </span>
             </Link>
           )}
           <div>
-            <h1 className="text-xl font-bold md:text-2xl">{title}</h1>
+            <h1 className="font-headline text-xl font-bold tracking-tight text-on-surface md:text-2xl">
+              {title}
+            </h1>
             {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
           </div>
         </div>

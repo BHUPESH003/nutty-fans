@@ -1,4 +1,3 @@
-import { DollarSign, CreditCard, TrendingUp } from 'lucide-react';
 import { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth';
@@ -41,7 +40,9 @@ export default async function EarningsPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Earnings</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <span className="material-symbols-outlined text-[18px] text-on-surface-variant">
+              payments
+            </span>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(earnings.totalEarnings)}</div>
@@ -51,7 +52,9 @@ export default async function EarningsPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Pending Payout</CardTitle>
-            <CreditCard className="h-4 w-4 text-muted-foreground" />
+            <span className="material-symbols-outlined text-[18px] text-on-surface-variant">
+              credit_card
+            </span>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(earnings.pendingPayout)}</div>
@@ -61,7 +64,9 @@ export default async function EarningsPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Transactions</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            <span className="material-symbols-outlined text-[18px] text-on-surface-variant">
+              trending_up
+            </span>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{earnings.transactionCount}</div>

@@ -1,6 +1,5 @@
 'use client';
 
-import { Clock, CheckCircle2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
@@ -52,7 +51,9 @@ export const ReviewPendingContainer = () => {
   if (isLoading) {
     return (
       <div className="flex h-[50vh] items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary" />
+        <span className="material-symbols-outlined animate-spin text-[36px] text-primary">
+          progress_activity
+        </span>
       </div>
     );
   }
@@ -64,7 +65,7 @@ export const ReviewPendingContainer = () => {
       <Card className="mt-8 border-none bg-card/50 shadow-xl backdrop-blur-sm">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-yellow-500/10">
-            <Clock className="h-8 w-8 text-yellow-500" />
+            <span className="material-symbols-outlined text-4xl text-amber-500">schedule</span>
           </div>
           <CardTitle className="text-2xl">Application Under Review</CardTitle>
           <CardDescription>
@@ -75,19 +76,27 @@ export const ReviewPendingContainer = () => {
           <div className="rounded-lg border bg-background/50 p-6">
             <div className="space-y-4">
               <div className="flex items-center gap-3">
-                <CheckCircle2 className="h-5 w-5 text-green-500" />
+                <span className="material-symbols-outlined text-[22px] text-green-600">
+                  check_circle
+                </span>
                 <span>Eligibility verified</span>
               </div>
               <div className="flex items-center gap-3">
-                <CheckCircle2 className="h-5 w-5 text-green-500" />
+                <span className="material-symbols-outlined text-[22px] text-green-600">
+                  check_circle
+                </span>
                 <span>Category selected</span>
               </div>
               <div className="flex items-center gap-3">
-                <CheckCircle2 className="h-5 w-5 text-green-500" />
+                <span className="material-symbols-outlined text-[22px] text-green-600">
+                  check_circle
+                </span>
                 <span>Profile created</span>
               </div>
               <div className="flex items-center gap-3">
-                <CheckCircle2 className="h-5 w-5 text-green-500" />
+                <span className="material-symbols-outlined text-[22px] text-green-600">
+                  check_circle
+                </span>
                 <span>Pricing configured</span>
               </div>
               <div className="flex items-center gap-3">

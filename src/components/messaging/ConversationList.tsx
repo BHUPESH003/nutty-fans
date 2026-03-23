@@ -1,5 +1,4 @@
 import { formatDistanceToNow } from 'date-fns';
-import { AlertCircle, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -23,15 +22,17 @@ export function ConversationList({ conversations, isLoading, isError }: Conversa
   if (isLoading) {
     return (
       <div className="flex h-full items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <span className="material-symbols-outlined animate-spin text-[28px] text-on-surface-variant">
+          progress_activity
+        </span>
       </div>
     );
   }
 
   if (isError) {
     return (
-      <div className="flex h-full flex-col items-center justify-center p-4 text-center text-muted-foreground">
-        <AlertCircle className="mb-2 h-6 w-6" />
+      <div className="flex h-full flex-col items-center justify-center p-4 text-center text-on-surface-variant">
+        <span className="material-symbols-outlined mb-2 text-[28px] text-error">error</span>
         <p className="text-sm">Failed to load conversations</p>
         <p className="mt-1 text-xs">Please try refreshing the page</p>
       </div>
@@ -49,7 +50,7 @@ export function ConversationList({ conversations, isLoading, isError }: Conversa
 
   return (
     <ScrollArea className="h-full">
-      <div className="flex flex-col gap-1 p-2">
+      <div className="flex flex-col gap-0 p-0">
         {conversations.map((conversation) => {
           const isActive = pathname === `/messages/${conversation.id}`;
           return (
@@ -57,8 +58,8 @@ export function ConversationList({ conversations, isLoading, isError }: Conversa
               key={conversation.id}
               href={`/messages/${conversation.id}`}
               className={cn(
-                'flex items-center gap-3 rounded-lg p-3 transition-colors hover:bg-muted/50',
-                isActive && 'bg-muted'
+                'flex items-center gap-3 px-6 py-4 transition-colors hover:bg-surface-container-low',
+                isActive && 'bg-surface-container-low'
               )}
             >
               <Avatar className="h-12 w-12 flex-shrink-0">
@@ -70,11 +71,11 @@ export function ConversationList({ conversations, isLoading, isError }: Conversa
               </Avatar>
               <div className="min-w-0 flex-1 overflow-hidden">
                 <div className="flex items-center justify-between">
-                  <span className="truncate font-medium">
+                  <span className="truncate text-sm font-bold text-on-surface">
                     {conversation?.otherUser?.displayName ?? 'Unknown User'}
                   </span>
                   {conversation.lastMessage?.createdAt && (
-                    <span className="ml-2 whitespace-nowrap text-xs text-muted-foreground">
+                    <span className="ml-2 whitespace-nowrap text-xs text-on-surface-variant">
                       {formatDistanceToNow(new Date(conversation.lastMessage.createdAt), {
                         addSuffix: true,
                       })}
@@ -82,11 +83,11 @@ export function ConversationList({ conversations, isLoading, isError }: Conversa
                   )}
                 </div>
                 <div className="mt-1 flex items-center justify-between">
-                  <span className="truncate text-xs text-muted-foreground">
+                  <span className="truncate text-sm text-on-surface-variant">
                     @{conversation?.otherUser?.username ?? 'unknown'}
                   </span>
                   {conversation.unreadCount > 0 && (
-                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white">
                       {conversation.unreadCount}
                     </span>
                   )}

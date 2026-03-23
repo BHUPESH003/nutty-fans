@@ -5,6 +5,17 @@ import { MediaRepository } from '@/repositories/mediaRepository';
 import { muxClient } from '@/services/integrations/mux/muxClient';
 import type { FileMetadata, UploadUrlResponse, MediaType } from '@/types/content';
 
+/** Normalize Mux "16:9" / "9:16" into pixel dimensions that preserve aspect ratio for the feed. */
+function parseMuxAspectRatioString(s: string): { width: number; height: number } | null {
+  const m = s.trim().match(/^(\d+(?:\.\d+)?)\s*:\s*(\d+(?:\.\d+)?)$/);
+  if (!m?.[1] || !m[2]) return null;
+  const a = Number(m[1]);
+  const b = Number(m[2]);
+  if (!(a > 0) || !(b > 0)) return null;
+  const scale = 1000;
+  return { width: Math.round(a * scale), height: Math.round(b * scale) };
+}
+
 const AWS_REGION = process.env['AWS_REGION'] ?? 'us-east-1';
 const AWS_S3_BUCKET = process.env['AWS_S3_BUCKET'] ?? '';
 const AWS_ACCESS_KEY_ID = process.env['AWS_ACCESS_KEY_ID'] ?? '';
@@ -302,6 +313,25 @@ export class MediaService {
         // Store Mux playback URLs in processedUrl (for delivery)
         // Keep S3 URL in originalUrl (source of truth)
         const playbackId = payload.data.playback_ids?.[0]?.id;
+        const raw = payload.data as Record<string, unknown>;
+        let width: number | undefined;
+        let height: number | undefined;
+
+        const tracks = raw['tracks'] as
+          | Array<{ type?: string; max_width?: number; max_height?: number }>
+          | undefined;
+        const videoTrack = tracks?.find((t) => t.type === 'video');
+        if (videoTrack?.max_width && videoTrack?.max_height) {
+          width = videoTrack.max_width;
+          height = videoTrack.max_height;
+        } else if (typeof raw['aspect_ratio'] === 'string') {
+          const parsed = parseMuxAspectRatioString(raw['aspect_ratio']);
+          if (parsed) {
+            width = parsed.width;
+            height = parsed.height;
+          }
+        }
+
         if (playbackId) {
           const urls = muxClient.getPlaybackUrls(playbackId);
           const currentMetadata =
@@ -311,6 +341,7 @@ export class MediaService {
             thumbnailUrl: urls.thumbnailUrl,
             previewUrl: urls.gifUrl,
             duration: payload.data.duration ? Math.round(payload.data.duration) : undefined,
+            ...(width != null && height != null ? { width, height } : {}),
             metadata: {
               ...currentMetadata,
               muxAssetId: payload.data.id,

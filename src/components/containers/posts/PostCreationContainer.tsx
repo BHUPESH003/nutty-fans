@@ -1,6 +1,5 @@
 'use client';
 
-import { Image as ImageIcon, X, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import React, { useState, useRef } from 'react';
@@ -9,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/hooks/use-toast';
+import { readMediaDimensionsFromFile } from '@/lib/media/readMediaDimensions';
 import { apiClient } from '@/services/apiClient';
 
 export const PostCreationContainer = () => {
@@ -80,8 +80,8 @@ export const PostCreationContainer = () => {
           throw new Error(`Failed to upload file to storage: ${s3Response.status}`);
         }
 
-        // 3. Confirm upload
-        await apiClient.content.confirmUpload(mediaId, key);
+        const dims = await readMediaDimensionsFromFile(selectedFile);
+        await apiClient.content.confirmUpload(mediaId, key, dims);
         mediaIds.push(mediaId);
       }
 
@@ -143,7 +143,7 @@ export const PostCreationContainer = () => {
               className="absolute right-2 top-2 h-8 w-8 rounded-full"
               onClick={removeFile}
             >
-              <X className="h-4 w-4" />
+              <span className="material-symbols-outlined text-[18px]">close</span>
             </Button>
           </div>
         )}
@@ -162,7 +162,7 @@ export const PostCreationContainer = () => {
           onClick={() => fileInputRef.current?.click()}
           disabled={isSubmitting}
         >
-          <ImageIcon className="mr-2 h-4 w-4" />
+          <span className="material-symbols-outlined mr-2 text-[18px]">image</span>
           Add Image
         </Button>
 
@@ -170,7 +170,11 @@ export const PostCreationContainer = () => {
           onClick={handleSubmit}
           disabled={isSubmitting || (!content.trim() && !selectedFile)}
         >
-          {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          {isSubmitting && (
+            <span className="material-symbols-outlined mr-2 animate-spin text-[18px]">
+              progress_activity
+            </span>
+          )}
           Post
         </Button>
       </CardFooter>

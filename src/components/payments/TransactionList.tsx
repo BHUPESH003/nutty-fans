@@ -1,7 +1,5 @@
 'use client';
 
-import { Loader2 } from 'lucide-react';
-
 import { Badge } from '@/components/ui/badge';
 import {
   Table,
@@ -34,7 +32,9 @@ export function TransactionList({ transactions, loading, isCreator }: Transactio
   if (loading) {
     return (
       <div className="flex justify-center p-8">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <span className="material-symbols-outlined animate-spin text-[40px] text-on-surface-variant">
+          progress_activity
+        </span>
       </div>
     );
   }

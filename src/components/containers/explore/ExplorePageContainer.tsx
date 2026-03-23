@@ -1,12 +1,16 @@
 'use client';
 
+import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 import { CategoryGrid } from '@/components/explore/CategoryGrid';
 import { ExploreFeed } from '@/components/explore/ExploreFeed';
+import { ExploreRailContent } from '@/components/explore/ExploreRailExtras';
 import { TrendingCreators } from '@/components/explore/TrendingCreators';
+import { AppRailLayout } from '@/components/layout/AppRailLayout';
 import { SearchBar } from '@/components/search/SearchBar';
+import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { apiClient } from '@/services/apiClient';
 
@@ -61,47 +65,105 @@ export function ExplorePageContainer() {
     void loadCategories();
   }, []);
 
-  // Find category by slug
   const selectedCategory = categorySlug
     ? categories.find((c) => c.slug === categorySlug)
     : undefined;
 
   return (
-    <div className="container mx-auto max-w-7xl py-8">
-      {/* Search Bar */}
-      <div className="mb-8">
-        <SearchBar defaultValue={query} />
-      </div>
-
+    <AppRailLayout rail={<ExploreRailContent />}>
       {query ? (
-        <SearchResultsView query={query} />
+        <div className="space-y-6">
+          <header className="glass sticky top-14 z-20 border-b border-neutral-200/80 px-5 py-5 md:top-0">
+            <div className="mx-auto flex max-w-[720px] items-center gap-3">
+              <SearchBar
+                variant="discover"
+                placeholder="Search creators, tags, or keywords..."
+                defaultValue={query}
+                className="min-w-0 flex-1"
+              />
+              <Button
+                type="button"
+                size="icon"
+                variant="outline"
+                className="h-12 w-12 shrink-0 rounded-full border-surface-container-high bg-surface-container-high hover:bg-surface-container-highest"
+                asChild
+              >
+                <Link href="/explore" aria-label="Discover grid">
+                  <span className="material-symbols-outlined text-[22px] text-on-surface">
+                    grid_view
+                  </span>
+                </Link>
+              </Button>
+            </div>
+          </header>
+          <div className="px-5 pb-10">
+            <SearchResultsView query={query} />
+          </div>
+        </div>
       ) : (
-        <div className="space-y-8">
-          <Tabs defaultValue="trending" className="w-full">
-            <TabsList>
-              <TabsTrigger value="trending">Trending</TabsTrigger>
-              <TabsTrigger value="feed">Explore Feed</TabsTrigger>
-            </TabsList>
+        <Tabs defaultValue="trending" className="w-full">
+          <header className="glass sticky top-14 z-20 border-b border-neutral-200/80 px-5 py-5 md:top-0">
+            <div className="mx-auto flex max-w-[720px] flex-col gap-6">
+              <div className="flex items-center gap-3">
+                <SearchBar
+                  variant="discover"
+                  placeholder="Search creators, tags, or keywords..."
+                  className="min-w-0 flex-1"
+                />
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="outline"
+                  className="h-12 w-12 shrink-0 rounded-full border-surface-container-high bg-surface-container-high hover:bg-surface-container-highest"
+                  asChild
+                >
+                  <Link href="/explore" aria-label="Discover grid">
+                    <span className="material-symbols-outlined text-[22px] text-on-surface">
+                      grid_view
+                    </span>
+                  </Link>
+                </Button>
+              </div>
 
-            <TabsContent value="trending" className="space-y-8">
-              {!loadingCategories && (
-                <CategoryGrid categories={categories} selectedCategory={selectedCategory?.id} />
+              <TabsList className="flex h-auto w-full justify-start gap-8 rounded-none border-0 bg-transparent p-0">
+                <TabsTrigger
+                  value="trending"
+                  className="rounded-none border-0 border-b-2 border-transparent bg-transparent px-0 py-2 text-sm font-semibold text-on-surface-variant shadow-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none"
+                >
+                  Trending
+                </TabsTrigger>
+                <TabsTrigger
+                  value="feed"
+                  className="rounded-none border-0 border-b-2 border-transparent bg-transparent px-0 py-2 text-sm font-semibold text-on-surface-variant shadow-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none"
+                >
+                  Explore feed
+                </TabsTrigger>
+              </TabsList>
+
+              {loadingCategories ? (
+                <div className="h-9 w-full max-w-md animate-pulse rounded-full bg-surface-container-low" />
+              ) : (
+                <CategoryGrid
+                  categories={categories}
+                  selectedCategory={selectedCategory?.id}
+                  variant="chips"
+                />
               )}
+            </div>
+          </header>
+
+          <div className="px-5 py-8">
+            <TabsContent value="trending" className="mt-0 space-y-8 focus-visible:outline-none">
               <TrendingCreators />
             </TabsContent>
 
-            <TabsContent value="feed">
-              <div className="space-y-4">
-                {!loadingCategories && (
-                  <CategoryGrid categories={categories} selectedCategory={selectedCategory?.id} />
-                )}
-                <ExploreFeed />
-              </div>
+            <TabsContent value="feed" className="mt-0 focus-visible:outline-none">
+              <ExploreFeed />
             </TabsContent>
-          </Tabs>
-        </div>
+          </div>
+        </Tabs>
       )}
-    </div>
+    </AppRailLayout>
   );
 }
 
@@ -132,24 +194,23 @@ function SearchResultsView({ query }: { query: string }) {
   }
 
   return (
-    <div className="space-y-10">
-      {/* Creators */}
+    <div className="mx-auto max-w-[720px] space-y-10">
       <div>
-        <h2 className="mb-4 text-xl font-semibold">Creators</h2>
+        <h2 className="mb-4 font-headline text-xl font-bold">Creators</h2>
         {results.creators.length === 0 ? (
           <div className="rounded-lg border bg-muted/10 py-8 text-center text-muted-foreground">
             No creators found.
           </div>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2">
             {results.creators.map((creator) => (
               <a
                 key={creator.id}
                 href={`/c/${creator.handle}`}
-                className="rounded-lg border bg-card p-4 hover:bg-muted/20"
+                className="rounded-lg border border-surface-container-high bg-surface-container-lowest p-4 transition-colors hover:bg-surface-container-low"
               >
                 <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 overflow-hidden rounded-full bg-muted">
+                  <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-muted">
                     {creator.avatarUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={creator.avatarUrl} alt="" className="h-full w-full object-cover" />
@@ -175,9 +236,8 @@ function SearchResultsView({ query }: { query: string }) {
         )}
       </div>
 
-      {/* Posts */}
       <div>
-        <h2 className="mb-4 text-xl font-semibold">Posts</h2>
+        <h2 className="mb-4 font-headline text-xl font-bold">Posts</h2>
         {results.posts.length === 0 ? (
           <div className="rounded-lg border bg-muted/10 py-8 text-center text-muted-foreground">
             No posts found.
@@ -188,10 +248,10 @@ function SearchResultsView({ query }: { query: string }) {
               <a
                 key={post.id}
                 href={`/posts/${post.id}`}
-                className="rounded-lg border bg-card p-4 hover:bg-muted/20"
+                className="rounded-lg border border-surface-container-high bg-surface-container-lowest p-4 transition-colors hover:bg-surface-container-low"
               >
                 <div className="flex items-center gap-3">
-                  <div className="h-8 w-8 overflow-hidden rounded-full bg-muted">
+                  <div className="h-8 w-8 shrink-0 overflow-hidden rounded-full bg-muted">
                     {post.creatorAvatarUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img

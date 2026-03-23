@@ -1,6 +1,5 @@
 'use client';
 
-import { Plus } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import React, { useState } from 'react';
 
@@ -21,22 +20,38 @@ export default function MessagesLayout({ children }: { children: React.ReactNode
 
   return (
     <>
-      <div className="flex h-[calc(100vh-4rem)] overflow-hidden rounded-lg border bg-background shadow-sm">
+      <div className="flex h-[calc(100vh-4rem)] overflow-hidden bg-white md:rounded-[12px] md:border md:border-surface-container-high md:shadow-card">
         {/* Sidebar */}
         <div
           className={cn(
-            'flex flex-col border-r',
+            'flex flex-col border-surface-container-high bg-white md:border-r',
             // Mobile: Hidden if conversation is active
-            isConversationActive ? 'hidden md:flex' : 'flex w-full md:w-80',
+            isConversationActive ? 'hidden md:flex' : 'flex w-full md:w-[340px]',
             // Desktop: Always visible as sidebar
-            'md:w-80'
+            'md:w-[340px]'
           )}
         >
-          <div className="flex items-center justify-between border-b p-4">
-            <h2 className="text-lg font-semibold">Messages</h2>
-            <Button size="icon" variant="ghost" onClick={() => setNewMessageOpen(true)}>
-              <Plus className="h-5 w-5" />
-            </Button>
+          <div className="flex flex-col gap-4 border-b border-surface-container-high p-6 pb-4">
+            <div className="flex items-center justify-between">
+              <h2 className="font-headline text-xl font-extrabold tracking-tight">Messages</h2>
+              <Button
+                size="icon"
+                variant="outline"
+                className="h-10 w-10 rounded-full border-surface-container-high"
+                onClick={() => setNewMessageOpen(true)}
+                aria-label="New message"
+              >
+                <span className="material-symbols-outlined text-[22px]">edit_square</span>
+              </Button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <span className="rounded-full bg-primary-container px-3 py-1.5 text-xs font-bold text-white">
+                Broadcast
+              </span>
+              <span className="rounded-full border border-outline-variant px-3 py-1.5 text-xs font-bold text-primary">
+                Requests
+              </span>
+            </div>
           </div>
           <div className="flex-1 overflow-hidden">
             <ConversationList

@@ -6,6 +6,7 @@ import * as React from 'react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { PostForm } from '@/components/posts/PostForm';
 import { useToast } from '@/hooks/use-toast';
+import { readMediaDimensionsFromFile } from '@/lib/media/readMediaDimensions';
 import { apiClient } from '@/services/apiClient';
 import type { CreatePostInput } from '@/types/content';
 
@@ -37,8 +38,8 @@ export function NewPostContainer() {
         throw new Error('Upload failed');
       }
 
-      // Confirm upload with backend
-      await apiClient.content.confirmUpload(mediaId, key);
+      const dims = await readMediaDimensionsFromFile(file);
+      await apiClient.content.confirmUpload(mediaId, key, dims);
 
       mediaIds.push(mediaId);
     }

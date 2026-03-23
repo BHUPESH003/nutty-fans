@@ -51,6 +51,25 @@ export function LiveStreamWatchContainer({ streamId }: { streamId: string }) {
     void loadPlayback();
   }, [data?.hasAccess, data?.stream.status, streamId]);
 
+  // Refresh signed Mux JWT before 2h expiry while watching live
+  useEffect(() => {
+    if (!data?.hasAccess || data.stream.status !== 'live') return;
+    const id = window.setInterval(
+      () => {
+        void (async () => {
+          try {
+            const urls = await apiClient.streams.getPlayback(streamId);
+            setPlaybackUrl(urls.streamUrl ?? null);
+          } catch {
+            /* ignore */
+          }
+        })();
+      },
+      45 * 60 * 1000
+    );
+    return () => window.clearInterval(id);
+  }, [data?.hasAccess, data?.stream.status, streamId]);
+
   const handlePurchase = async () => {
     setIsBuying(true);
     try {
@@ -110,7 +129,7 @@ export function LiveStreamWatchContainer({ streamId }: { streamId: string }) {
       ) : playbackUrl ? (
         <Card>
           <CardContent className="p-4">
-            <VideoPlayer src={playbackUrl} />
+            <VideoPlayer src={playbackUrl} livePlayback autoplay muted={false} variant="detail" />
           </CardContent>
         </Card>
       ) : (

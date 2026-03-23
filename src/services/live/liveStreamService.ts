@@ -1,8 +1,10 @@
+import type { LiveStream } from '@prisma/client';
+
 import { LiveStreamRepository } from '@/repositories/liveStreamRepository';
 import { SubscriptionRepository } from '@/repositories/subscriptionRepository';
 import { TransactionRepository } from '@/repositories/transactionRepository';
 import { CreatorAccessService } from '@/services/creator/creatorAccessService';
-import { MuxClient } from '@/services/integrations/mux/muxClient';
+import { MuxClient, MUX_LIVE_RTMP_URL } from '@/services/integrations/mux/muxClient';
 import { paymentService } from '@/services/payments/paymentService';
 
 export class LiveStreamService {
@@ -149,10 +151,67 @@ export class LiveStreamService {
     return { stream, hasAccess: false };
   }
 
+  async listMine(userId: string) {
+    const creatorId = await this.creatorAccessService.requireCreatorIdByUserId(userId);
+    const rows = await this.liveRepo.listByCreatorId(creatorId);
+    return {
+      streams: rows.map((s) => this.serializeCreatorStreamSummary(s)),
+    };
+  }
+
+  async getForCreatorManagement(userId: string, streamId: string) {
+    const creatorId = await this.creatorAccessService.requireCreatorIdByUserId(userId);
+    const stream = await this.liveRepo.findById(streamId);
+    if (!stream || stream.creatorId !== creatorId) throw new Error('Stream not found');
+    if (stream.status !== 'scheduled' && stream.status !== 'live') {
+      throw new Error('Stream is not live or scheduled');
+    }
+    return {
+      stream: {
+        id: stream.id,
+        title: stream.title,
+        status: stream.status,
+        streamKey: stream.streamKey ?? '',
+        rtmpUrl: MUX_LIVE_RTMP_URL,
+      },
+    };
+  }
+
+  private serializeCreatorStreamSummary(s: LiveStream) {
+    const totalTips = Number(s.totalTips ?? 0);
+    let durationSeconds: number | null = null;
+    if (s.startedAt && s.endedAt) {
+      durationSeconds = Math.round((s.endedAt.getTime() - s.startedAt.getTime()) / 1000);
+    } else if (s.status === 'live' && s.startedAt) {
+      durationSeconds = Math.round((Date.now() - s.startedAt.getTime()) / 1000);
+    }
+
+    return {
+      id: s.id,
+      title: s.title,
+      status: s.status,
+      accessLevel: s.accessLevel,
+      scheduledAt: s.scheduledAt,
+      startedAt: s.startedAt,
+      endedAt: s.endedAt,
+      durationSeconds,
+      viewerCount: s.viewerCount,
+      peakViewers: s.peakViewers,
+      totalTips,
+      recordingUrl: s.recordingUrl,
+      createdAt: s.createdAt,
+      streamKey: s.status === 'scheduled' || s.status === 'live' ? (s.streamKey ?? null) : null,
+      rtmpUrl: MUX_LIVE_RTMP_URL,
+    };
+  }
+
   async getPlaybackUrlsForViewer(userId: string | undefined, streamId: string) {
     const { stream, hasAccess } = await this.checkAccess(userId, streamId);
     if (!hasAccess) throw new Error('No access');
     if (!stream.playbackId) throw new Error('Playback not available');
-    return this.mux.getSignedPlaybackUrls(stream.playbackId);
+    // Longer JWT for live HLS so viewers aren’t cut off mid-stream (Mux signed URLs)
+    const liveExpirySeconds =
+      stream.status === 'live' ? 7200 : 300; /* 2h live, 5m default elsewhere if reused */
+    return this.mux.getSignedPlaybackUrls(stream.playbackId, liveExpirySeconds);
   }
 }

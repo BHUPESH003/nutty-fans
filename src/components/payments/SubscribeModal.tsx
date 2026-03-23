@@ -1,6 +1,5 @@
 'use client';
 
-import { Loader2, CreditCard, Wallet } from 'lucide-react';
 import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -128,9 +127,9 @@ export function SubscribeModal({
                 <RadioGroupItem value="card" id="card" className="peer sr-only" />
                 <Label
                   htmlFor="card"
-                  className="bg-popover flex flex-col items-center justify-between rounded-md border-2 border-muted p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                  className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
                 >
-                  <CreditCard className="mb-3 h-6 w-6" />
+                  <span className="material-symbols-outlined mb-3 text-[28px]">credit_card</span>
                   Card
                 </Label>
               </div>
@@ -138,9 +137,11 @@ export function SubscribeModal({
                 <RadioGroupItem value="wallet" id="wallet" className="peer sr-only" />
                 <Label
                   htmlFor="wallet"
-                  className="bg-popover flex flex-col items-center justify-between rounded-md border-2 border-muted p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                  className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
                 >
-                  <Wallet className="mb-3 h-6 w-6" />
+                  <span className="material-symbols-outlined mb-3 text-[28px]">
+                    account_balance_wallet
+                  </span>
                   Wallet
                 </Label>
               </div>
@@ -153,7 +154,11 @@ export function SubscribeModal({
             Cancel
           </Button>
           <Button onClick={handleSubscribe} disabled={loading}>
-            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {loading && (
+              <span className="material-symbols-outlined mr-2 animate-spin text-[18px]">
+                progress_activity
+              </span>
+            )}
             Subscribe
           </Button>
         </DialogFooter>

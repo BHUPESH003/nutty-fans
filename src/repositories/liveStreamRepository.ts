@@ -48,6 +48,14 @@ export class LiveStreamRepository {
     });
   }
 
+  async listByCreatorId(creatorId: string, limit = 100) {
+    return prisma.liveStream.findMany({
+      where: { creatorId },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    });
+  }
+
   async listLive(cursor?: string, limit = 20) {
     return prisma.liveStream.findMany({
       where: { status: 'live' },

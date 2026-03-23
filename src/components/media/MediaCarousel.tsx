@@ -1,10 +1,11 @@
 'use client';
 
-import { ChevronLeft, ChevronRight } from 'lucide-react';
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 
 import { cn } from '@/lib/utils';
 import type { MediaItem } from '@/types/content';
+
+import { getMediaAspectRatio } from './mediaAspect';
 
 interface MediaCarouselProps {
   media: MediaItem[];
@@ -75,10 +76,8 @@ export function MediaCarousel({ media, onSlideChange, className }: MediaCarousel
 
   if (media.length === 0) return null;
 
-  // Calculate aspect ratio from first media item
   const firstMedia = media[0];
-  const aspectRatio =
-    firstMedia?.width && firstMedia?.height ? firstMedia.width / firstMedia.height : 4 / 5;
+  const aspectRatio = getMediaAspectRatio(firstMedia, 'feed');
 
   return (
     <div
@@ -100,7 +99,7 @@ export function MediaCarousel({ media, onSlideChange, className }: MediaCarousel
           const isValidUrl = mediaUrl && mediaUrl !== 'locked' && mediaUrl.length > 0;
 
           return (
-            <div key={item.id} className="h-full w-full flex-shrink-0" style={{ aspectRatio }}>
+            <div key={item.id} className="h-full w-full flex-shrink-0">
               {!isValidUrl ? (
                 <div className="flex h-full w-full items-center justify-center bg-muted/50">
                   <span className="text-sm text-muted-foreground">Media unavailable</span>
@@ -132,20 +131,22 @@ export function MediaCarousel({ media, onSlideChange, className }: MediaCarousel
         <>
           {currentIndex > 0 && (
             <button
+              type="button"
               onClick={goToPrevious}
               className="absolute left-2 top-1/2 z-10 -translate-y-1/2 rounded-full bg-black/60 p-2 text-white opacity-0 transition-opacity hover:bg-black/80 group-hover:opacity-100 sm:opacity-100"
               aria-label="Previous slide"
             >
-              <ChevronLeft className="h-5 w-5" />
+              <span className="material-symbols-outlined text-[22px]">chevron_left</span>
             </button>
           )}
           {currentIndex < media.length - 1 && (
             <button
+              type="button"
               onClick={goToNext}
               className="absolute right-2 top-1/2 z-10 -translate-y-1/2 rounded-full bg-black/60 p-2 text-white opacity-0 transition-opacity hover:bg-black/80 group-hover:opacity-100 sm:opacity-100"
               aria-label="Next slide"
             >
-              <ChevronRight className="h-5 w-5" />
+              <span className="material-symbols-outlined text-[22px]">chevron_right</span>
             </button>
           )}
         </>

@@ -63,12 +63,12 @@ export function PostCard({
   }, [onUnlock, post.id, post.ppvPrice, post.accessLevel]);
 
   return (
-    <article className="group relative mb-6 overflow-hidden rounded-2xl bg-card/40 transition-all hover:bg-card/60">
+    <article className="group relative mb-6 overflow-hidden rounded-[12px] border border-surface-container-high bg-surface-container-lowest shadow-card">
       {/* Creator Header - Compact, above media */}
       {showCreator && (
-        <div className="flex items-center gap-3 p-4 pb-3">
+        <div className="flex items-center gap-3 p-4">
           <Link href={`/c/${post.creator.handle}`} className="relative z-10 flex-shrink-0">
-            <div className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-full ring-2 ring-background/50">
+            <div className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-full ring-2 ring-surface-container-high">
               {post.creator.avatarUrl ? (
                 <Image
                   src={post.creator.avatarUrl}
@@ -77,7 +77,7 @@ export function PostCard({
                   fill
                 />
               ) : (
-                <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary to-purple-600 text-sm font-semibold text-white">
+                <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary to-primary-container text-sm font-semibold text-white">
                   {post.creator.displayName[0]?.toUpperCase() || '?'}
                 </div>
               )}
@@ -88,20 +88,17 @@ export function PostCard({
             <div className="flex items-center gap-2">
               <Link
                 href={`/c/${post.creator.handle}`}
-                className="truncate font-semibold text-foreground hover:text-primary"
+                className="truncate font-headline text-sm font-bold text-on-surface hover:text-primary"
               >
                 {post.creator.displayName}
               </Link>
               {post.creator.isVerified && (
-                <Badge
-                  variant="secondary"
-                  className="flex-shrink-0 bg-blue-500/10 px-1.5 py-0 text-[10px] text-blue-400"
-                >
-                  ✓
-                </Badge>
+                <span className="material-symbols-outlined flex-shrink-0 text-base text-secondary">
+                  verified
+                </span>
               )}
             </div>
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <div className="flex items-center gap-1.5 text-xs text-on-surface-variant">
               <span className="truncate">@{post.creator.handle}</span>
               <span>•</span>
               <span className="flex-shrink-0">
@@ -118,8 +115,8 @@ export function PostCard({
               variant="outline"
               className={
                 post.accessLevel === 'ppv'
-                  ? 'border-amber-500/30 bg-amber-500/10 text-amber-400'
-                  : 'border-primary/30 bg-primary/10 text-primary'
+                  ? 'border-amber-500/30 bg-amber-500/10 text-amber-700'
+                  : 'border-primary/20 bg-primary/10 text-primary'
               }
             >
               {post.accessLevel === 'ppv' ? `$${post.ppvPrice}` : '🔒'}
@@ -143,7 +140,7 @@ export function PostCard({
       )}
 
       {/* Interaction Bar */}
-      <div className="p-4 pt-3">
+      <div className="p-3">
         <PostInteractions
           postId={post.id}
           likeCount={post.likeCount}
@@ -161,7 +158,7 @@ export function PostCard({
       {/* Caption - Below media and actions */}
       {post.content && (
         <div className="px-4 pb-4 pt-0">
-          <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/90">
+          <p className="whitespace-pre-wrap text-sm leading-relaxed text-on-surface">
             {post.content}
           </p>
         </div>
@@ -181,8 +178,8 @@ export function PostCard({
       )}
 
       {/* View Stats */}
-      <div className="border-t border-white/5 px-4 py-2.5">
-        <span className="text-xs text-muted-foreground">
+      <div className="px-4 pb-3 pt-0">
+        <span className="text-xs text-on-surface-variant">
           {post.viewCount.toLocaleString()} views
         </span>
       </div>

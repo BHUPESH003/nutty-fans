@@ -1,6 +1,5 @@
 'use client';
 
-import { Loader2 } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 
 import { PostCard } from '@/components/posts/PostCard';
@@ -153,13 +152,15 @@ export const FeedContainer = ({ feedType = 'for-you' }: FeedContainerProps) => {
   if (isLoading) {
     return (
       <div className="flex h-[50vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="material-symbols-outlined animate-spin text-[40px] text-primary">
+          progress_activity
+        </span>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-8">
+    <div className="w-full py-6">
       <div className="space-y-6">
         {posts.map((post) => (
           <PostCard
@@ -183,7 +184,9 @@ export const FeedContainer = ({ feedType = 'for-you' }: FeedContainerProps) => {
             <Button variant="outline" onClick={handleLoadMore} disabled={isLoadingMore}>
               {isLoadingMore ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <span className="material-symbols-outlined mr-2 animate-spin text-[18px]">
+                    progress_activity
+                  </span>
                   Loading...
                 </>
               ) : (

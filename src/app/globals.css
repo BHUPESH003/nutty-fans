@@ -1,120 +1,134 @@
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  :root {
-    /* Default to Dark Mode values for "Cinematic Intimacy" */
-    /* We are making dark mode the default, but keeping variables for consistency */
-
-    /* Colors (Dark-First) */
-    --background: 0 0% 2%; /* #050505 */
-    --foreground: 0 0% 93%; /* #EDEDED */
-
-    --card: 0 0% 7%; /* #121212 */
-    --card-foreground: 0 0% 93%; /* #EDEDED */
-
-    --popover: 0 0% 7%; /* #121212 */
-    --popover-foreground: 0 0% 93%; /* #EDEDED */
-
-    --primary: 340 100% 60%; /* #ff3366 */
-    --primary-foreground: 0 0% 100%;
-
-    --secondary: 260 50% 15%; /* Deep Purple for exclusive feel */
-    --secondary-foreground: 0 0% 100%;
-
-    --muted: 0 0% 12%; /* #1E1E1E */
-    --muted-foreground: 240 5% 65%; /* #A1A1AA */
-
-    --accent: 0 0% 12%; /* #1E1E1E */
-    --accent-foreground: 0 0% 93%;
-
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 98%;
-
-    --border: 0 0% 12%; /* Subtle borders */
-    --input: 0 0% 12%;
-    --ring: 340 100% 60%;
-
-    /* Custom Accents */
-    --accent-primary: 340 100% 60%;
-    --accent-primary-hover: 340 100% 55%;
-    --accent-error: 0 84% 60%;
-
-    /* Typography */
-    --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-
-    /* Radius (Softer feel) */
-    --radius: 0.75rem; /* 12px */
-
-    /* Spacing (px scale mapped in Tailwind) */
-    --space-1: 4px;
-    --space-2: 8px;
-    --space-3: 12px;
-    --space-4: 16px;
-    --space-5: 20px;
-    --space-6: 24px;
-    --space-8: 32px;
-    --space-10: 40px;
-    --space-12: 48px;
-    --space-16: 64px;
-    --space-20: 80px;
-    --space-24: 96px;
-
-    /* Shadows */
-    --shadow-card: 0 10px 30px rgba(0, 0, 0, 0.5);
-    --shadow-popover: 0 12px 40px rgba(0, 0, 0, 0.6);
-    --shadow-modal: 0 18px 60px rgba(0, 0, 0, 0.7);
-    --header-h: 104px;
-  }
-
-  .dark {
-    /* Ensure dark class uses the same values since we are dark-first */
-    --background: 0 0% 2%;
-    --foreground: 0 0% 93%;
-    --card: 0 0% 7%;
-    --card-foreground: 0 0% 93%;
-    --popover: 0 0% 7%;
-    --popover-foreground: 0 0% 93%;
-    --primary: 340 100% 60%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 260 50% 15%;
-    --secondary-foreground: 0 0% 100%;
-    --muted: 0 0% 12%;
-    --muted-foreground: 240 5% 65%;
-    --accent: 0 0% 12%;
-    --accent-foreground: 0 0% 93%;
-    --destructive: 0 62% 30%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 12%;
-    --input: 0 0% 12%;
-    --ring: 340 100% 60%;
-  }
+/* ─── Base Reset ─── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
-@layer base {
-  * {
-    @apply border-border;
-  }
+body {
+  font-family: var(--font-body), 'Inter', sans-serif;
+  background-color: #fbf8ff;
+  color: #1b1b20;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
 
-  body {
-    @apply bg-background text-foreground;
-    font-family: var(--font-sans);
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-headline), 'Plus Jakarta Sans', sans-serif;
+}
+
+/* ─── Material Symbols ─── */
+.material-symbols-outlined {
+  font-variation-settings:
+    'FILL' 0,
+    'wght' 400,
+    'GRAD' 0,
+    'opsz' 24;
+  user-select: none;
+}
+.material-symbols-filled {
+  font-variation-settings:
+    'FILL' 1,
+    'wght' 400,
+    'GRAD' 0,
+    'opsz' 24;
+}
+
+/* ─── Glassmorphism ─── */
+.glass {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+.glass-dark {
+  background: rgba(27, 27, 32, 0.75);
+  backdrop-filter: blur(20px);
+}
+
+/* ─── Navigation ─── */
+.nav-item-active {
+  background-color: rgba(186, 0, 72, 0.06);
+  color: #ba0048;
+  font-weight: 600;
+  border-radius: 9999px;
+}
+.nav-item-active-bordered {
+  border-left: 3px solid #e0245e;
+  background-color: rgba(224, 36, 94, 0.05);
+  color: #e0245e;
+}
+
+/* ─── Story Rings ─── */
+.story-ring {
+  border: 2px solid #e4e1e9;
+  padding: 2px;
+  border-radius: 9999px;
+}
+.story-ring-live {
+  border: 2px solid #bc002d;
+  padding: 2px;
+  border-radius: 9999px;
+}
+
+/* ─── LIVE Badge Pulse ─── */
+@keyframes live-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(188, 0, 45, 0.5);
   }
+  50% {
+    box-shadow: 0 0 0 6px rgba(188, 0, 45, 0);
+  }
+}
+.badge-live {
+  background-color: #bc002d;
+  color: #ffffff;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 3px;
+  animation: live-pulse 2s ease-in-out infinite;
+}
+
+/* ─── Scrollbar Hide ─── */
+.no-scrollbar::-webkit-scrollbar,
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar,
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ─── Focus Ring Override ─── */
+input:focus,
+textarea:focus,
+select:focus,
+button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(255, 217, 221, 0.6);
+}
+
+/* ─── Verified Badge Halo ─── */
+.verified-halo {
+  filter: drop-shadow(0 0 0 1px #ffffff);
 }
 
 @layer utilities {
-  /* Hide scrollbar for Chrome, Safari and Opera */
-  .scrollbar-hide::-webkit-scrollbar {
-    display: none;
-  }
-
-  /* Hide scrollbar for IE, Edge and Firefox */
-  .scrollbar-hide {
-    -ms-overflow-style: none; /* IE and Edge */
-    scrollbar-width: none; /* Firefox */
-  }
-
   /* Aspect ratio utilities for media containers */
   .aspect-portrait {
     aspect-ratio: 4 / 5;

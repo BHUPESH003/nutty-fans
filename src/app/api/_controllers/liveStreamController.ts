@@ -85,6 +85,23 @@ export const liveStreamController = {
     });
   },
 
+  async listMine(userId: string) {
+    return handleAsyncRoute(async () => {
+      if (!userId) throw new AppError(VALIDATION_MISSING_FIELD, 'User ID is required', 400);
+      const result = await liveStreamService.listMine(userId);
+      return successResponse(result);
+    });
+  },
+
+  async getForCreator(userId: string, streamId: string) {
+    return handleAsyncRoute(async () => {
+      if (!userId) throw new AppError(VALIDATION_MISSING_FIELD, 'User ID is required', 400);
+      if (!streamId) throw new AppError(VALIDATION_MISSING_FIELD, 'Stream ID is required', 400);
+      const result = await liveStreamService.getForCreatorManagement(userId, streamId);
+      return successResponse(result);
+    });
+  },
+
   notFound(message: string) {
     return NextResponse.json({ error: { code: 'NOT_FOUND', message } }, { status: 404 });
   },

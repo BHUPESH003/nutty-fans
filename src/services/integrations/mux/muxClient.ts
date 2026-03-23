@@ -19,7 +19,47 @@ const MUX_WEBHOOK_SECRET = process.env['MUX_WEBHOOK_SECRET'] ?? '';
 const MUX_SIGNING_KEY_ID = process.env['MUX_SIGNING_KEY_ID'] ?? '';
 const MUX_SIGNING_PRIVATE_KEY = process.env['MUX_SIGNING_PRIVATE_KEY'] ?? '';
 const MUX_BASE_URL = 'https://api.mux.com';
+
+/** Public Mux RTMP ingest URL (TLS). Stream key is per live stream. */
+export const MUX_LIVE_RTMP_URL = 'rtmps://global-live.mux.com:443/app';
 const APP_URL = process.env['NEXT_PUBLIC_APP_URL'] ?? 'http://localhost:3000';
+
+/**
+ * Mux signing keys are either PEM text or base64-encoded PEM (see Mux "Signing JWTs" guide).
+ * `.env` often stores PEM as one line with literal `\n` sequences.
+ */
+function parseMuxSigningPrivateKey(raw: string): crypto.KeyObject {
+  const trimmed = raw.trim();
+  const pemFromEnv = trimmed.replace(/\\n/g, '\n');
+
+  const tryKey = (material: string | Buffer): crypto.KeyObject | null => {
+    try {
+      return crypto.createPrivateKey(material);
+    } catch {
+      return null;
+    }
+  };
+
+  const fromPem = tryKey(pemFromEnv);
+  if (fromPem) return fromPem;
+
+  try {
+    const decoded = Buffer.from(trimmed, 'base64');
+    const asUtf8 = decoded.toString('utf8');
+    if (asUtf8.includes('BEGIN')) {
+      const fromDecodedPem = tryKey(asUtf8);
+      if (fromDecodedPem) return fromDecodedPem;
+    }
+    const fromDer = tryKey(decoded);
+    if (fromDer) return fromDer;
+  } catch {
+    // Invalid base64 or key material
+  }
+
+  throw new Error(
+    'MUX_SIGNING_PRIVATE_KEY must be RSA PEM (-----BEGIN … KEY-----) or base64-encoded PEM from Mux Signing Keys.'
+  );
+}
 
 /**
  * Mux API Client
@@ -209,12 +249,14 @@ export class MuxClient {
         sub: playbackId, // Subject: playback ID
         aud: 'v', // Audience: video
         exp: expiration, // Expiration time
-        kid: MUX_SIGNING_KEY_ID, // Key ID
+        iat: now, // Issued at (recommended by Mux examples)
+        kid: MUX_SIGNING_KEY_ID, // Key ID (Mux Go/Node examples include kid in payload)
       };
 
-      // Sign the JWT token using RS256
-      // Mux signing key is an RSA private key in PEM format
-      const token = jwt.sign(tokenPayload, MUX_SIGNING_PRIVATE_KEY, {
+      const signingKey = parseMuxSigningPrivateKey(MUX_SIGNING_PRIVATE_KEY);
+
+      // Sign the JWT token using RS256 (PEM or base64-encoded PEM from Mux)
+      const token = jwt.sign(tokenPayload, signingKey, {
         algorithm: 'RS256',
         header: {
           kid: MUX_SIGNING_KEY_ID,
@@ -298,9 +340,10 @@ export class MuxClient {
       },
       body: JSON.stringify({
         playback_policy: ['signed'],
+        // Passthrough is a live-stream field (not new_asset_settings); echoed on stream + recorded assets
+        ...(passthrough != null && passthrough !== '' ? { passthrough } : {}),
         new_asset_settings: {
           playback_policy: ['signed'],
-          passthrough,
         },
       }),
     });
@@ -320,8 +363,7 @@ export class MuxClient {
       muxLiveStreamId: data.data.id,
       streamKey: data.data.stream_key,
       playbackId,
-      // Mux RTMP ingest endpoint (TLS)
-      rtmpUrl: 'rtmps://global-live.mux.com:443/app',
+      rtmpUrl: MUX_LIVE_RTMP_URL,
     };
   }
 

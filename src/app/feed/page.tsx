@@ -1,4 +1,3 @@
-import { Plus } from 'lucide-react';
 import { Metadata } from 'next';
 import Link from 'next/link';
 
@@ -17,7 +16,7 @@ export default function FeedPage() {
         <h1 className="text-xl font-bold">Home</h1>
         <Link href="/post/create">
           <Button size="sm" className="gap-2">
-            <Plus className="h-4 w-4" />
+            <span className="material-symbols-outlined text-[18px]">add</span>
             Create Post
           </Button>
         </Link>

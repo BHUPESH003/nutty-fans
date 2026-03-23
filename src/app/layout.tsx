@@ -1,6 +1,6 @@
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+import { Inter, Plus_Jakarta_Sans } from 'next/font/google';
 import type { ReactNode } from 'react';
 
 import { VerificationBanner } from '@/components/common/VerificationBanner';
@@ -8,7 +8,17 @@ import { SessionProvider } from '@/components/providers/SessionProvider';
 import { LowBalanceProvider } from '@/lib/contexts/LowBalanceContext';
 import './globals.css';
 
-const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
+const plusJakartaSans = Plus_Jakarta_Sans({
+  subsets: ['latin'],
+  variable: '--font-headline',
+  weight: ['400', '500', '600', '700', '800'],
+});
+
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-body',
+  weight: ['400', '500', '600'],
+});
 
 export const metadata: Metadata = {
   title: 'NuttyFans',
@@ -21,8 +31,12 @@ export default function RootLayout({
   children: ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark" suppressHydrationWarning>
-      <body className={`${inter.variable} font-sans antialiased`}>
+    <html
+      lang="en"
+      className={`${plusJakartaSans.variable} ${inter.variable}`}
+      suppressHydrationWarning
+    >
+      <body className={`${inter.variable} bg-background font-body text-foreground antialiased`}>
         <SessionProvider>
           <LowBalanceProvider>
             <VerificationBanner />
