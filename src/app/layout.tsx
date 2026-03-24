@@ -1,3 +1,4 @@
+import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import type { Metadata } from 'next';
 import { Inter, Plus_Jakarta_Sans } from 'next/font/google';
@@ -43,6 +44,7 @@ export default function RootLayout({
             {children}
           </LowBalanceProvider>
         </SessionProvider>
+        <Analytics />
         <SpeedInsights />
       </body>
     </html>
