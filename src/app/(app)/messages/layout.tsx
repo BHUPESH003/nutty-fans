@@ -6,12 +6,15 @@ import React, { useState } from 'react';
 import { ConversationList } from '@/components/messaging/ConversationList';
 import { NewMessageDialog } from '@/components/messaging/NewMessageDialog';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { useConversations } from '@/hooks/useConversations';
 import { cn } from '@/lib/utils';
 
 export default function MessagesLayout({ children }: { children: React.ReactNode }) {
   const { conversations, isLoading, isError } = useConversations();
   const [newMessageOpen, setNewMessageOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'all' | 'unread' | 'requests'>('all');
+  const [query, setQuery] = useState('');
   const pathname = usePathname();
 
   // Check if we are viewing a specific conversation
@@ -31,26 +34,50 @@ export default function MessagesLayout({ children }: { children: React.ReactNode
             'md:w-[340px]'
           )}
         >
-          <div className="flex flex-col gap-4 border-b border-surface-container-high p-6 pb-4">
+          <div className="flex flex-col gap-4 border-b border-surface-container-high p-4">
             <div className="flex items-center justify-between">
               <h2 className="font-headline text-xl font-extrabold tracking-tight">Messages</h2>
               <Button
                 size="icon"
-                variant="outline"
-                className="h-10 w-10 rounded-full border-surface-container-high"
+                variant="secondary"
+                className="h-10 w-10 rounded-full"
                 onClick={() => setNewMessageOpen(true)}
                 aria-label="New message"
               >
                 <span className="material-symbols-outlined text-[22px]">edit_square</span>
               </Button>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <span className="rounded-full bg-primary-container px-3 py-1.5 text-xs font-bold text-white">
-                Broadcast
+            <div className="relative">
+              <span className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[20px] text-on-surface-variant">
+                search
               </span>
-              <span className="rounded-full border border-outline-variant px-3 py-1.5 text-xs font-bold text-primary">
-                Requests
-              </span>
+              <Input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search chats..."
+                className="h-11 pl-10"
+              />
+            </div>
+            <div className="flex gap-2">
+              {[
+                { id: 'all', label: 'All' },
+                { id: 'unread', label: 'Unread' },
+                { id: 'requests', label: 'Requests' },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveTab(tab.id as 'all' | 'unread' | 'requests')}
+                  className={cn(
+                    'rounded-full px-4 py-2 text-sm font-semibold transition',
+                    activeTab === tab.id
+                      ? 'bg-primary text-white'
+                      : 'border border-surface-container-high bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container-low'
+                  )}
+                >
+                  {tab.label}
+                </button>
+              ))}
             </div>
           </div>
           <div className="flex-1 overflow-hidden">
@@ -58,6 +85,8 @@ export default function MessagesLayout({ children }: { children: React.ReactNode
               conversations={conversations}
               isLoading={isLoading}
               isError={isError}
+              activeTab={activeTab}
+              searchQuery={query}
             />
           </div>
         </div>

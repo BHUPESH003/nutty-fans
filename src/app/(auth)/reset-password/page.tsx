@@ -7,10 +7,5 @@ interface ResetPasswordPageProps {
 export default async function ResetPasswordPage({ searchParams }: ResetPasswordPageProps) {
   const { token } = await searchParams;
   const tokenStr = typeof token === 'string' ? token : null;
-
-  return (
-    <main>
-      <ResetPasswordContainer token={tokenStr} />
-    </main>
-  );
+  return <ResetPasswordContainer token={tokenStr} />;
 }

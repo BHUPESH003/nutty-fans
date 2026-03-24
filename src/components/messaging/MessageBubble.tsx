@@ -1,5 +1,6 @@
 import { useState } from 'react';
 
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { cn, formatCurrency } from '@/lib/utils';
@@ -8,11 +9,19 @@ import { Message } from '@/types/messaging';
 interface MessageBubbleProps {
   message: Message;
   isSelf: boolean;
+  avatarUrl?: string | null;
+  avatarName?: string;
 
   onUnlock?: (messageId: string) => Promise<void>;
 }
 
-export function MessageBubble({ message, isSelf, onUnlock }: MessageBubbleProps) {
+export function MessageBubble({
+  message,
+  isSelf,
+  avatarUrl,
+  avatarName,
+  onUnlock,
+}: MessageBubbleProps) {
   const [unlocking, setUnlocking] = useState(false);
   const { toast } = useToast();
 
@@ -41,7 +50,13 @@ export function MessageBubble({ message, isSelf, onUnlock }: MessageBubbleProps)
   if (message.isLocked) {
     return (
       <div className={cn('flex w-full', isSelf ? 'justify-end' : 'justify-start')}>
-        <div className="flex max-w-[75%] flex-col gap-3 rounded-[18px] bg-surface-container-low p-4">
+        {!isSelf ? (
+          <Avatar className="mr-2 mt-auto h-8 w-8">
+            <AvatarImage src={avatarUrl || ''} className="object-cover" />
+            <AvatarFallback>{avatarName?.[0] ?? '?'}</AvatarFallback>
+          </Avatar>
+        ) : null}
+        <div className="flex max-w-[78%] flex-col gap-3 overflow-hidden rounded-[22px] border border-surface-container-high bg-surface-container-low p-4">
           <div className="flex items-center gap-2 text-primary">
             <span className="material-symbols-outlined text-[20px]">lock</span>
             <span className="text-sm font-bold">
@@ -68,9 +83,15 @@ export function MessageBubble({ message, isSelf, onUnlock }: MessageBubbleProps)
 
   return (
     <div className={cn('flex w-full', isSelf ? 'justify-end' : 'justify-start')}>
+      {!isSelf ? (
+        <Avatar className="mr-2 mt-auto h-8 w-8">
+          <AvatarImage src={avatarUrl || ''} className="object-cover" />
+          <AvatarFallback>{avatarName?.[0] ?? '?'}</AvatarFallback>
+        </Avatar>
+      ) : null}
       <div
         className={cn(
-          'max-w-[75%] space-y-2 rounded-[18px] px-4 py-3 text-sm',
+          'max-w-[78%] space-y-2 rounded-[22px] px-4 py-3 text-sm',
           isSelf
             ? 'rounded-br-[4px] bg-primary-container text-white'
             : 'rounded-bl-[4px] bg-surface-container-lowest text-on-surface shadow-card'

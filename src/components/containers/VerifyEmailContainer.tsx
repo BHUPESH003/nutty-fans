@@ -3,8 +3,8 @@
 import Link from 'next/link';
 import * as React from 'react';
 
+import { AuthScreenFrame } from '@/components/auth/AuthScreenFrame';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { apiClient, ApiError } from '@/services/apiClient';
@@ -32,7 +32,6 @@ export function VerifyEmailContainer({ token }: VerifyEmailContainerProps) {
   React.useEffect(() => {
     const verify = async () => {
       if (!token) return;
-
       setStatus('verifying');
       setMessage(null);
 
@@ -41,12 +40,10 @@ export function VerifyEmailContainer({ token }: VerifyEmailContainerProps) {
         if (!isMountedRef.current) return;
         if (result.success) {
           setStatus('success');
-          setMessage('Your email has been verified. You can now continue to NuttyFans.');
+          setMessage('Your email has been verified.');
         } else {
           setStatus('error');
-          setMessage(
-            result.error || 'We could not verify this link. It may be expired or already used.'
-          );
+          setMessage(result.error || 'This link may be expired or already used.');
         }
       } catch (err) {
         if (!isMountedRef.current) return;
@@ -70,15 +67,10 @@ export function VerifyEmailContainer({ token }: VerifyEmailContainerProps) {
     try {
       await apiClient.auth.resendVerification({ email: emailForResend });
       if (!isMountedRef.current) return;
-      setResendMessage(
-        'If an account exists for this email, a verification email was sent. Please check your inbox.'
-      );
+      setResendMessage('If an account exists, a fresh verification email has been sent.');
     } catch (err) {
       if (!isMountedRef.current) return;
-      // For privacy and security, show the same generic message even on error.
-      setResendMessage(
-        'If an account exists for this email, a verification email was sent. Please check your inbox.'
-      );
+      setResendMessage('If an account exists, a fresh verification email has been sent.');
       console.error(err instanceof ApiError ? err.message : err);
     } finally {
       if (isMountedRef.current) {
@@ -87,80 +79,74 @@ export function VerifyEmailContainer({ token }: VerifyEmailContainerProps) {
     }
   };
 
-  let title = 'Verify your email';
-  if (status === 'verifying') {
-    title = 'Verifying…';
-  } else if (status === 'success') {
-    title = 'Email verified';
-  } else if (status === 'error') {
-    title = 'Verification problem';
-  }
-
   return (
-    <Card className="w-full max-w-md shadow-card">
-      <CardHeader>
-        <CardTitle className="text-h3">{title}</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {status === 'idle' ? (
-          <p className="text-sm text-muted-foreground">
-            We&apos;ve sent a verification link to your email. Open it on this device to complete
-            verification.
-          </p>
-        ) : null}
-        {status === 'verifying' ? (
-          <p className="text-sm text-muted-foreground">
-            Hold tight while we verify your email link…
-          </p>
-        ) : null}
-        {status === 'success' ? (
-          <>
-            <p className="text-sm text-muted-foreground">
-              Your email address is confirmed. Some areas of NuttyFans may still require age
-              verification.
-            </p>
-            <div className="flex justify-between gap-2">
-              <Button asChild variant="outline">
-                <Link href="/">Go to home</Link>
-              </Button>
-              <Button asChild>
-                <Link href="/age-verification">Continue to age verification</Link>
-              </Button>
-            </div>
-          </>
-        ) : null}
-        {status === 'error' ? (
-          <>
-            <p className="text-sm text-[hsl(var(--accent-error))]">{message}</p>
-            <p className="text-sm text-muted-foreground">
-              This link may be invalid or expired. You can request a new verification email below.
-            </p>
-            <form onSubmit={handleResend} className="space-y-3">
-              <div className="space-y-2">
-                <Label htmlFor="resendEmail">Email</Label>
-                <Input
-                  id="resendEmail"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  value={emailForResend}
-                  onChange={(event) => setEmailForResend(event.target.value)}
-                />
-              </div>
-              {resendMessage ? (
-                <p className="text-sm text-muted-foreground">{resendMessage}</p>
-              ) : null}
-              <Button type="submit" className="w-full" disabled={isResending}>
-                {isResending ? 'Sending…' : 'Resend verification email'}
-              </Button>
-            </form>
-            <Button asChild variant="outline" className="w-full">
-              <Link href="/login">Back to sign in</Link>
+    <AuthScreenFrame
+      title={
+        status === 'verifying'
+          ? 'Verifying…'
+          : status === 'success'
+            ? 'Email verified'
+            : status === 'error'
+              ? 'Verification issue'
+              : 'Verify your email'
+      }
+      subtitle="Confirm your email to unlock your full account access."
+      bannerTitle="Secure account setup."
+      bannerSubtitle="One more step before you continue."
+    >
+      {status === 'idle' ? (
+        <p className="text-center text-sm text-on-surface-variant">
+          We sent a verification link to your inbox. Open it on this device to finish setup.
+        </p>
+      ) : null}
+
+      {status === 'verifying' ? (
+        <p className="text-center text-sm text-on-surface-variant">
+          Checking your verification link…
+        </p>
+      ) : null}
+
+      {status === 'success' ? (
+        <div className="space-y-3">
+          <p className="text-center text-sm text-emerald-600">{message}</p>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <Button asChild variant="outline" className="h-11">
+              <Link href="/">Go home</Link>
             </Button>
-          </>
-        ) : null}
-        {status === 'idle' && !message ? null : null}
-      </CardContent>
-    </Card>
+            <Button asChild className="h-11">
+              <Link href="/age-verification">Continue</Link>
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
+      {status === 'error' ? (
+        <div className="space-y-4">
+          <p className="text-center text-sm text-destructive">{message}</p>
+          <form onSubmit={handleResend} className="space-y-3">
+            <div className="space-y-2">
+              <Label htmlFor="resendEmail">Email address</Label>
+              <Input
+                id="resendEmail"
+                type="email"
+                autoComplete="email"
+                required
+                value={emailForResend}
+                onChange={(event) => setEmailForResend(event.target.value)}
+              />
+            </div>
+            {resendMessage ? (
+              <p className="text-center text-sm text-on-surface-variant">{resendMessage}</p>
+            ) : null}
+            <Button type="submit" className="h-11 w-full" disabled={isResending}>
+              {isResending ? 'Sending…' : 'Resend verification email'}
+            </Button>
+          </form>
+          <Button asChild variant="outline" className="h-11 w-full">
+            <Link href="/login">Back to sign in</Link>
+          </Button>
+        </div>
+      ) : null}
+    </AuthScreenFrame>
   );
 }

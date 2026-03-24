@@ -51,7 +51,7 @@ export function MessageInput({ onSend, isCreator, disabled: _disabled }: Message
   };
 
   return (
-    <div className="sticky bottom-0 border-t border-surface-container-high bg-white/90 p-4 backdrop-blur-xl">
+    <div className="sticky bottom-0 border-t border-surface-container-high bg-white p-3 md:p-4">
       {price > 0 && (
         <div className="mb-2 flex w-fit items-center gap-2 rounded-md bg-secondary-fixed/10 p-2 text-sm text-secondary">
           <span className="material-symbols-outlined text-[18px]">toll</span>
@@ -62,22 +62,31 @@ export function MessageInput({ onSend, isCreator, disabled: _disabled }: Message
         </div>
       )}
 
-      <div className="flex items-end gap-3">
-        <div className="flex gap-1 pb-2">
-          {/* Media Upload Trigger (Placeholder) */}
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <div className="flex gap-1">
           <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full" disabled>
             <span className="material-symbols-outlined text-[22px] text-on-surface-variant">
               image
             </span>
           </Button>
-
+          <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full" disabled>
+            <span className="material-symbols-outlined text-[22px] text-on-surface-variant">
+              videocam
+            </span>
+          </Button>
+          <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full" disabled>
+            <span className="material-symbols-outlined text-[22px] text-on-surface-variant">
+              mic
+            </span>
+          </Button>
+        </div>
+        <div className="flex items-center gap-2">
           {isCreator && (
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full">
-                  <span className="material-symbols-outlined text-[22px] text-on-surface-variant">
-                    toll
-                  </span>
+                <Button variant="outline" size="sm" className="h-9 rounded-full px-3 text-xs">
+                  <span className="material-symbols-outlined mr-1 text-[16px]">lock</span>
+                  PPV
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-60">
@@ -101,8 +110,14 @@ export function MessageInput({ onSend, isCreator, disabled: _disabled }: Message
               </PopoverContent>
             </Popover>
           )}
+          <Button size="sm" className="h-9 rounded-full px-3 text-xs">
+            <span className="material-symbols-outlined mr-1 text-[16px]">local_atm</span>
+            Tip
+          </Button>
         </div>
+      </div>
 
+      <div className="flex items-end gap-2">
         <Textarea
           value={content}
           onChange={(e) => setContent(e.target.value)}
@@ -111,12 +126,11 @@ export function MessageInput({ onSend, isCreator, disabled: _disabled }: Message
           className="max-h-[120px] min-h-[44px] flex-1 resize-none rounded-full border-none bg-surface-container-low px-4 py-3 text-sm focus-visible:ring-2 focus-visible:ring-primary-fixed"
           rows={1}
         />
-
         <Button
           onClick={handleSend}
           disabled={!content.trim() || sending}
           size="icon"
-          className="h-10 w-10 shrink-0 rounded-full bg-primary-container text-white hover:opacity-90"
+          className="h-12 w-12 shrink-0 rounded-full bg-primary-container text-white hover:opacity-90"
         >
           <span className="material-symbols-outlined text-[20px]">send</span>
         </Button>

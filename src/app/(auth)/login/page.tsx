@@ -4,10 +4,8 @@ import { LoginContainer } from '@/components/containers/LoginContainer';
 
 export default function LoginPage() {
   return (
-    <main>
-      <Suspense fallback={<div>Loading...</div>}>
-        <LoginContainer />
-      </Suspense>
-    </main>
+    <Suspense fallback={<div className="p-4 text-sm text-on-surface-variant">Loading...</div>}>
+      <LoginContainer />
+    </Suspense>
   );
 }

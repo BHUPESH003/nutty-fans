@@ -24,10 +24,17 @@ export async function middleware(request: NextRequest) {
   // Age Gate Check
   const isAgeVerified = request.cookies.get('age_verified')?.value === 'true';
   const isAgeGatePage = pathname === '/age-gate';
+  /** Auth entry routes reachable from the age gate header (user can sign in/up; app rules still apply after login). */
+  const bypassAgeForPath =
+    pathname.startsWith('/login') ||
+    pathname.startsWith('/register') ||
+    pathname.startsWith('/forgot-password') ||
+    pathname.startsWith('/reset-password');
 
   if (
     !isAgeVerified &&
     !isAgeGatePage &&
+    !bypassAgeForPath &&
     !pathname.startsWith('/api') &&
     !pathname.startsWith('/_next') &&
     !pathname.startsWith('/static')

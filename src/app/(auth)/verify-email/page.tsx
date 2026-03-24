@@ -7,10 +7,5 @@ interface VerifyEmailPageProps {
 export default async function VerifyEmailPage({ searchParams }: VerifyEmailPageProps) {
   const { token } = await searchParams;
   const tokenStr = typeof token === 'string' ? token : null;
-
-  return (
-    <main>
-      <VerifyEmailContainer token={tokenStr} />
-    </main>
-  );
+  return <VerifyEmailContainer token={tokenStr} />;
 }
