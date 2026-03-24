@@ -60,10 +60,15 @@ export function MediaRenderer({
   const frameStyle: CSSProperties =
     variant === 'reels'
       ? {}
-      : {
-          aspectRatio,
-          ...(isPortrait ? { maxHeight: 'min(85vh, 920px)' } : {}),
-        };
+      : variant === 'feed' || variant === 'profile'
+        ? {
+            aspectRatio: '4 / 5',
+            maxHeight: 'min(62vh, 680px)',
+          }
+        : {
+            aspectRatio,
+            ...(isPortrait ? { maxHeight: 'min(72vh, 860px)' } : {}),
+          };
 
   // Get a valid image URL for rendering
   const getMediaUrl = () => {
@@ -146,7 +151,9 @@ export function MediaRenderer({
         src={mediaUrl}
         alt="Post media"
         fill
-        className="object-cover"
+        className={cn(
+          variant === 'feed' || variant === 'profile' ? 'object-contain' : 'object-cover'
+        )}
         draggable={false}
         onContextMenu={(e) => e.preventDefault()}
       />

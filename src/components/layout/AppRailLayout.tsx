@@ -55,21 +55,21 @@ export function AppRailLayout({
   children,
   rail,
   centerClassName,
-  centerMaxWidthClassName = 'max-w-[760px]',
+  centerMaxWidthClassName = 'max-w-[798px]',
 }: AppRailLayoutProps) {
   return (
-    <div className="mx-auto flex w-full min-w-0 max-w-[1520px] justify-center">
+    <div className="mx-auto flex w-full min-w-0 max-w-[1520px] justify-center gap-4 px-3 md:px-4 xl:gap-5 xl:px-5">
       <div
         className={cn(
-          'min-h-screen w-full min-w-0 flex-1 border-x border-neutral-200/80 bg-background',
+          'min-h-screen w-full min-w-0 flex-1 bg-background',
           centerMaxWidthClassName,
           centerClassName
         )}
       >
         {children}
       </div>
-      <aside className="hidden min-h-screen w-[320px] shrink-0 bg-background xl:block">
-        <div className="sticky top-0 z-10 max-h-[100dvh] overflow-y-auto border-l border-neutral-200/80">
+      <aside className="hidden min-h-screen w-[304px] shrink-0 bg-transparent xl:block">
+        <div className="sticky top-0 z-10 h-[100dvh] overflow-y-auto">
           <div className="space-y-8 px-6 py-6 pb-12">{rail}</div>
         </div>
       </aside>

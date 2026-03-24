@@ -1,81 +1,166 @@
 'use client';
 
 import Link from 'next/link';
+import { useEffect, useMemo, useState } from 'react';
 
-import { TrendingCreators } from '@/components/explore/TrendingCreators';
 import { RailCard, RailHeading, RailSection } from '@/components/layout/AppRailLayout';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { apiClient } from '@/services/apiClient';
 
-const TAGS = [
-  'summershoot',
-  'workoutroutine',
-  'digitalart',
-  'behindthescenes',
-  'morningyoga',
-  'travelvlog',
-];
+interface RailCreator {
+  id: string;
+  handle: string;
+  displayName: string;
+  avatarUrl: string | null;
+  subscriberCount: number;
+}
+
+interface SubscriptionItem {
+  id: string;
+  status: string;
+  expiresAt: Date | string;
+  creator: {
+    id: string;
+    displayName: string;
+    handle: string;
+    avatarUrl: string | null;
+  };
+}
 
 /** Right-rail bundle for Discover / Explore — shared padding via AppRailLayout. */
 export function ExploreRailContent({ showLiveTeaser = true }: { showLiveTeaser?: boolean }) {
+  const [creators, setCreators] = useState<RailCreator[]>([]);
+  const [subscriptions, setSubscriptions] = useState<SubscriptionItem[]>([]);
+
+  useEffect(() => {
+    const loadRailData = async () => {
+      try {
+        const result = await apiClient.search.getTrendingCreators(12);
+        setCreators(result.creators || []);
+      } catch (error) {
+        console.error('Failed to load rail creators:', error);
+      }
+
+      try {
+        const result = await apiClient.subscriptions.list();
+        setSubscriptions(result.subscriptions || []);
+      } catch {
+        // Public visitors may not have subscription access; keep section empty.
+        setSubscriptions([]);
+      }
+    };
+
+    void loadRailData();
+  }, []);
+
+  const suggestedCreators = useMemo(() => creators.slice(0, 3), [creators]);
+  const newCreators = useMemo(() => creators.slice(3, 8), [creators]);
+  const expiredSubscriptions = useMemo(
+    () => subscriptions.filter((item) => item.status === 'expired').slice(0, 4),
+    [subscriptions]
+  );
+
   return (
     <>
       <RailSection>
-        <RailHeading>New creators</RailHeading>
-        <TrendingCreators variant="rail" hideHeading />
+        <RailHeading>Suggested creators</RailHeading>
+        <RailCard className="space-y-3 rounded-3xl border-transparent bg-white p-4 shadow-sm">
+          {suggestedCreators.length === 0 ? (
+            <p className="text-xs text-on-surface-variant">No suggestions yet.</p>
+          ) : (
+            suggestedCreators.map((creator) => (
+              <CreatorListItem key={creator.id} creator={creator} />
+            ))
+          )}
+        </RailCard>
       </RailSection>
-      {showLiveTeaser ? <ExploreLiveTeaser /> : null}
-      <ExploreTrendingTags />
-      <ExploreRailFooter />
+
+      <RailSection>
+        <RailHeading>New creators</RailHeading>
+        <RailCard className="space-y-3 rounded-3xl border-transparent bg-white p-4 shadow-sm">
+          {newCreators.length === 0 ? (
+            <p className="text-xs text-on-surface-variant">No new creators right now.</p>
+          ) : (
+            newCreators.map((creator) => <CreatorListItem key={creator.id} creator={creator} />)
+          )}
+        </RailCard>
+      </RailSection>
+
+      <RailSection>
+        <RailHeading>Expired subscriptions</RailHeading>
+        <RailCard className="space-y-3 rounded-3xl border-transparent bg-white p-4 shadow-sm">
+          {expiredSubscriptions.length === 0 ? (
+            <p className="text-xs text-on-surface-variant">No expired subscriptions.</p>
+          ) : (
+            expiredSubscriptions.map((subscription) => (
+              <ExpiredSubscriptionItem key={subscription.id} subscription={subscription} />
+            ))
+          )}
+        </RailCard>
+      </RailSection>
+
+      {showLiveTeaser ? <ExploreRailFooter /> : null}
     </>
   );
 }
 
-function ExploreLiveTeaser() {
+function CreatorListItem({ creator }: { creator: RailCreator }) {
   return (
-    <RailSection>
-      <div className="flex items-center justify-between gap-2">
-        <RailHeading className="mb-0">Live right now</RailHeading>
-        <span className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-tertiary" aria-hidden />
-      </div>
-      <RailCard className="p-0">
-        <Link href="/live" className="group block overflow-hidden rounded-xl">
-          <div className="relative aspect-video bg-surface-container-high">
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-            <div className="absolute left-2 top-2 rounded bg-tertiary px-2 py-0.5 text-[8px] font-black uppercase text-white">
-              Live
-            </div>
-            <div className="absolute bottom-2 left-2 right-2">
-              <p className="truncate text-[10px] font-bold text-white">Browse live streams</p>
-              <p className="mt-0.5 flex items-center gap-1 text-[8px] text-white/80">
-                <span className="material-symbols-outlined text-[10px]">visibility</span>
-                Join the community
-              </p>
-            </div>
-          </div>
-        </Link>
-      </RailCard>
-    </RailSection>
+    <div className="flex items-center gap-3">
+      <Link href={`/c/${creator.handle}`} className="flex min-w-0 flex-1 items-center gap-3">
+        <Avatar className="h-10 w-10 shrink-0">
+          <AvatarImage src={creator.avatarUrl || ''} alt="" />
+          <AvatarFallback className="text-xs">{creator.displayName[0] || 'N'}</AvatarFallback>
+        </Avatar>
+        <div className="min-w-0">
+          <p className="truncate text-sm font-bold text-on-surface">{creator.displayName}</p>
+          <p className="truncate text-[11px] text-on-surface-variant">
+            {Math.max(creator.subscriberCount, 0).toLocaleString()} fans
+          </p>
+        </div>
+      </Link>
+      <Link
+        href={`/c/${creator.handle}`}
+        className="rounded-full border border-primary/30 px-3 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
+      >
+        Follow
+      </Link>
+    </div>
   );
 }
 
-/**
- * Static discover rail blocks (tags + footer) — keeps spacing consistent via RailSection.
- */
-export function ExploreTrendingTags() {
+function ExpiredSubscriptionItem({ subscription }: { subscription: SubscriptionItem }) {
+  const expiredDate = new Date(subscription.expiresAt);
+  const formattedDate = Number.isNaN(expiredDate.valueOf())
+    ? 'Expired'
+    : `Expired ${expiredDate.toLocaleDateString()}`;
+
   return (
-    <RailSection>
-      <RailHeading>Trending tags</RailHeading>
-      <div className="flex flex-wrap gap-2">
-        {TAGS.map((tag) => (
-          <Link
-            key={tag}
-            href={`/explore?q=${encodeURIComponent(`#${tag}`)}`}
-            className="rounded-full bg-surface-container px-3 py-1.5 text-xs font-semibold text-on-surface transition-colors hover:bg-primary/10 hover:text-primary"
-          >
-            #{tag}
-          </Link>
-        ))}
-      </div>
-    </RailSection>
+    <div className="flex items-center gap-3">
+      <Link
+        href={`/c/${subscription.creator.handle}`}
+        className="flex min-w-0 flex-1 items-center gap-3 overflow-hidden"
+      >
+        <Avatar className="h-9 w-9 shrink-0">
+          <AvatarImage src={subscription.creator.avatarUrl || ''} alt="" />
+          <AvatarFallback className="text-xs">
+            {subscription.creator.displayName[0] || 'N'}
+          </AvatarFallback>
+        </Avatar>
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold text-on-surface">
+            {subscription.creator.displayName}
+          </p>
+          <p className="truncate text-[11px] text-on-surface-variant">{formattedDate}</p>
+        </div>
+      </Link>
+      <Link
+        href={`/c/${subscription.creator.handle}`}
+        className="rounded-full bg-primary px-3 py-1 text-xs font-semibold text-white transition-colors hover:bg-primary/90"
+      >
+        Renew
+      </Link>
+    </div>
   );
 }
 

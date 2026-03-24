@@ -12,7 +12,7 @@ export function PersonalizedFeed() {
 
   return (
     <AppRailLayout
-      centerMaxWidthClassName="max-w-[600px]"
+      centerMaxWidthClassName="max-w-[725px]"
       rail={<ExploreRailContent showLiveTeaser={false} />}
     >
       <Tabs
@@ -40,11 +40,17 @@ export function PersonalizedFeed() {
 
         <div className="px-3 sm:px-4">
           <TabsContent value="for-you" className="mt-0 focus-visible:outline-none">
-            <FeedContainer feedType="for-you" />
+            <FeedContainer
+              feedType="for-you"
+              inlineRail={<ExploreRailContent showLiveTeaser={false} />}
+            />
           </TabsContent>
 
           <TabsContent value="following" className="mt-0 focus-visible:outline-none">
-            <FeedContainer feedType="following" />
+            <FeedContainer
+              feedType="following"
+              inlineRail={<ExploreRailContent showLiveTeaser={false} />}
+            />
           </TabsContent>
         </div>
       </Tabs>

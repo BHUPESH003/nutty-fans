@@ -37,7 +37,7 @@ export default function RootLayout({
       className={`${plusJakartaSans.variable} ${inter.variable}`}
       suppressHydrationWarning
     >
-      <body className={`${inter.variable} bg-background font-body text-foreground antialiased`}>
+      <body className={`${inter.variable} bg-[#f4f5fc] font-body text-foreground antialiased`}>
         <SessionProvider>
           <LowBalanceProvider>
             <VerificationBanner />

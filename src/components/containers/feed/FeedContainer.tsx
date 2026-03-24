@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { type ReactNode, useState, useEffect, useCallback } from 'react';
 
 import { PostCard } from '@/components/posts/PostCard';
 import { Button } from '@/components/ui/button';
@@ -10,9 +10,10 @@ import type { PostWithCreator } from '@/types/content';
 
 interface FeedContainerProps {
   feedType?: 'for-you' | 'following';
+  inlineRail?: ReactNode;
 }
 
-export const FeedContainer = ({ feedType = 'for-you' }: FeedContainerProps) => {
+export const FeedContainer = ({ feedType = 'for-you', inlineRail }: FeedContainerProps) => {
   const { toast } = useToast();
   const [posts, setPosts] = useState<PostWithCreator[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -162,16 +163,22 @@ export const FeedContainer = ({ feedType = 'for-you' }: FeedContainerProps) => {
   return (
     <div className="w-full py-6">
       <div className="space-y-6">
-        {posts.map((post) => (
-          <PostCard
-            key={post.id}
-            post={post}
-            onUnlock={() => handleUnlock(post.id)}
-            onSubscribe={() => handleSubscribe(post.creator.id)}
-            onLike={() => handleLike(post.id)}
-            onBookmark={() => handleBookmark(post.id)}
-          />
+        {posts.map((post, index) => (
+          <div key={post.id} className="space-y-6">
+            <PostCard
+              post={post}
+              onUnlock={() => handleUnlock(post.id)}
+              onSubscribe={() => handleSubscribe(post.creator.id)}
+              onLike={() => handleLike(post.id)}
+              onBookmark={() => handleBookmark(post.id)}
+            />
+            {inlineRail && index === 3 ? <div className="xl:hidden">{inlineRail}</div> : null}
+          </div>
         ))}
+
+        {inlineRail && posts.length > 0 && posts.length < 4 ? (
+          <div className="xl:hidden">{inlineRail}</div>
+        ) : null}
 
         {posts.length === 0 && (
           <div className="py-12 text-center text-muted-foreground">

@@ -227,7 +227,7 @@ export class MeilisearchService {
       };
 
       if (filters?.categoryId) {
-        searchOptions.filter = `categoryId = ${filters.categoryId}`;
+        searchOptions.filter = `categoryId = "${filters.categoryId}"`;
       }
 
       const results = await this.creatorsIndex.search<CreatorHit>(query, searchOptions);
@@ -238,7 +238,7 @@ export class MeilisearchService {
         displayName: string;
         avatarUrl: string | null;
         bio: string | null;
-        subscriberCount: number;
+        totalSubscribers: number;
         isVerified: boolean;
         categoryName: string | null;
       }
@@ -250,7 +250,7 @@ export class MeilisearchService {
           displayName: hit.displayName,
           avatarUrl: hit.avatarUrl,
           bio: hit.bio,
-          subscriberCount: hit.subscriberCount,
+          subscriberCount: hit.totalSubscribers,
           isVerified: hit.isVerified,
           categoryName: hit.categoryName,
         })),

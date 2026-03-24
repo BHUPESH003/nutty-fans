@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 
+import { ExploreRailContent } from '@/components/explore/ExploreRailExtras';
 import { PostCard } from '@/components/posts/PostCard';
 import { apiClient } from '@/services/apiClient';
 import type { PostWithCreator } from '@/types/content';
@@ -63,9 +64,21 @@ export function ExploreFeed() {
 
   return (
     <div className="space-y-4">
-      {posts.map((post) => (
-        <PostCard key={post.id} post={post} />
+      {posts.map((post, index) => (
+        <div key={post.id} className="space-y-6">
+          <PostCard post={post} />
+          {index === 3 ? (
+            <div className="xl:hidden">
+              <ExploreRailContent showLiveTeaser={false} />
+            </div>
+          ) : null}
+        </div>
       ))}
+      {posts.length > 0 && posts.length < 4 ? (
+        <div className="xl:hidden">
+          <ExploreRailContent showLiveTeaser={false} />
+        </div>
+      ) : null}
 
       {hasMore && (
         <div className="pt-4 text-center">

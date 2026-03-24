@@ -38,7 +38,7 @@ export function PublicFeed() {
 
   return (
     <AppRailLayout
-      centerMaxWidthClassName="max-w-[600px]"
+      centerMaxWidthClassName="max-w-[725px]"
       rail={<ExploreRailContent showLiveTeaser={false} />}
     >
       <div className="space-y-6 px-4 py-4 md:px-5">
@@ -86,19 +86,30 @@ export function PublicFeed() {
               </span>
             </div>
           ) : posts.length > 0 ? (
-            posts.map((post) => (
-              <PostCard
-                key={post.id}
-                post={post}
-                onLike={() => handleInteraction('like this post')}
-                onBookmark={() => handleInteraction('bookmark this post')}
-              />
+            posts.map((post, index) => (
+              <div key={post.id} className="space-y-6">
+                <PostCard
+                  post={post}
+                  onLike={() => handleInteraction('like this post')}
+                  onBookmark={() => handleInteraction('bookmark this post')}
+                />
+                {index === 3 ? (
+                  <div className="xl:hidden">
+                    <ExploreRailContent showLiveTeaser={false} />
+                  </div>
+                ) : null}
+              </div>
             ))
           ) : (
             <div className="py-8 text-center text-on-surface-variant">
               <p>No public posts available right now.</p>
             </div>
           )}
+          {posts.length > 0 && posts.length < 4 ? (
+            <div className="xl:hidden">
+              <ExploreRailContent showLiveTeaser={false} />
+            </div>
+          ) : null}
         </div>
       </div>
     </AppRailLayout>

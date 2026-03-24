@@ -6,10 +6,12 @@ import Link from 'next/link';
 import { useState, useCallback } from 'react';
 
 import { MediaRenderer } from '@/components/media/MediaRenderer';
+import { VideoPlayer } from '@/components/media/VideoPlayer';
 import { PostInteractions } from '@/components/posts/PostInteractions';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogClose, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { apiClient } from '@/services/apiClient';
-import type { PostWithCreator } from '@/types/content';
+import type { MediaItem, PostWithCreator } from '@/types/content';
 
 interface PostCardProps {
   post: PostWithCreator;
@@ -34,8 +36,14 @@ export function PostCard({
 }: PostCardProps) {
   const [isUnlocking, setIsUnlocking] = useState(false);
   const [hasAccess, setHasAccess] = useState(post.hasAccess ?? true);
+  const [isMediaModalOpen, setIsMediaModalOpen] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState(1);
 
   const isLocked = !hasAccess && post.accessLevel !== 'free';
+  const primaryMedia = post.media[0];
+  const isPrimaryImage = primaryMedia?.mediaType === 'image';
+  const isPrimaryVideo = primaryMedia?.mediaType === 'video';
+  const modalMediaUrl = getMediaUrl(primaryMedia);
 
   const handleUnlock = useCallback(async () => {
     if (!post.ppvPrice || post.accessLevel !== 'ppv') return;
@@ -127,16 +135,51 @@ export function PostCard({
 
       {/* Media - Full width, drives layout */}
       {post.media.length > 0 && (
-        <MediaRenderer
-          media={post.media}
-          variant={variant}
-          isLocked={isLocked}
-          accessLevel={post.accessLevel}
-          ppvPrice={post.ppvPrice}
-          onUnlock={handleUnlock}
-          onSubscribe={onSubscribe}
-          isUnlocking={isUnlocking}
-        />
+        <div className="relative">
+          <div
+            role={isLocked ? undefined : 'button'}
+            tabIndex={isLocked ? -1 : 0}
+            className="block w-full text-left"
+            onClick={() => {
+              if (isLocked) return;
+              setZoomLevel(1);
+              setIsMediaModalOpen(true);
+            }}
+            onKeyDown={(event) => {
+              if (isLocked) return;
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                setZoomLevel(1);
+                setIsMediaModalOpen(true);
+              }
+            }}
+            aria-label="Open media viewer"
+          >
+            <MediaRenderer
+              media={post.media}
+              variant={variant}
+              isLocked={isLocked}
+              accessLevel={post.accessLevel}
+              ppvPrice={post.ppvPrice}
+              onUnlock={handleUnlock}
+              onSubscribe={onSubscribe}
+              isUnlocking={isUnlocking}
+            />
+          </div>
+          {!isLocked ? (
+            <button
+              type="button"
+              onClick={() => {
+                setZoomLevel(1);
+                setIsMediaModalOpen(true);
+              }}
+              className="absolute right-3 top-3 z-10 rounded-full bg-black/60 p-2 text-white transition-colors hover:bg-black/75"
+              aria-label="Open media in viewer"
+            >
+              <span className="material-symbols-outlined text-[18px]">open_in_full</span>
+            </button>
+          ) : null}
+        </div>
       )}
 
       {/* Interaction Bar */}
@@ -183,6 +226,82 @@ export function PostCard({
           {post.viewCount.toLocaleString()} views
         </span>
       </div>
+
+      <Dialog open={isMediaModalOpen} onOpenChange={setIsMediaModalOpen}>
+        <DialogContent className="w-[min(96vw,780px)] max-w-none border-surface-container-high bg-background p-3 md:p-4">
+          <DialogTitle className="sr-only">{post.creator.displayName} media viewer</DialogTitle>
+          <div className="flex items-center justify-between border-b border-surface-container-high/70 pb-2">
+            <p className="truncate text-sm font-semibold text-on-surface">
+              {post.creator.displayName}
+            </p>
+            <div className="flex items-center gap-2">
+              {isPrimaryImage ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setZoomLevel((prev) => Math.max(1, prev - 0.25))}
+                    className="rounded-full border border-surface-container-high px-2 py-1 text-xs"
+                    aria-label="Zoom out"
+                  >
+                    -
+                  </button>
+                  <span className="w-12 text-center text-xs text-on-surface-variant">
+                    {Math.round(zoomLevel * 100)}%
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setZoomLevel((prev) => Math.min(3, prev + 0.25))}
+                    className="rounded-full border border-surface-container-high px-2 py-1 text-xs"
+                    aria-label="Zoom in"
+                  >
+                    +
+                  </button>
+                </>
+              ) : null}
+              <DialogClose className="rounded-full border border-surface-container-high p-1.5 text-on-surface-variant hover:bg-surface-container-low">
+                <span className="material-symbols-outlined text-[18px]">close</span>
+              </DialogClose>
+            </div>
+          </div>
+
+          <div className="mt-3 flex max-h-[78vh] min-h-[320px] items-center justify-center overflow-auto rounded-xl bg-black/90 p-2">
+            {isPrimaryImage && modalMediaUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={modalMediaUrl}
+                alt="Post media preview"
+                className="max-h-[72vh] w-auto max-w-full object-contain transition-transform duration-200"
+                style={{ transform: `scale(${zoomLevel})` }}
+              />
+            ) : null}
+            {isPrimaryVideo && primaryMedia ? (
+              <div className="w-full max-w-full overflow-hidden rounded-md">
+                <VideoPlayer
+                  videoId={primaryMedia.id}
+                  poster={primaryMedia.thumbnailUrl || undefined}
+                  duration={primaryMedia.duration}
+                  variant="detail"
+                  autoplay={false}
+                  muted={false}
+                  loop={false}
+                />
+              </div>
+            ) : null}
+            {!isPrimaryVideo && !modalMediaUrl ? (
+              <div className="text-sm text-white/80">Media unavailable for viewer.</div>
+            ) : null}
+          </div>
+        </DialogContent>
+      </Dialog>
     </article>
   );
+}
+
+function getMediaUrl(media?: MediaItem) {
+  if (!media) return null;
+  const processed = media.processedUrl;
+  const original = media.originalUrl;
+  if (processed && processed !== 'locked') return processed;
+  if (original && original !== 'locked') return original;
+  return null;
 }

@@ -248,11 +248,11 @@ function SidebarNavLink({
       href={href}
       title={label}
       className={cn(
-        'group flex items-center rounded-full py-2.5 text-[15px] transition-colors',
+        'group flex items-center rounded-2xl py-2.5 text-[15px] transition-colors',
         expanded ? 'gap-4 px-4' : 'mx-auto w-12 justify-center px-0',
         active
-          ? 'font-bold text-foreground'
-          : 'font-normal text-neutral-600 hover:bg-neutral-100/80'
+          ? 'bg-white font-bold text-primary shadow-sm'
+          : 'font-normal text-neutral-600 hover:bg-white/80'
       )}
     >
       <span className="material-symbols-outlined shrink-0 text-[26px] leading-none">{icon}</span>
@@ -275,6 +275,7 @@ export function AppShell({ children, user }: AppShellProps) {
   const isExploreRoute = pathname === '/explore' || pathname.startsWith('/explore/');
 
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
 
   useEffect(() => {
     try {
@@ -299,16 +300,22 @@ export function AppShell({ children, user }: AppShellProps) {
     });
   }, []);
 
+  useEffect(() => {
+    setMobileSearchOpen(false);
+  }, [pathname]);
+
   return (
-    <div className="min-h-screen bg-background text-foreground selection:bg-primary/30">
-      {/* Mobile top bar — search + quick actions */}
-      <header className="sticky top-0 z-40 w-full border-b border-neutral-200/80 bg-white/90 backdrop-blur-xl md:hidden">
+    <div className="min-h-screen bg-[#f4f5fc] text-foreground selection:bg-primary/30">
+      {/* Mobile top bar — icon-triggered search + quick actions */}
+      <header className="sticky top-0 z-40 w-full bg-[#f4f5fc]/95 backdrop-blur-xl md:hidden">
         <div className="mx-auto flex h-14 max-w-[1440px] items-center gap-2 px-3 sm:px-4">
-          <Link href="/" className="flex shrink-0 items-center" aria-label="NuttyFans home">
-            <span className="font-headline text-lg font-black text-primary">NuttyFans</span>
-          </Link>
+          {!mobileSearchOpen ? (
+            <Link href="/" className="flex shrink-0 items-center" aria-label="NuttyFans home">
+              <span className="font-headline text-lg font-black text-primary">NuttyFans</span>
+            </Link>
+          ) : null}
           <div className="min-w-0 flex-1">
-            {!isExploreRoute ? (
+            {mobileSearchOpen && !isExploreRoute ? (
               <Suspense
                 fallback={
                   <div className="h-10 w-full animate-pulse rounded-full bg-surface-container-low" />
@@ -321,12 +328,26 @@ export function AppShell({ children, user }: AppShellProps) {
                 />
               </Suspense>
             ) : (
-              <p className="truncate text-center font-headline text-sm font-bold text-on-surface">
-                Discover
-              </p>
+              isExploreRoute && (
+                <p className="truncate text-center font-headline text-sm font-bold text-on-surface">
+                  Discover
+                </p>
+              )
             )}
           </div>
           <div className="flex shrink-0 items-center gap-1">
+            {!isExploreRoute ? (
+              <button
+                type="button"
+                onClick={() => setMobileSearchOpen((prev) => !prev)}
+                className="flex h-10 w-10 items-center justify-center rounded-full text-on-surface-variant transition-colors hover:bg-surface-container-low"
+                aria-label={mobileSearchOpen ? 'Close search' : 'Open search'}
+              >
+                <span className="material-symbols-outlined text-[22px]">
+                  {mobileSearchOpen ? 'close' : 'search'}
+                </span>
+              </button>
+            ) : null}
             <CreatorNavButton className="hidden sm:flex" />
             {showCreatorDashboard ? (
               <Link
@@ -337,14 +358,6 @@ export function AppShell({ children, user }: AppShellProps) {
               </Link>
             ) : null}
             <NotificationBell />
-            <Link href="/profile" className="flex" aria-label="Your profile">
-              <Avatar className="h-8 w-8 ring-2 ring-surface-container-high transition-all hover:ring-primary/30">
-                {user?.avatarUrl ? <AvatarImage src={user.avatarUrl} alt="" /> : null}
-                <AvatarFallback className="bg-surface-container-low text-[10px] text-on-surface">
-                  {accountInitials(user) || 'NF'}
-                </AvatarFallback>
-              </Avatar>
-            </Link>
           </div>
         </div>
       </header>
@@ -353,8 +366,8 @@ export function AppShell({ children, user }: AppShellProps) {
         {/* Desktop sidebar — X-style: icons + labels, collapsible */}
         <aside
           className={cn(
-            'fixed bottom-0 left-0 top-0 z-30 hidden h-screen border-r border-neutral-200/90 bg-white transition-[width] duration-200 ease-out md:flex md:flex-col',
-            sidebarExpanded ? 'w-[275px]' : 'w-[72px]'
+            'fixed bottom-0 left-0 top-0 z-30 hidden h-screen bg-transparent transition-[width] duration-200 ease-out md:flex md:flex-col',
+            sidebarExpanded ? 'w-[290px]' : 'w-[72px]'
           )}
         >
           <div className="flex h-full min-h-0 flex-col px-2 pb-3 pt-2">
@@ -382,33 +395,6 @@ export function AppShell({ children, user }: AppShellProps) {
               </Link>
             </div>
 
-            {!isExploreRoute ? (
-              <div className={cn('mb-3 min-w-0', sidebarExpanded ? 'px-2' : 'flex justify-center')}>
-                {sidebarExpanded ? (
-                  <Suspense
-                    fallback={
-                      <div className="h-11 w-full animate-pulse rounded-full bg-surface-container-low" />
-                    }
-                  >
-                    <SearchBar
-                      variant="discover"
-                      className="w-full"
-                      placeholder="Search creators, posts..."
-                    />
-                  </Suspense>
-                ) : (
-                  <Link
-                    href="/explore"
-                    className="flex h-12 w-12 items-center justify-center rounded-full text-neutral-600 transition-colors hover:bg-neutral-100/80"
-                    aria-label="Search"
-                    title="Search"
-                  >
-                    <span className="material-symbols-outlined text-[26px]">search</span>
-                  </Link>
-                )}
-              </div>
-            ) : null}
-
             <nav className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto">
               {navItems.map((item) => {
                 const active =
@@ -426,14 +412,6 @@ export function AppShell({ children, user }: AppShellProps) {
                   />
                 );
               })}
-
-              <SidebarNavLink
-                href={'/notifications' as Route}
-                label="Notifications"
-                icon="notifications"
-                active={pathname === '/notifications' || pathname.startsWith('/notifications/')}
-                expanded={sidebarExpanded}
-              />
 
               <div
                 className={cn(
@@ -483,7 +461,7 @@ export function AppShell({ children, user }: AppShellProps) {
               )}
             </div>
 
-            <div className="mt-auto space-y-1 border-t border-neutral-100 pt-2">
+            <div className="mt-auto space-y-1 pt-2">
               <button
                 type="button"
                 onClick={toggleSidebar}
@@ -574,9 +552,27 @@ export function AppShell({ children, user }: AppShellProps) {
           className={cn(
             'w-full min-w-0 flex-1 transition-[margin] duration-200 ease-out',
             'pb-24 md:pb-6',
-            sidebarExpanded ? 'md:ml-[275px]' : 'md:ml-[72px]'
+            sidebarExpanded ? 'md:ml-[290px]' : 'md:ml-[72px]'
           )}
         >
+          {!isExploreRoute ? (
+            <header className="sticky top-0 z-20 hidden bg-[#f4f5fc]/95 backdrop-blur-xl md:block">
+              <div className="mx-auto flex h-16 w-full max-w-[725px] items-center gap-3 px-4 lg:px-5">
+                <Suspense
+                  fallback={
+                    <div className="h-11 w-full animate-pulse rounded-full bg-surface-container-low" />
+                  }
+                >
+                  <SearchBar
+                    variant="discover"
+                    className="min-w-0 flex-1"
+                    placeholder="Search creators, posts..."
+                  />
+                </Suspense>
+                <NotificationBell />
+              </div>
+            </header>
+          ) : null}
           {children}
         </main>
       </div>

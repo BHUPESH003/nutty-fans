@@ -41,10 +41,13 @@ export class SearchService {
         meilisearchService.searchPosts(query, { limit }),
       ]);
 
-      return {
-        creators: creatorsResult.creators,
-        posts: postsResult.posts,
-      };
+      const creators = creatorsResult.creators ?? [];
+      const posts = postsResult.posts ?? [];
+
+      // If search index is empty/outdated, use DB fallback instead of returning empty early.
+      if (creators.length > 0 || posts.length > 0) {
+        return { creators, posts };
+      }
     } catch (error) {
       console.error('Meilisearch search failed, falling back to database:', error);
       // Fallback to database search
@@ -158,7 +161,9 @@ export class SearchService {
     // Try Meilisearch first, fallback to database search
     try {
       const result = await meilisearchService.searchCreators(query, { categoryId, limit });
-      return result.creators;
+      if ((result.creators ?? []).length > 0) {
+        return result.creators;
+      }
     } catch (error) {
       console.error('Meilisearch search failed, falling back to database:', error);
       // Fallback to database search
