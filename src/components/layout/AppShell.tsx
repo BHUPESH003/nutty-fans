@@ -273,6 +273,7 @@ export function AppShell({ children, user }: AppShellProps) {
   const { onboardingStatus, isLoading: creatorStatusLoading } = useCreatorStatus();
   const showCreatorDashboard = !creatorStatusLoading && onboardingStatus === 'active';
   const isExploreRoute = pathname === '/explore' || pathname.startsWith('/explore/');
+  const isReelsRoute = pathname === '/reels' || pathname.startsWith('/reels/');
 
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
@@ -349,6 +350,16 @@ export function AppShell({ children, user }: AppShellProps) {
               </button>
             ) : null}
             <CreatorNavButton className="hidden sm:flex" />
+            {/* Mobile Messages lives at the top (Instagram-like). */}
+            {!isExploreRoute ? (
+              <Link
+                href="/messages"
+                className="flex h-10 w-10 items-center justify-center rounded-full text-on-surface-variant transition-colors hover:bg-surface-container-low"
+                aria-label="Messages"
+              >
+                <span className="material-symbols-outlined text-[22px]">chat_bubble</span>
+              </Link>
+            ) : null}
             {showCreatorDashboard ? (
               <Link
                 href="/creator/dashboard"
@@ -569,6 +580,14 @@ export function AppShell({ children, user }: AppShellProps) {
                     placeholder="Search creators, posts..."
                   />
                 </Suspense>
+                {/* Keep Messages visible on desktop/tablet wherever the header nav exists */}
+                <Link
+                  href="/messages"
+                  className="flex h-10 w-10 items-center justify-center rounded-full text-on-surface-variant transition-colors hover:bg-surface-container-low"
+                  aria-label="Messages"
+                >
+                  <span className="material-symbols-outlined text-[22px]">chat_bubble</span>
+                </Link>
                 <NotificationBell />
               </div>
             </header>
@@ -578,34 +597,38 @@ export function AppShell({ children, user }: AppShellProps) {
       </div>
 
       {/* Mobile bottom navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-neutral-200/90 bg-white/90 backdrop-blur-xl md:hidden">
-        <div className="mx-auto flex max-w-lg items-center justify-around px-1 py-2">
-          {navItems.map((item) => {
-            const active =
-              item.href === '/'
-                ? pathname === '/'
-                : pathname === item.href || pathname.startsWith(`${item.href}/`);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  'flex h-12 w-12 shrink-0 items-center justify-center rounded-full transition-colors',
-                  active ? 'text-primary' : 'text-neutral-400'
-                )}
-                aria-label={item.label}
-              >
-                <span className="material-symbols-outlined text-[24px]">{item.icon}</span>
-              </Link>
-            );
-          })}
-          <MobileAccountDropdown
-            pathname={pathname}
-            user={user}
-            showCreatorDashboard={showCreatorDashboard}
-          />
-        </div>
-      </nav>
+      {!isReelsRoute ? (
+        <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-neutral-200/90 bg-white/90 backdrop-blur-xl md:hidden">
+          <div className="mx-auto flex max-w-lg items-center justify-around px-1 py-2">
+            {navItems.map((item) => {
+              // Keep Messages out of the mobile bottom tray.
+              if (item.href === '/messages') return null;
+              const active =
+                item.href === '/'
+                  ? pathname === '/'
+                  : pathname === item.href || pathname.startsWith(`${item.href}/`);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    'flex h-12 w-12 shrink-0 items-center justify-center rounded-full transition-colors',
+                    active ? 'text-primary' : 'text-neutral-400'
+                  )}
+                  aria-label={item.label}
+                >
+                  <span className="material-symbols-outlined text-[24px]">{item.icon}</span>
+                </Link>
+              );
+            })}
+            <MobileAccountDropdown
+              pathname={pathname}
+              user={user}
+              showCreatorDashboard={showCreatorDashboard}
+            />
+          </div>
+        </nav>
+      ) : null}
     </div>
   );
 }

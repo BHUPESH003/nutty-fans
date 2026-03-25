@@ -1,3 +1,5 @@
+import { Prisma } from '@prisma/client';
+
 import { BookmarkRepository } from '@/repositories/bookmarkRepository';
 import { BundlePurchaseRepository } from '@/repositories/bundlePurchaseRepository';
 import { CreatorRepository } from '@/repositories/creatorRepository';
@@ -64,6 +66,8 @@ export class PostService {
           : input.scheduledAt
             ? 'scheduled'
             : 'draft',
+      previewConfig: input.previewConfig as unknown as Prisma.InputJsonValue,
+      overlays: input.overlays as unknown as Prisma.InputJsonValue,
     });
 
     // Attach media if provided
@@ -278,6 +282,8 @@ export class PostService {
       publishedAt: post.publishedAt,
       expiresAt: post.expiresAt,
       createdAt: post.createdAt,
+      previewConfig: post.previewConfig as unknown as CreatePostInput['previewConfig'],
+      overlays: post.overlays as unknown as CreatePostInput['overlays'],
       creator: {
         id: creator.id,
         handle: user.username ?? 'user',

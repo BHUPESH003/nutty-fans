@@ -130,7 +130,11 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
       </ScrollArea>
 
       {/* Input */}
-      <MessageInput onSend={handleSendMessage} isCreator={isCreator} />
+      <MessageInput
+        onSend={handleSendMessage}
+        isCreator={isCreator}
+        className="border-b border-surface-container-high md:order-3 md:border-b-0 md:border-t"
+      />
     </div>
   );
 }

@@ -125,6 +125,12 @@ export function MyProfilePageContainer() {
                 <Link href="/settings">Settings</Link>
               </Button>
               <Button asChild variant="outline">
+                <Link href="/wallet">
+                  <span className="material-symbols-outlined mr-2 text-[18px]">credit_card</span>
+                  Wallet
+                </Link>
+              </Button>
+              <Button asChild variant="outline">
                 <Link href="/subscriptions">Subscriptions</Link>
               </Button>
             </div>

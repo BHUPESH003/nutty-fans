@@ -25,13 +25,13 @@ export function PersonalizedFeed() {
           <TabsList className="grid h-14 w-full grid-cols-2 rounded-none border-0 bg-transparent p-0">
             <TabsTrigger
               value="for-you"
-              className="h-14 rounded-none border-0 border-b-2 border-transparent bg-transparent text-[15px] font-semibold text-neutral-500 shadow-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
+              className="flex h-14 w-full items-center justify-center rounded-none border-0 border-b-2 border-transparent bg-transparent px-0 py-0 text-[15px] font-semibold text-neutral-500 shadow-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
             >
               For you
             </TabsTrigger>
             <TabsTrigger
               value="following"
-              className="h-14 rounded-none border-0 border-b-2 border-transparent bg-transparent text-[15px] font-semibold text-neutral-500 shadow-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
+              className="flex h-14 w-full items-center justify-center rounded-none border-0 border-b-2 border-transparent bg-transparent px-0 py-0 text-[15px] font-semibold text-neutral-500 shadow-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
             >
               Following
             </TabsTrigger>

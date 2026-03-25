@@ -26,6 +26,7 @@ import type {
   VerifyEmailResponse,
 } from '@/types/auth';
 import type { CreatorStatusResponse } from '@/types/creator';
+import type { SubscriptionPlanType } from '@/types/payments';
 import type {
   AvatarUploadUrlPayload,
   AvatarUploadUrlResponse,
@@ -753,10 +754,7 @@ export const apiClient = {
     /**
      * Subscribe to a creator - debits wallet
      */
-    subscribe(
-      creatorId: string,
-      planType: 'monthly' | '3month' | '6month' | '12month' = 'monthly'
-    ) {
+    subscribe(creatorId: string, planType: SubscriptionPlanType = 'monthly') {
       return request<{ data: { subscriptionId: string; expiresAt: string } }>(
         '/api/subscriptions',
         {
@@ -786,10 +784,7 @@ export const apiClient = {
     },
   },
   subscriptions: {
-    subscribe(
-      creatorId: string,
-      planType: 'monthly' | '3month' | '6month' | '12month' = 'monthly'
-    ) {
+    subscribe(creatorId: string, planType: SubscriptionPlanType = 'monthly') {
       return request<{ data: { subscriptionId: string; expiresAt: string } }>(
         '/api/subscriptions',
         {

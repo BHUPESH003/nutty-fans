@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { apiClient, request } from '@/services/apiClient';
 import type { PostWithCreator } from '@/types/content';
+import type { SubscriptionPlanType } from '@/types/payments';
 
 interface CreatorProfile {
   id: string;
@@ -29,7 +30,7 @@ interface CreatorProfile {
 }
 
 interface SubscriptionPlan {
-  planType: string;
+  planType: SubscriptionPlanType;
   months: number;
   basePrice: number;
   discount: number;
@@ -132,16 +133,30 @@ export function CreatorProfileContainer({ handle }: CreatorProfileContainerProps
     }
   };
 
+  const normalizePlanType = (raw: string): SubscriptionPlanType => {
+    // Backwards-compat: some UI code historically used numeric month keys (3/6/12 month)
+    // while the backend expects "threemonth" | "sixmonth" | "twelvemonth".
+    switch (raw) {
+      case '3month':
+        return 'threemonth';
+      case '6month':
+        return 'sixmonth';
+      case '12month':
+        return 'twelvemonth';
+      default:
+        // Assume backend-compliant values for "monthly" and the long keys.
+        return raw as SubscriptionPlanType;
+    }
+  };
+
   const handleSubscribe = useCallback(
     async (planType: string, _paymentSource: 'wallet' | 'card') => {
       if (!creator) return;
 
       setIsSubscribing(true);
       try {
-        await apiClient.subscriptions.subscribe(
-          creator.id,
-          planType as 'monthly' | '3month' | '6month' | '12month'
-        );
+        const normalizedPlanType = normalizePlanType(planType);
+        await apiClient.subscriptions.subscribe(creator.id, normalizedPlanType);
         setShowSubscribeModal(false);
         // Refresh creator profile to update subscription status
         await fetchCreatorProfile();

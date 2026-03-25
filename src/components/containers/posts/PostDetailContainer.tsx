@@ -3,6 +3,7 @@
 import { useParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 
+import { CommentsTray } from '@/components/posts/CommentsTray';
 import { PostCard } from '@/components/posts/PostCard';
 import { apiClient } from '@/services/apiClient';
 import type { PostWithCreator } from '@/types/content';
@@ -12,6 +13,7 @@ export const PostDetailContainer = () => {
   const id = params?.['id'] as string;
   const [post, setPost] = useState<PostWithCreator | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isCommentsOpen, setIsCommentsOpen] = useState(true);
 
   useEffect(() => {
     const fetchPost = async () => {
@@ -51,13 +53,14 @@ export const PostDetailContainer = () => {
     <div className="mx-auto max-w-2xl px-4 py-8">
       <PostCard post={post} />
 
-      {/* Comments section placeholder */}
-      <div className="mt-8">
-        <h3 className="mb-4 text-lg font-semibold">Comments</h3>
-        <div className="rounded-lg border bg-card p-8 text-center text-muted-foreground">
-          Comments coming soon...
-        </div>
-      </div>
+      {/* Instagram-style bottom comments tray */}
+      <CommentsTray
+        postId={post.id}
+        isOpen={isCommentsOpen}
+        onOpenChange={setIsCommentsOpen}
+        isLocked={!post.hasAccess && post.accessLevel !== 'free'}
+        commentsEnabled={post.commentsEnabled}
+      />
     </div>
   );
 };

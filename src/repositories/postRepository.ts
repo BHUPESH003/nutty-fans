@@ -18,6 +18,8 @@ export class PostRepository {
     scheduledAt?: Date;
     expiresAt?: Date;
     status?: 'draft' | 'scheduled' | 'published';
+    previewConfig?: Prisma.InputJsonValue;
+    overlays?: Prisma.InputJsonValue;
   }) {
     return prisma.post.create({
       data: {
@@ -32,6 +34,8 @@ export class PostRepository {
         expiresAt: data.expiresAt ?? null,
         status: data.status ?? 'draft',
         publishedAt: data.status === 'published' ? new Date() : null,
+        ...(data.previewConfig != null ? { previewConfig: data.previewConfig } : {}),
+        ...(data.overlays != null ? { overlays: data.overlays } : {}),
       },
       include: {
         media: true,

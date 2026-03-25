@@ -6,14 +6,21 @@ import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 interface MessageInputProps {
   onSend: (_content: string, _mediaId?: string, _price?: number) => Promise<void>;
   isCreator: boolean;
   disabled?: boolean;
+  className?: string;
 }
 
-export function MessageInput({ onSend, isCreator, disabled: _disabled }: MessageInputProps) {
+export function MessageInput({
+  onSend,
+  isCreator,
+  disabled: _disabled,
+  className,
+}: MessageInputProps) {
   const [content, setContent] = useState('');
   const [price, setPrice] = useState<number>(0);
   const [sending, setSending] = useState(false);
@@ -51,7 +58,7 @@ export function MessageInput({ onSend, isCreator, disabled: _disabled }: Message
   };
 
   return (
-    <div className="sticky bottom-0 border-t border-surface-container-high bg-white p-3 md:p-4">
+    <div className={cn('bg-white p-3 md:p-4', className)}>
       {price > 0 && (
         <div className="mb-2 flex w-fit items-center gap-2 rounded-md bg-secondary-fixed/10 p-2 text-sm text-secondary">
           <span className="material-symbols-outlined text-[18px]">toll</span>

@@ -35,7 +35,7 @@ export default function CreatorLayout({ children }: { children: React.ReactNode 
   return (
     <CreatorStatusProvider>
       <AppShell user={user}>
-        <div className="mx-auto max-w-4xl py-8">{children}</div>
+        <div className="mx-auto w-full max-w-4xl px-4 py-8 sm:px-6 lg:px-8">{children}</div>
       </AppShell>
     </CreatorStatusProvider>
   );

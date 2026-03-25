@@ -3,6 +3,7 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 
 import { cn } from '@/lib/utils';
+import { request } from '@/services/apiClient';
 import type { MediaItem } from '@/types/content';
 
 import { getMediaAspectRatio } from './mediaAspect';
@@ -16,9 +17,45 @@ interface MediaCarouselProps {
 
 export function MediaCarousel({ media, onSlideChange, className }: MediaCarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [signedImageUrlById, setSignedImageUrlById] = useState<Record<string, string>>({});
   const containerRef = useRef<HTMLDivElement>(null);
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
+
+  // Fetch signed URLs for unlocked image media.
+  useEffect(() => {
+    let cancelled = false;
+
+    const imageItems = media.filter((m) => m.mediaType === 'image');
+    if (imageItems.length === 0) {
+      setSignedImageUrlById({});
+      return;
+    }
+
+    void (async () => {
+      const next: Record<string, string> = {};
+      await Promise.all(
+        imageItems.map(async (item) => {
+          try {
+            const res = await request<{ signedUrl: string }>(`/api/media/${item.id}`);
+            if (res?.signedUrl && typeof res.signedUrl === 'string') {
+              next[item.id] = res.signedUrl;
+            }
+          } catch {
+            // If signing fails, fall back to thumbnailUrl in render.
+          }
+        })
+      );
+
+      if (cancelled) return;
+      // Store only successful sign results.
+      setSignedImageUrlById(next);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [media]);
 
   const goToSlide = useCallback(
     (index: number) => {
@@ -96,7 +133,14 @@ export function MediaCarousel({ media, onSlideChange, className }: MediaCarousel
       >
         {media.map((item) => {
           const mediaUrl = item.processedUrl || item.originalUrl;
-          const isValidUrl = mediaUrl && mediaUrl !== 'locked' && mediaUrl.length > 0;
+          const signedImageUrl =
+            item.mediaType === 'image' ? signedImageUrlById[item.id] : undefined;
+          const imageSrc =
+            item.mediaType === 'image' ? (signedImageUrl ?? item.thumbnailUrl ?? null) : null;
+          const isValidUrl =
+            item.mediaType === 'image'
+              ? !!imageSrc && imageSrc !== 'locked' && imageSrc.length > 0
+              : !!mediaUrl && mediaUrl !== 'locked' && mediaUrl.length > 0;
 
           return (
             <div key={item.id} className="h-full w-full flex-shrink-0">
@@ -107,7 +151,7 @@ export function MediaCarousel({ media, onSlideChange, className }: MediaCarousel
               ) : item.mediaType === 'image' ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={mediaUrl}
+                  src={imageSrc ?? ''}
                   alt="Post media"
                   className="h-full w-full object-cover"
                   draggable={false}

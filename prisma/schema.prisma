@@ -471,6 +471,8 @@ model Post {
   status           PostStatus       @default(draft)
   moderationStatus ModerationStatus @default(pending) @map("moderation_status")
   metadata         Json             @default("{}")
+  previewConfig    Json             @default("{\"type\":\"none\"}") @map("preview_config")
+  overlays         Json             @default("[]")
   createdAt        DateTime         @default(now()) @map("created_at")
   updatedAt        DateTime         @default(now()) @updatedAt @map("updated_at")
 

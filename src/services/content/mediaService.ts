@@ -1,5 +1,6 @@
 import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import sharp from 'sharp';
 
 import { MediaRepository } from '@/repositories/mediaRepository';
 import { muxClient } from '@/services/integrations/mux/muxClient';
@@ -229,15 +230,54 @@ export class MediaService {
       height: data.height,
     });
 
-    // TODO: Queue background job for image processing
-    // - Generate thumbnail
-    // - Create multiple sizes
-    // - Apply invisible watermark
+    // Generate a safe locked-preview thumbnail server-side.
+    // This prevents locked clients from downloading full-resolution images.
+    const s3Get = new GetObjectCommand({
+      Bucket: AWS_S3_BUCKET,
+      Key: data.key,
+    });
 
-    // For now, mark as completed immediately
+    const obj = await s3Client.send(s3Get);
+    const stream = obj.Body as unknown as AsyncIterable<Uint8Array> | null;
+    if (!stream) throw new Error('Failed to read uploaded image from S3');
+
+    const chunks: Buffer[] = [];
+    for await (const chunk of stream) {
+      chunks.push(Buffer.from(chunk));
+    }
+    const imageBuffer = Buffer.concat(chunks);
+
+    // Note: output to JPEG for predictable transcoding & smaller size.
+    const thumbBuffer = await sharp(imageBuffer)
+      .resize({
+        width: 800,
+        height: 800,
+        fit: 'inside',
+        withoutEnlargement: true,
+      })
+      .blur(18)
+      .jpeg({ quality: 75 })
+      .toBuffer();
+
+    const thumbKey = `previews/images/${creatorId}/${mediaId}/thumb-${Date.now()}.jpg`;
+    const putCmd = new PutObjectCommand({
+      Bucket: AWS_S3_BUCKET,
+      Key: thumbKey,
+      Body: thumbBuffer,
+      ContentType: 'image/jpeg',
+    });
+    await s3Client.send(putCmd);
+
+    const thumbUrl = `${CLOUDFRONT_URL}/${thumbKey}`;
+
+    // Mark as completed immediately (MVP)
     await this.mediaRepo.updateProcessingStatus(mediaId, 'completed', {
       processedUrl: originalUrl,
-      thumbnailUrl: originalUrl, // Same as original for now
+      thumbnailUrl: thumbUrl,
+      metadata: {
+        ...(media.metadata && typeof media.metadata === 'object' ? media.metadata : {}),
+        s3Key: data.key,
+      },
     });
 
     return this.mediaRepo.findById(mediaId);

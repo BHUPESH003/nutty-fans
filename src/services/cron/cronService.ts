@@ -1,6 +1,7 @@
 import { CreatorRepository } from '@/repositories/creatorRepository';
 import { PostRepository } from '@/repositories/postRepository';
 import { SubscriptionRepository } from '@/repositories/subscriptionRepository';
+import { TeaserPreviewService } from '@/services/content/previewGeneration/teaserPreviewService';
 import { PayoutService } from '@/services/payments/payoutService';
 import { SubscriptionService } from '@/services/payments/subscriptionService';
 
@@ -10,7 +11,8 @@ export class CronService {
     private readonly postRepo = new PostRepository(),
     private readonly creatorRepo = new CreatorRepository(),
     private readonly subscriptionService = new SubscriptionService(),
-    private readonly payoutService = new PayoutService()
+    private readonly payoutService = new PayoutService(),
+    private readonly teaserPreviewService = new TeaserPreviewService()
   ) {}
 
   async runDailyTasks(now: Date = new Date()) {
@@ -22,6 +24,12 @@ export class CronService {
         errors: [] as string[],
       },
       scheduledPosts: {
+        processed: 0,
+        succeeded: 0,
+        failed: 0,
+        errors: [] as string[],
+      },
+      teaserPreviews: {
         processed: 0,
         succeeded: 0,
         failed: 0,
@@ -85,6 +93,22 @@ export class CronService {
     } catch (err) {
       results.scheduledPosts.errors.push(
         `Scheduled post processing failed: ${err instanceof Error ? err.message : 'Unknown error'}`
+      );
+    }
+
+    // 3) Generate teaser previews for locked teaser configs (ffmpeg -> S3 -> update Media.previewUrl)
+    try {
+      const teaserRes = await this.teaserPreviewService.generateTeaserPreviews({ limit: 15 });
+      results.teaserPreviews = {
+        processed: teaserRes.processed,
+        succeeded: teaserRes.succeeded,
+        failed: teaserRes.failed,
+        errors: teaserRes.errors,
+      };
+    } catch (err) {
+      results.teaserPreviews.failed += 1;
+      results.teaserPreviews.errors.push(
+        err instanceof Error ? err.message : 'Unknown teaser preview job error'
       );
     }
 

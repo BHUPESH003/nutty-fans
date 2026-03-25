@@ -10,8 +10,8 @@ interface PaywallOverlayProps {
   accessLevel: AccessLevel;
   ppvPrice?: number | null;
   previewUrl?: string | null;
-  onUnlock?: () => void;
-  onSubscribe?: () => void;
+  onUnlock?: () => void | Promise<void>;
+  onSubscribe?: () => void | Promise<void>;
   isLoading?: boolean;
   className?: string;
 }

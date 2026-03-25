@@ -29,6 +29,8 @@ export interface CreatePostInput {
   mediaIds?: string[];
   tags?: string[];
   status?: PostStatus;
+  previewConfig?: PostPreviewConfig;
+  overlays?: PostOverlay[];
 }
 
 export interface UpdatePostInput {
@@ -74,6 +76,8 @@ export interface PostWithCreator {
   publishedAt: Date | null;
   expiresAt: Date | null;
   createdAt: Date;
+  previewConfig?: PostPreviewConfig;
+  overlays?: PostOverlay[];
   creator: {
     id: string;
     handle: string;
@@ -86,6 +90,52 @@ export interface PostWithCreator {
   isLiked?: boolean;
   isBookmarked?: boolean;
   hasAccess?: boolean;
+}
+
+// ============================================
+// Preview configuration (locked preview UX)
+// ============================================
+
+export type PostPreviewType = 'none' | 'blur' | 'partial_blur' | 'crop' | 'teaser';
+
+export interface BlurRegion {
+  /**
+   * Percent coordinates relative to the rendered preview frame (0-100).
+   */
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface CropRegion {
+  /**
+   * Percent coordinates relative to the rendered preview frame (0-100).
+   */
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface PostPreviewConfig {
+  type: PostPreviewType;
+  blurIntensity?: number; // 0-20 (front-end driven)
+  blurRegions?: BlurRegion[];
+  cropRegion?: CropRegion;
+  teaserDuration?: number; // seconds
+}
+
+export interface PostOverlay {
+  type: 'sticker' | 'mask';
+  /**
+   * URL to overlay asset (percent positioning is applied by the UI).
+   */
+  assetUrl: string;
+  x: number; // 0-100
+  y: number; // 0-100
+  width: number; // 0-100
+  height: number; // 0-100
 }
 
 export interface MediaItem {

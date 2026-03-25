@@ -148,7 +148,7 @@ export function ReelsView({ initialPosts = [] }: ReelsViewProps) {
 
   if (isLoading && reels.length === 0) {
     return (
-      <div className="flex h-screen items-center justify-center bg-black">
+      <div className="flex h-[calc(100vh-3.5rem)] items-center justify-center bg-black md:h-screen">
         <span className="material-symbols-outlined animate-spin text-5xl text-white">
           progress_activity
         </span>
@@ -158,7 +158,7 @@ export function ReelsView({ initialPosts = [] }: ReelsViewProps) {
 
   if (reels.length === 0) {
     return (
-      <div className="flex h-screen flex-col items-center justify-center bg-black text-white">
+      <div className="flex h-[calc(100vh-3.5rem)] flex-col items-center justify-center bg-black text-white md:h-screen">
         <p className="text-lg">No reels available</p>
         <p className="mt-2 text-sm text-white/60">Check back later for new content</p>
       </div>
@@ -166,7 +166,7 @@ export function ReelsView({ initialPosts = [] }: ReelsViewProps) {
   }
 
   return (
-    <div className="relative h-screen overflow-hidden bg-black">
+    <div className="relative h-[calc(100vh-3.5rem)] overflow-hidden bg-black md:h-screen">
       {/* Navigation hints (desktop) */}
       <div className="pointer-events-none absolute right-4 top-1/2 z-20 hidden -translate-y-1/2 flex-col gap-4 lg:flex">
         <button
@@ -211,7 +211,7 @@ export function ReelsView({ initialPosts = [] }: ReelsViewProps) {
           <div
             key={reel.id}
             ref={(el) => observeReel(el, index)}
-            className="h-screen w-full snap-start snap-always"
+            className="h-[calc(100vh-3.5rem)] w-full snap-start snap-always md:h-screen"
           >
             <ReelCard
               post={reel}

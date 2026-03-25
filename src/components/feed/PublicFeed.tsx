@@ -33,7 +33,7 @@ export function PublicFeed() {
   }, []);
 
   const handleInteraction = (action: string) => {
-    requireAuth(action);
+    return requireAuth(action);
   };
 
   return (

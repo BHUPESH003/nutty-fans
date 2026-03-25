@@ -253,6 +253,8 @@ export class FeedService {
       publishedAt: post.publishedAt,
       expiresAt: post.expiresAt,
       createdAt: post.createdAt,
+      previewConfig: post.previewConfig as unknown as PostWithCreator['previewConfig'],
+      overlays: post.overlays as unknown as PostWithCreator['overlays'],
       creator: {
         id: creator.id,
         handle: user.username ?? 'user',
@@ -305,6 +307,8 @@ export class FeedService {
       publishedAt: post.publishedAt,
       expiresAt: post.expiresAt,
       createdAt: post.createdAt,
+      previewConfig: post.previewConfig as unknown as PostWithCreator['previewConfig'],
+      overlays: post.overlays as unknown as PostWithCreator['overlays'],
       creator: {
         id: post.creatorId,
         handle: '',
