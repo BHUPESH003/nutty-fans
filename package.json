@@ -8,8 +8,8 @@
     "prepare": "husky install || true",
     "build": "npx prisma migrate deploy && npx prisma generate && next build",
     "start": "next start",
-    "lint": "eslint . --max-warnings 0",
-    "lint:fix": "eslint . --fix",
+    "lint": "eslint . --max-warnings 0 --no-warn-ignored",
+    "lint:fix": "eslint . --fix --no-warn-ignored",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
@@ -121,7 +121,7 @@
   },
   "lint-staged": {
     "*.{ts,tsx}": [
-      "eslint --fix --max-warnings 0",
+      "eslint --fix --max-warnings 0 --no-warn-ignored",
       "prettier --write"
     ],
     "*.{json,md,css}": [
