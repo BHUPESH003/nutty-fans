@@ -1,4 +1,5 @@
 import { redisPub } from '@/lib/redis/redisClient';
+import { jsonSafeReplacer } from '@/lib/serialization/jsonSafe';
 
 type WsPublishPayload = {
   event: string;
@@ -18,7 +19,7 @@ export async function emitNewMessageToUser(
     room: `user:${userId}`,
     data: message,
   };
-  await redisPub.publish(CHANNEL, JSON.stringify(payload));
+  await redisPub.publish(CHANNEL, JSON.stringify(payload, jsonSafeReplacer));
 }
 
 export async function emitMessageUnlockedToUser(
@@ -31,7 +32,7 @@ export async function emitMessageUnlockedToUser(
     room: `user:${userId}`,
     data: message,
   };
-  await redisPub.publish(CHANNEL, JSON.stringify(payload));
+  await redisPub.publish(CHANNEL, JSON.stringify(payload, jsonSafeReplacer));
 }
 
 export async function emitMessageReaction(conversationId: string, reaction: unknown) {
@@ -40,5 +41,5 @@ export async function emitMessageReaction(conversationId: string, reaction: unkn
     room: `conv:${conversationId}`,
     data: reaction,
   };
-  await redisPub.publish(CHANNEL, JSON.stringify(payload));
+  await redisPub.publish(CHANNEL, JSON.stringify(payload, jsonSafeReplacer));
 }

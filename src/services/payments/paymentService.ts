@@ -171,6 +171,11 @@ export class PaymentService {
       },
       { skipCommission: true, status: 'completed', stripePaymentId: paymentId }
     );
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { walletBalance: { increment: amount } },
+    });
   }
 
   // ============================================
@@ -208,6 +213,11 @@ export class PaymentService {
       },
       { status: 'completed' }
     );
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { walletBalance: { decrement: params.amount } },
+    });
 
     const newBalance = await this.getWalletBalance(userId);
 
@@ -370,36 +380,14 @@ export class PaymentService {
   // ============================================
 
   /**
-   * Get current wallet balance (derived from ledger)
+   * Get current wallet balance (stored on `User.walletBalance`, same as wallet API + PPV checks).
    */
   async getWalletBalance(userId: string): Promise<number> {
-    // Sum of completed top-ups
-    const topups = await prisma.transaction.aggregate({
-      where: {
-        userId,
-        transactionType: 'wallet_topup',
-        status: 'completed',
-      },
-      _sum: { amount: true },
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { walletBalance: true },
     });
-
-    // Sum of wallet debits
-    const debits = await prisma.transaction.aggregate({
-      where: {
-        userId,
-        status: 'completed',
-        metadata: {
-          path: ['paidWithWallet'],
-          equals: true,
-        },
-      },
-      _sum: { amount: true },
-    });
-
-    const topupTotal = topups._sum.amount?.toNumber() ?? 0;
-    const debitTotal = debits._sum.amount?.toNumber() ?? 0;
-
-    return Math.max(0, topupTotal - debitTotal);
+    return user?.walletBalance.toNumber() ?? 0;
   }
 
   /**
@@ -432,11 +420,12 @@ export class PaymentService {
     }
 
     // Create refund transaction (wallet credit)
+    const creditAmount = transaction.amount.toNumber();
     await transactionService.createTransaction(
       {
         userId: transaction.userId,
         transactionType: 'refund',
-        amount: transaction.amount.toNumber(),
+        amount: creditAmount,
         description: `Refund: ${reason}`,
         relatedId: transactionId,
         relatedType: 'refund',
@@ -449,6 +438,11 @@ export class PaymentService {
       },
       { skipCommission: true, status: 'completed' }
     );
+
+    await prisma.user.update({
+      where: { id: transaction.userId },
+      data: { walletBalance: { increment: creditAmount } },
+    });
 
     // Mark original transaction as refunded
     await transactionService.refundTransaction(transactionId);

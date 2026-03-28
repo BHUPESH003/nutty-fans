@@ -1,4 +1,4 @@
-// Removed unused prisma import
+import { prisma } from '@/lib/db/prisma';
 import { TransactionRepository } from '@/repositories/transactionRepository';
 import { WalletRepository } from '@/repositories/walletRepository';
 import { transactionService } from '@/services/finance/transactionService';
@@ -76,6 +76,11 @@ export class WalletService {
       },
       { status: 'completed' } // Wallet transactions are instant
     );
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { walletBalance: { decrement: amount } },
+    });
 
     return {
       id: result.transactionId,

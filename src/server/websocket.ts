@@ -1,10 +1,9 @@
 import { createServer } from 'http';
 
 import { createAdapter } from '@socket.io/redis-adapter';
-import { getToken } from 'next-auth/jwt';
+import { decode } from 'next-auth/jwt';
 import { Server as SocketIOServer, type Socket } from 'socket.io';
 
-import { authOptions } from '@/lib/auth/authOptions';
 import { prisma } from '@/lib/db/prisma';
 import { redisPub, redisSub } from '@/lib/redis/redisClient';
 
@@ -89,77 +88,145 @@ export const io = new SocketIOServer<ClientToServerEvents, ServerToClientEvents>
 // Redis adapter for horizontal scaling
 io.adapter(createAdapter(redisPub, redisSub));
 
+// io.use(async (socket, next) => {
+//   try {
+//     const cookieHeader = socket.handshake.headers.cookie || '';
+//     const cookieNames =
+//       cookieHeader
+//         .split(';')
+//         .map((p) => p.trim().split('=')[0])
+//         .filter(Boolean)
+//         .slice(0, 12)
+//         .join(', ') || '(none)';
+
+//     if (!cookieHeader) {
+//       console.warn('[WS] Unauthorized handshake (no cookies)', {
+//         origin: socket.handshake.headers.origin,
+//       });
+//       return next(new Error('Unauthorized'));
+//     }
+
+//     // next-auth `getToken` reads cookies from request.headers.cookie
+//     const secretFromEnv = process.env['NEXTAUTH_SECRET'];
+//     const secret = secretFromEnv ?? authOptions.secret;
+//     const hasSecret = Boolean(secret);
+//     const req = new Request('http://localhost', {
+//       headers: new Headers({ cookie: cookieHeader }),
+//     });
+
+//     const token = await getToken({
+//       req: req as unknown as Parameters<typeof getToken>[0]['req'],
+//       secret,
+//     });
+
+//     if (!token) {
+//       const sessionTokenPart =
+//         cookieHeader
+//           .split(';')
+//           .map((p) => p.trim())
+//           .find((p) => p.startsWith('next-auth.session-token=')) ?? '';
+//       const sessionTokenValue = sessionTokenPart.split('=').slice(1).join('=') ?? '';
+
+//       console.warn('[WS] Unauthorized handshake (token null)', {
+//         origin: socket.handshake.headers.origin,
+//         cookieNames,
+//         hasSecret,
+//         secretLen: typeof secret === 'string' ? secret.length : 0,
+//         sessionTokenLen: sessionTokenValue ? sessionTokenValue.length : 0,
+//         sessionTokenHasDot: sessionTokenValue.includes('.'),
+//       });
+//       return next(new Error('Unauthorized'));
+//     }
+
+//     const userId = (token.id as string | undefined) ?? token.sub;
+//     if (!userId) {
+//       console.warn('[WS] Unauthorized handshake (missing user id)', {
+//         origin: socket.handshake.headers.origin,
+//         cookieNames,
+//         tokenKeys: Object.keys(token).slice(0, 20),
+//       });
+//       return next(new Error('Unauthorized'));
+//     }
+
+//     socket.data.userId = userId;
+//     next();
+//   } catch {
+//     console.warn('[WS] Unauthorized handshake', {
+//       origin: socket.handshake.headers.origin,
+//       hasCookieHeader: Boolean(socket.handshake.headers.cookie),
+//     });
+//     next(new Error('Unauthorized'));
+//   }
+// });
 io.use(async (socket, next) => {
   try {
     const cookieHeader = socket.handshake.headers.cookie || '';
-    const cookieNames =
-      cookieHeader
-        .split(';')
-        .map((p) => p.trim().split('=')[0])
-        .filter(Boolean)
-        .slice(0, 12)
-        .join(', ') || '(none)';
 
     if (!cookieHeader) {
-      console.warn('[WS] Unauthorized handshake (no cookies)', {
+      console.warn('[WS] No cookies in handshake', {
         origin: socket.handshake.headers.origin,
       });
       return next(new Error('Unauthorized'));
     }
 
-    // next-auth `getToken` reads cookies from request.headers.cookie
-    const secretFromEnv = process.env['NEXTAUTH_SECRET'];
-    const secret = secretFromEnv ?? authOptions.secret;
-    const hasSecret = Boolean(secret);
-    const req = new Request('http://localhost', {
-      headers: new Headers({ cookie: cookieHeader }),
-    });
+    // Parse cookie string into a map
+    const cookies: Record<string, string> = {};
+    for (const part of cookieHeader.split(';')) {
+      const eqIdx = part.indexOf('=');
+      if (eqIdx === -1) continue;
+      const key = part.slice(0, eqIdx).trim();
+      const val = part.slice(eqIdx + 1).trim();
+      cookies[key] = decodeURIComponent(val);
+    }
 
-    const token = await getToken({
-      req: req as unknown as Parameters<typeof getToken>[0]['req'],
-      secret,
-    });
+    // Try all three Next-Auth cookie name variants
+    const sessionToken =
+      cookies['next-auth.session-token'] ??
+      cookies['__Secure-next-auth.session-token'] ??
+      cookies['__Host-next-auth.session-token'];
 
-    if (!token) {
-      const sessionTokenPart =
-        cookieHeader
-          .split(';')
-          .map((p) => p.trim())
-          .find((p) => p.startsWith('next-auth.session-token=')) ?? '';
-      const sessionTokenValue = sessionTokenPart.split('=').slice(1).join('=') ?? '';
-
-      console.warn('[WS] Unauthorized handshake (token null)', {
+    if (!sessionToken) {
+      console.warn('[WS] No session-token cookie found', {
         origin: socket.handshake.headers.origin,
-        cookieNames,
-        hasSecret,
-        secretLen: typeof secret === 'string' ? secret.length : 0,
-        sessionTokenLen: sessionTokenValue ? sessionTokenValue.length : 0,
-        sessionTokenHasDot: sessionTokenValue.includes('.'),
+        cookieKeys: Object.keys(cookies).slice(0, 12).join(', ') || '(none)',
       });
       return next(new Error('Unauthorized'));
     }
 
-    const userId = (token.id as string | undefined) ?? token.sub;
+    const secret = process.env['NEXTAUTH_SECRET'];
+    if (!secret) {
+      console.error('[WS] NEXTAUTH_SECRET is not set — cannot decode token');
+      return next(new Error('Server misconfiguration'));
+    }
+
+    // decode() works on the raw JWT string directly — no fake Request needed
+    const decoded = await decode({ token: sessionToken, secret });
+
+    if (!decoded) {
+      console.warn('[WS] Token decode returned null', {
+        origin: socket.handshake.headers.origin,
+        tokenLength: sessionToken.length,
+        tokenDots: (sessionToken.match(/\./g) ?? []).length, // JWT = 3 parts = 2 dots
+      });
+      return next(new Error('Unauthorized'));
+    }
+
+    const userId = (decoded.id as string | undefined) ?? decoded.sub;
+
     if (!userId) {
-      console.warn('[WS] Unauthorized handshake (missing user id)', {
-        origin: socket.handshake.headers.origin,
-        cookieNames,
-        tokenKeys: Object.keys(token).slice(0, 20),
+      console.warn('[WS] Decoded token has no id/sub', {
+        tokenKeys: Object.keys(decoded).join(', '),
       });
       return next(new Error('Unauthorized'));
     }
 
     socket.data.userId = userId;
     next();
-  } catch {
-    console.warn('[WS] Unauthorized handshake', {
-      origin: socket.handshake.headers.origin,
-      hasCookieHeader: Boolean(socket.handshake.headers.cookie),
-    });
+  } catch (err) {
+    console.error('[WS] Auth middleware exception:', err);
     next(new Error('Unauthorized'));
   }
 });
-
 io.on('connection', (socket: Socket<ClientToServerEvents, ServerToClientEvents>) => {
   const userId = socket.data.userId as string;
 

@@ -254,6 +254,29 @@ const seedUsers: SeedUserSpec[] = [
   },
 ];
 
+/** Ledger row for wallet UI history only; balance is `User.walletBalance`. */
+async function ensureSeedWalletTopupTx(userId: string) {
+  const exists = await prisma.transaction.findFirst({
+    where: {
+      userId,
+      transactionType: 'wallet_topup',
+      metadata: { path: ['seed'], equals: true },
+    },
+  });
+  if (exists) return;
+  await prisma.transaction.create({
+    data: {
+      userId,
+      transactionType: 'wallet_topup',
+      amount: new Prisma.Decimal(1000),
+      currency: 'USD',
+      status: 'completed',
+      description: 'Seed wallet balance',
+      metadata: { seed: true },
+    },
+  });
+}
+
 async function seedDevAccounts() {
   // eslint-disable-next-line no-console
   console.log('👤 Seeding dev users + creators...');
@@ -311,6 +334,8 @@ async function seedDevAccounts() {
         });
       }
 
+      await ensureSeedWalletTopupTx(created.id);
+
       // eslint-disable-next-line no-console
       console.log(`  ✅ Created ${spec.role}: ${spec.email}`);
       continue;
@@ -353,6 +378,8 @@ async function seedDevAccounts() {
         },
       });
     }
+
+    await ensureSeedWalletTopupTx(existing.id);
 
     // eslint-disable-next-line no-console
     console.log(`  ⏭️  Updated ${spec.role}: ${spec.email}`);

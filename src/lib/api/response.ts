@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 
+import { toJsonSafe } from '@/lib/serialization/jsonSafe';
+
 export interface ApiResponse<T = unknown> {
   code: number;
   data: T | null;
@@ -13,10 +15,11 @@ export interface ApiResponse<T = unknown> {
  * @param code HTTP status code (default 200).
  */
 export function successResponse<T>(data: T, message: string = 'Success', code: number = 200) {
+  const safeData = data == null ? data : toJsonSafe(data);
   return NextResponse.json(
     {
       code,
-      data,
+      data: safeData,
       message,
     },
     { status: code }
