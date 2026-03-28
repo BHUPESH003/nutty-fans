@@ -6,6 +6,7 @@ import { signIn, useSession } from 'next-auth/react';
 import * as React from 'react';
 
 import { AuthScreenFrame } from '@/components/auth/AuthScreenFrame';
+import { PasswordInputWithToggle } from '@/components/auth/PasswordInputWithToggle';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -122,26 +123,23 @@ export function LoginContainer({ onLoggedIn }: LoginContainerProps) {
           />
         </div>
 
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="password">Password</Label>
+        <PasswordInputWithToggle
+          id="password"
+          name="password"
+          label="Password"
+          trailingLabel={
             <Link
               href="/forgot-password"
               className="text-sm font-semibold text-primary hover:underline"
             >
               Forgot?
             </Link>
-          </div>
-          <Input
-            id="password"
-            name="password"
-            type="password"
-            autoComplete="current-password"
-            required
-            value={form.password}
-            onChange={handleChange}
-          />
-        </div>
+          }
+          autoComplete="current-password"
+          required
+          value={form.password}
+          onChange={handleChange}
+        />
 
         <Button disabled={isSubmitting} className="h-12 w-full text-base">
           {isSubmitting ? 'Signing in...' : 'Sign in'}

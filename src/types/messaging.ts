@@ -1,10 +1,12 @@
 export interface Message {
   id: string;
+  clientId?: string;
   content: string | null;
   senderId: string;
   conversationId?: string; // Optional as it might not be in the list view projection
   createdAt: string | Date;
-  messageType?: 'text' | 'media' | 'ppv';
+  messageType?: 'text' | 'media' | 'ppv' | 'tip' | 'image' | 'video' | 'audio' | 'system';
+  metadata?: Record<string, unknown>;
   media?: Array<{
     id: string;
     originalUrl: string;
@@ -16,6 +18,17 @@ export interface Message {
   isPaid?: boolean;
   isLocked?: boolean;
   isRead?: boolean;
+
+  // Phase 7: realtime reactions
+  reactions?: Array<{
+    emoji: string;
+    userId: string;
+  }>;
+
+  // Phase 2: delivery/read receipts (WS-driven)
+  status?: 'SENDING' | 'SENT' | 'DELIVERED' | 'READ' | 'FAILED';
+  deliveredAt?: string | Date | null;
+  readAt?: string | Date | null;
 }
 
 export interface Conversation {

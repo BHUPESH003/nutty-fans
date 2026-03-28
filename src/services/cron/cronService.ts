@@ -1,7 +1,9 @@
+import { prisma } from '@/lib/db/prisma';
 import { CreatorRepository } from '@/repositories/creatorRepository';
 import { PostRepository } from '@/repositories/postRepository';
 import { SubscriptionRepository } from '@/repositories/subscriptionRepository';
 import { TeaserPreviewService } from '@/services/content/previewGeneration/teaserPreviewService';
+import { broadcastService } from '@/services/messaging/broadcast/broadcastService';
 import { PayoutService } from '@/services/payments/payoutService';
 import { SubscriptionService } from '@/services/payments/subscriptionService';
 
@@ -30,6 +32,18 @@ export class CronService {
         errors: [] as string[],
       },
       teaserPreviews: {
+        processed: 0,
+        succeeded: 0,
+        failed: 0,
+        errors: [] as string[],
+      },
+      scheduledBroadcasts: {
+        processed: 0,
+        succeeded: 0,
+        failed: 0,
+        errors: [] as string[],
+      },
+      autoTagging: {
         processed: 0,
         succeeded: 0,
         failed: 0,
@@ -109,6 +123,74 @@ export class CronService {
       results.teaserPreviews.failed += 1;
       results.teaserPreviews.errors.push(
         err instanceof Error ? err.message : 'Unknown teaser preview job error'
+      );
+    }
+
+    // 4) Send due scheduled broadcasts (Phase 4 baseline)
+    try {
+      const due = await prisma.broadcast.findMany({
+        where: {
+          status: 'SCHEDULED',
+          scheduledAt: { lte: now },
+        },
+        take: 20,
+      });
+
+      for (const b of due) {
+        try {
+          await broadcastService.sendBroadcast(b.id, b.creatorId);
+          results.scheduledBroadcasts.processed++;
+          results.scheduledBroadcasts.succeeded++;
+        } catch (err) {
+          results.scheduledBroadcasts.processed++;
+          results.scheduledBroadcasts.failed++;
+          results.scheduledBroadcasts.errors.push(
+            `Broadcast ${b.id}: ${err instanceof Error ? err.message : 'Unknown error'}`
+          );
+        }
+      }
+    } catch (err) {
+      results.scheduledBroadcasts.errors.push(
+        `Scheduled broadcast processing failed: ${err instanceof Error ? err.message : 'Unknown error'}`
+      );
+    }
+
+    // 5) Daily auto-tagging hardening (Phase 10 baseline)
+    try {
+      const autoTags = await prisma.fanTag.findMany({
+        where: { isAutomatic: true },
+        take: 50,
+      });
+
+      for (const tag of autoTags) {
+        try {
+          const subs = await prisma.subscription.findMany({
+            where: { creatorId: tag.creatorId, status: 'active' },
+            select: { userId: true },
+            take: 200,
+          });
+
+          for (const sub of subs) {
+            await prisma.fanTagAssignment.upsert({
+              where: { tagId_fanId: { tagId: tag.id, fanId: sub.userId } },
+              update: {},
+              create: { tagId: tag.id, fanId: sub.userId },
+            });
+          }
+
+          results.autoTagging.processed++;
+          results.autoTagging.succeeded++;
+        } catch (err) {
+          results.autoTagging.processed++;
+          results.autoTagging.failed++;
+          results.autoTagging.errors.push(
+            `Auto-tagging for tag ${tag.id}: ${err instanceof Error ? err.message : 'Unknown error'}`
+          );
+        }
+      }
+    } catch (err) {
+      results.autoTagging.errors.push(
+        `Auto-tagging pass failed: ${err instanceof Error ? err.message : 'Unknown error'}`
       );
     }
 

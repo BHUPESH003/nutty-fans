@@ -49,10 +49,18 @@ export function AgeGateScreen({ initialMosaicUrls }: AgeGateScreenProps) {
         <div className="flex justify-center">
           <Link
             href="/"
-            className="font-headline text-lg font-extrabold tracking-wide text-primary"
+            className="inline-flex items-center gap-1.5 font-headline text-lg font-extrabold tracking-wide text-primary"
             style={{ letterSpacing: '0.08em' }}
           >
-            NUTTYFANS
+            <Image
+              src="/Group.svg"
+              alt=""
+              width={32}
+              height={20}
+              className="h-5 w-auto"
+              unoptimized
+            />
+            NuttyFans
           </Link>
         </div>
       </header>
@@ -60,9 +68,19 @@ export function AgeGateScreen({ initialMosaicUrls }: AgeGateScreenProps) {
       {/* Desktop header — logo + nav */}
       <header className="hidden border-b border-surface-container-high bg-white px-8 py-4 lg:block">
         <div className="mx-auto flex max-w-[1600px] items-center justify-between">
-          <Link href="/" className="font-headline text-sm font-bold uppercase tracking-tight">
-            <span className="text-on-surface">Nutty</span>
-            <span className="text-primary">Fans</span>
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 font-headline text-sm font-bold tracking-tight"
+          >
+            <Image
+              src="/Group.svg"
+              alt=""
+              width={36}
+              height={22}
+              className="h-6 w-auto"
+              unoptimized
+            />
+            <span className="text-primary">NuttyFans</span>
           </Link>
           <nav className="flex items-center gap-8 text-sm">
             <a href="#" className="text-on-surface-variant transition-colors hover:text-on-surface">
@@ -223,7 +241,7 @@ export function AgeGateScreen({ initialMosaicUrls }: AgeGateScreenProps) {
                 type="button"
                 onClick={handleConfirm}
                 disabled={isLoading}
-                className="h-12 w-full rounded-full bg-primary text-base font-semibold text-primary-foreground shadow-[0_8px_24px_rgba(186,0,72,0.28)] transition hover:bg-primary/95"
+                className="h-12 w-full rounded-full bg-primary text-base font-semibold text-primary-foreground shadow-[0_8px_24px_rgba(233,30,99,0.28)] transition hover:bg-primary/95"
               >
                 {isLoading ? 'Continuing…' : 'I am 18 or older — Enter NuttyFans'}
               </Button>

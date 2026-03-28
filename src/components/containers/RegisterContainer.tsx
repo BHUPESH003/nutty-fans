@@ -5,6 +5,7 @@ import { signIn } from 'next-auth/react';
 import * as React from 'react';
 
 import { AuthScreenFrame } from '@/components/auth/AuthScreenFrame';
+import { PasswordInputWithToggle } from '@/components/auth/PasswordInputWithToggle';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -80,8 +81,8 @@ export function RegisterContainer() {
   return (
     <AuthScreenFrame
       title="Create account"
-      subtitle="Join NuttyFans and start connecting with your community."
-      bannerTitle="Join NuttyFans."
+      subtitle="Join NF and start connecting with your community."
+      bannerTitle="Join NF."
       bannerSubtitle="Premium creators. Exclusive experiences."
     >
       <Button
@@ -127,18 +128,15 @@ export function RegisterContainer() {
           />
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="password">Password</Label>
-          <Input
-            id="password"
-            name="password"
-            type="password"
-            autoComplete="new-password"
-            required
-            value={form.password}
-            onChange={handleChange}
-          />
-        </div>
+        <PasswordInputWithToggle
+          id="password"
+          name="password"
+          label="Password"
+          autoComplete="new-password"
+          required
+          value={form.password}
+          onChange={handleChange}
+        />
 
         <label className="flex items-start gap-2 rounded-xl bg-surface-container-low p-3 text-sm text-on-surface-variant">
           <input

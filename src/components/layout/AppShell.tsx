@@ -1,6 +1,7 @@
 'use client';
 
 import type { Route } from 'next';
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import React, { Suspense, useCallback, useEffect, useState } from 'react';
@@ -83,7 +84,7 @@ function MobileAccountDropdown({
           <Avatar className="h-9 w-9 ring-2 ring-surface-container-high">
             {user?.avatarUrl ? <AvatarImage src={user.avatarUrl} alt="" /> : null}
             <AvatarFallback className="bg-surface-container-low text-xs text-on-surface">
-              {accountInitials(user) || 'NF'}
+              {accountInitials(user) || 'NuttyFans'}
             </AvatarFallback>
           </Avatar>
         </button>
@@ -169,7 +170,7 @@ function DesktopAccountMenu({
           <Avatar className="h-10 w-10 shrink-0">
             {user?.avatarUrl ? <AvatarImage src={user.avatarUrl} alt="" /> : null}
             <AvatarFallback className="bg-surface-container text-xs text-on-surface">
-              {accountInitials(user) || 'NF'}
+              {accountInitials(user) || 'NuttyFans'}
             </AvatarFallback>
           </Avatar>
           <div className="min-w-0 flex-1">
@@ -311,7 +312,19 @@ export function AppShell({ children, user }: AppShellProps) {
       <header className="sticky top-0 z-40 w-full bg-[#f4f5fc]/95 backdrop-blur-xl md:hidden">
         <div className="mx-auto flex h-14 max-w-[1440px] items-center gap-2 px-3 sm:px-4">
           {!mobileSearchOpen ? (
-            <Link href="/" className="flex shrink-0 items-center" aria-label="NuttyFans home">
+            <Link
+              href="/"
+              className="flex shrink-0 items-center gap-1.5"
+              aria-label="NuttyFans home"
+            >
+              <Image
+                src="/Group.svg"
+                alt=""
+                width={36}
+                height={22}
+                className="h-6 w-auto"
+                unoptimized
+              />
               <span className="font-headline text-lg font-black text-primary">NuttyFans</span>
             </Link>
           ) : null}
@@ -397,11 +410,28 @@ export function AppShell({ children, user }: AppShellProps) {
                 aria-label="NuttyFans home"
               >
                 {sidebarExpanded ? (
-                  <span className="truncate font-headline text-xl font-black text-primary">
-                    NuttyFans
-                  </span>
+                  <>
+                    <Image
+                      src="/Group.svg"
+                      alt=""
+                      width={40}
+                      height={24}
+                      className="h-6 w-auto shrink-0"
+                      unoptimized
+                    />
+                    <span className="truncate font-headline text-xl font-black text-primary">
+                      NuttyFans
+                    </span>
+                  </>
                 ) : (
-                  <span className="font-headline text-xl font-black text-primary">N</span>
+                  <Image
+                    src="/Group.svg"
+                    alt="NuttyFans"
+                    width={36}
+                    height={22}
+                    className="h-7 w-auto shrink-0"
+                    unoptimized
+                  />
                 )}
               </Link>
             </div>
@@ -503,7 +533,7 @@ export function AppShell({ children, user }: AppShellProps) {
                         <Avatar className="h-10 w-10">
                           {user?.avatarUrl ? <AvatarImage src={user.avatarUrl} alt="" /> : null}
                           <AvatarFallback className="bg-surface-container text-xs text-on-surface">
-                            {accountInitials(user) || 'NF'}
+                            {accountInitials(user) || 'NuttyFans'}
                           </AvatarFallback>
                         </Avatar>
                       </button>

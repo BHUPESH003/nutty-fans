@@ -131,6 +131,18 @@ enum MessageType {
   media
   ppv
   tip
+  image
+  video
+  audio
+  system
+}
+
+enum MessageStatus {
+  SENDING
+  SENT
+  DELIVERED
+  READ
+  FAILED
 }
 
 enum ReportedType {
@@ -294,6 +306,14 @@ model User {
   pushSubscriptions    PushSubscription[]
   verificationTokens   VerificationToken[]
   ageVerifications     AgeVerification[]
+
+  // Realtime messaging v2 relations (Phase 0)
+  creatorBroadcasts             Broadcast[]              @relation("CreatorBroadcasts")
+  creatorFanTags                FanTag[]                @relation("CreatorFanTags")
+  welcomeMessageTemplate        WelcomeMessageTemplate? @relation("CreatorWelcomeMessageTemplates")
+  fanTagAssignments             FanTagAssignment[]      @relation("FanTagAssignments")
+  messageReactions             MessageReaction[]       @relation("UserReactions")
+  fanBroadcastPurchases        BroadcastPurchase[]      @relation("FanBroadcastPurchases")
 
   @@index([email])
   @@index([username])
@@ -734,6 +754,11 @@ model Message {
   senderId       String      @map("sender_id") @db.Uuid
   content        String?     @db.Text
   messageType    MessageType @default(text) @map("message_type")
+  clientId       String?     @unique @map("client_id")
+  // Phase 0: v2 realtime message classification (defaults to existing `text`)
+  type           MessageType @default(text) @map("type")
+  status         MessageStatus @default(SENT) @map("status")
+  deliveredAt    DateTime?   @map("delivered_at")
   ppvPrice       Decimal?    @map("ppv_price") @db.Decimal(6, 2)
   isPaid         Boolean     @default(false) @map("is_paid")
   isRead         Boolean     @default(false) @map("is_read")
@@ -746,12 +771,150 @@ model Message {
   sender       User          @relation("SentMessages", fields: [senderId], references: [id])
   media        Media[]
   ppvPurchases PpvPurchase[]
+  reactions     MessageReaction[]
+  broadcastPurchases BroadcastPurchase[]
 
   @@index([conversationId])
   @@index([senderId])
   @@index([createdAt(sort: Desc)])
   @@index([conversationId, createdAt(sort: Desc)])
   @@map("messages")
+}
+
+// =============================================================================
+// REALTIME MESSAGING (PHASE 0 — INFRA PRIMITIVES)
+// =============================================================================
+
+enum BroadcastStatus {
+  DRAFT
+  SCHEDULED
+  SENDING
+  SENT
+  FAILED
+}
+
+enum BroadcastAudience {
+  ALL_SUBSCRIBERS
+  ACTIVE_SUBSCRIBERS
+  TIER_BASED
+  TOP_SPENDERS
+  INACTIVE_FANS
+  EXPIRING_SOON
+  TAGGED_FANS
+  NEW_SUBSCRIBERS
+}
+
+model Broadcast {
+  id              String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  creatorId       String          @map("creator_id") @db.Uuid
+  creator         User            @relation("CreatorBroadcasts", fields: [creatorId], references: [id])
+  status          BroadcastStatus @default(DRAFT)
+  audienceFilter  BroadcastAudience @default(ALL_SUBSCRIBERS)
+  customTagId     String?         @map("custom_tag_id") @db.Uuid
+  fanTag          FanTag?         @relation(fields: [customTagId], references: [id])
+  content         String         @db.Text
+  mediaUrls       String[]       @map("media_urls")
+  ppvPrice        Decimal?       @map("ppv_price") @db.Decimal(6, 2)
+  ppvDescription  String?        @map("ppv_description") @db.Text
+  scheduledAt     DateTime?      @map("scheduled_at")
+  sentAt          DateTime?      @map("sent_at")
+  recipientCount  Int            @default(0) @map("recipient_count")
+  deliveredCount  Int            @default(0) @map("delivered_count")
+  openedCount     Int            @default(0) @map("opened_count")
+  purchasedCount  Int            @default(0) @map("purchased_count")
+  revenueTotal    Decimal        @default(0) @map("revenue_total") @db.Decimal(10, 2)
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @default(now()) @updatedAt @map("updated_at")
+
+  purchases BroadcastPurchase[]
+
+  @@index([creatorId, status])
+  @@index([scheduledAt])
+  @@map("broadcasts")
+}
+
+model FanTag {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  creatorId   String   @map("creator_id") @db.Uuid
+  creator     User     @relation("CreatorFanTags", fields: [creatorId], references: [id])
+  label       String   @db.VarChar(255)
+  color       String?  @map("color") @db.VarChar(20)
+  isAutomatic Boolean  @default(false) @map("is_automatic")
+  rule        Json?     @map("rule")
+
+  fans        FanTagAssignment[]
+  broadcasts  Broadcast[]
+
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@unique([creatorId, label])
+  @@index([creatorId])
+  @@map("fan_tags")
+}
+
+model FanTagAssignment {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tagId       String   @map("tag_id") @db.Uuid
+  tag         FanTag   @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  fanId       String   @map("fan_id") @db.Uuid
+  fan         User     @relation("FanTagAssignments", fields: [fanId], references: [id])
+  assignedAt  DateTime @default(now()) @map("assigned_at")
+
+  @@unique([tagId, fanId])
+  @@index([fanId])
+  @@map("fan_tag_assignments")
+}
+
+model WelcomeMessageTemplate {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  creatorId String   @unique @map("creator_id") @db.Uuid
+  creator   User     @relation("CreatorWelcomeMessageTemplates", fields: [creatorId], references: [id])
+
+  content    String  @db.Text
+  mediaUrls  String[] @map("media_urls")
+  ppvPrice   Decimal? @map("ppv_price") @db.Decimal(6, 2)
+  isEnabled  Boolean @default(true) @map("is_enabled")
+  sentCount  Int     @default(0) @map("sent_count")
+
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@map("welcome_message_templates")
+}
+
+model MessageReaction {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  messageId String   @map("message_id") @db.Uuid
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  userId String @map("user_id") @db.Uuid
+  user   User   @relation("UserReactions", fields: [userId], references: [id])
+
+  emoji     String @db.VarChar(20)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([messageId, userId, emoji])
+  @@index([messageId])
+  @@map("message_reactions")
+}
+
+model BroadcastPurchase {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  broadcastId String   @map("broadcast_id") @db.Uuid
+  broadcast   Broadcast @relation(fields: [broadcastId], references: [id], onDelete: Cascade)
+
+  fanId   String @map("fan_id") @db.Uuid
+  fan     User   @relation("FanBroadcastPurchases", fields: [fanId], references: [id])
+
+  amount     Decimal @db.Decimal(6, 2)
+  messageId  String? @map("message_id") @db.Uuid
+  message    Message? @relation(fields: [messageId], references: [id], onDelete: SetNull)
+
+  purchasedAt DateTime @default(now()) @map("purchased_at")
+
+  @@unique([broadcastId, fanId])
+  @@index([broadcastId])
+  @@map("broadcast_purchases")
 }
 
 // =============================================================================

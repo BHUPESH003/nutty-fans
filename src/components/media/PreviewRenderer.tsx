@@ -52,8 +52,8 @@ function CropRenderer({
   const safe = cropRegion && cropRegion.width > 0 && cropRegion.height > 0 ? cropRegion : null;
 
   if (!safe) {
-    // eslint-disable-next-line @next/next/no-img-element
     return (
+      // eslint-disable-next-line @next/next/no-img-element
       <img
         src={imageUrl}
         alt="Locked preview"

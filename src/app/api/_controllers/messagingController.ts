@@ -1,3 +1,5 @@
+import type { MessageType } from '@prisma/client';
+
 import { successResponse } from '@/lib/api/response';
 import { requireEmailVerification } from '@/lib/auth/verificationGuard';
 import {
@@ -64,7 +66,14 @@ export const messagingController = {
   async sendMessage(
     user: AuthUser,
     conversationId: string,
-    body: { content?: string; mediaId?: string; price?: number }
+    body: {
+      content?: string;
+      mediaId?: string;
+      price?: number;
+      clientId?: string;
+      messageType?: MessageType;
+      metadata?: Record<string, unknown>;
+    }
   ) {
     return handleAsyncRoute(async () => {
       requireEmailVerification(user);
@@ -72,7 +81,7 @@ export const messagingController = {
         throw new AppError(VALIDATION_MISSING_FIELD, 'Conversation ID is required', 400);
       }
 
-      const { content, mediaId, price } = body;
+      const { content, mediaId, price, clientId, metadata, messageType } = body;
 
       // Validate that at least content or mediaId is provided
       if (!content && !mediaId) {
@@ -84,7 +93,10 @@ export const messagingController = {
         conversationId,
         content ?? null,
         mediaId,
-        price
+        price,
+        clientId,
+        metadata,
+        messageType
       );
       return successResponse(message);
     });

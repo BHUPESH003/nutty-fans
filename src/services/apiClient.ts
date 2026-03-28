@@ -1,3 +1,4 @@
+import type { MessageType } from '@prisma/client';
 import axios, {
   type AxiosError,
   type AxiosRequestConfig,
@@ -330,6 +331,9 @@ export const apiClient = {
   },
   user: {
     me: getCurrentUser,
+    async getPresence(userId: string) {
+      return request<{ online: boolean; lastSeen: string | null }>(`/api/users/${userId}/presence`);
+    },
   },
   profile: {
     me() {
@@ -603,17 +607,32 @@ export const apiClient = {
         `/api/conversations/${conversationId}/messages${searchParams.toString() ? `?${searchParams.toString()}` : ''}`
       );
     },
-    sendMessage(conversationId: string, content: string | null, mediaId?: string, price?: number) {
+    sendMessage(
+      conversationId: string,
+      content: string | null,
+      mediaId?: string,
+      price?: number,
+      clientId?: string,
+      metadata?: Record<string, unknown>,
+      messageType?: MessageType
+    ) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return request<any>(`/api/conversations/${conversationId}/messages`, {
         method: 'POST',
-        data: { content, mediaId, price },
+        data: { content, mediaId, price, clientId, metadata, messageType },
       });
     },
     unlockMessage(messageId: string) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return request<any>(`/api/messages/${messageId}/unlock`, {
         method: 'POST',
+      });
+    },
+    toggleReaction(messageId: string, emoji: string) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return request<any>(`/api/messages/${messageId}/reactions`, {
+        method: 'POST',
+        data: { emoji },
       });
     },
     markConversationRead(conversationId: string) {
@@ -770,6 +789,7 @@ export const apiClient = {
       creatorId: string;
       amount: number;
       message?: string;
+      conversationId?: string;
       paymentSource?: 'wallet' | 'card';
     }) {
       return request<{ data: { tipId: string; transactionId: string } }>('/api/tips', {
@@ -778,6 +798,7 @@ export const apiClient = {
           creatorId: input.creatorId,
           amount: input.amount,
           message: input.message,
+          conversationId: input.conversationId,
           paymentSource: input.paymentSource || 'wallet',
         },
       });

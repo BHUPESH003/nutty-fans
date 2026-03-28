@@ -1,13 +1,15 @@
+import { formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useConversation as useConversationHook } from '@/hooks/useConversations';
-import { useMessages } from '@/hooks/useMessages';
+import { getSocket, useMessages } from '@/hooks/useMessages';
 import { apiClient } from '@/services/apiClient';
+import type { Message } from '@/types/messaging';
 
 import { MessageBubble } from './MessageBubble';
 import { MessageInput } from './MessageInput';
@@ -18,14 +20,123 @@ interface ChatWindowProps {
 
 export function ChatWindow({ conversationId }: ChatWindowProps) {
   const { data: session } = useSession();
+  const [isOnline, setIsOnline] = useState(false);
+  const [lastSeen, setLastSeen] = useState<string | null>(null);
+  const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
+  const [isCreator, setIsCreator] = useState(false);
+
   const {
     messages,
     isLoading: messagesLoading,
     sendMessage,
+    retryMessage,
     unlockMessage,
+    reactToMessage,
   } = useMessages(conversationId);
   const { conversation, isLoading: conversationLoading } = useConversationHook(conversationId);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const otherUserId = conversation?.otherUser?.id;
+
+  // Presence + typing indicators
+  useEffect(() => {
+    if (!conversation || !otherUserId) return;
+
+    let isMounted = true;
+
+    const socket = getSocket();
+
+    void apiClient.user
+      .getPresence(otherUserId)
+      .then(({ online, lastSeen }) => {
+        if (!isMounted) return;
+        setIsOnline(online);
+        setLastSeen(lastSeen);
+      })
+      .catch(() => {
+        // Best effort: WS will still update online/offline.
+      });
+
+    const handlePresenceOnline = ({ userId }: { userId: string }) => {
+      if (!isMounted) return;
+      if (userId === otherUserId) {
+        setIsOnline(true);
+        setLastSeen(null);
+      }
+    };
+
+    const handlePresenceOffline = ({
+      userId,
+      lastSeen: ls,
+    }: {
+      userId: string;
+      lastSeen: string;
+    }) => {
+      if (!isMounted) return;
+      if (userId === otherUserId) {
+        setIsOnline(false);
+        setLastSeen(ls);
+      }
+    };
+
+    const handleTypingStart = ({
+      userId,
+    }: {
+      conversationId: string;
+      userId: string;
+      userName: string;
+    }) => {
+      if (!isMounted) return;
+      if (userId === otherUserId) {
+        setTypingUsers(new Set([userId]));
+      }
+    };
+
+    const handleTypingStop = ({ userId }: { conversationId: string; userId: string }) => {
+      if (!isMounted) return;
+      if (userId === otherUserId) {
+        setTypingUsers(new Set());
+      }
+    };
+
+    socket.on('presence:online', handlePresenceOnline);
+    socket.on('presence:offline', handlePresenceOffline);
+    socket.on('typing:start', handleTypingStart);
+    socket.on('typing:stop', handleTypingStop);
+
+    return () => {
+      isMounted = false;
+      socket.off('presence:online', handlePresenceOnline);
+      socket.off('presence:offline', handlePresenceOffline);
+      socket.off('typing:start', handleTypingStart);
+      socket.off('typing:stop', handleTypingStop);
+      setTypingUsers(new Set());
+    };
+  }, [conversationId, conversation, otherUserId]);
+
+  // Determine whether the current user is a creator (used for PPV + tipping UI).
+  useEffect(() => {
+    if (!session?.user?.id) {
+      setIsCreator(false);
+      return;
+    }
+
+    let active = true;
+    void apiClient.creator
+      .getStatus()
+      .then((status) => {
+        if (!active) return;
+        setIsCreator(Boolean(status));
+      })
+      .catch(() => {
+        if (!active) return;
+        setIsCreator(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [session?.user?.id]);
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -33,13 +144,6 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
       scrollRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages]);
-
-  // Mark as read on mount
-  useEffect(() => {
-    if (conversationId) {
-      void apiClient.messaging.markConversationRead(conversationId).catch(console.error);
-    }
-  }, [conversationId, messages]);
 
   if (conversationLoading || messagesLoading) {
     return (
@@ -62,11 +166,17 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
     );
   }
 
-  const isCreator = session?.user?.id === conversation?.otherUser?.id ? false : true;
-
-  const handleSendMessage = async (content: string, mediaId?: string, price?: number) => {
+  const handleSendMessage = async (
+    content: string,
+    mediaId?: string,
+    price?: number,
+    options?: { messageTypeOverride?: Message['messageType']; metadata?: Record<string, unknown> }
+  ) => {
     if (!conversationId) return;
-    await sendMessage(content, mediaId, price);
+    await sendMessage(content, mediaId, price, {
+      messageTypeOverride: options?.messageTypeOverride,
+      metadata: options?.metadata,
+    });
   };
 
   if (!conversationId) {
@@ -96,7 +206,15 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
           <h2 className="font-headline text-base font-bold text-on-surface">
             {conversation?.otherUser?.displayName ?? 'Unknown User'}
           </h2>
-          <p className="text-xs font-medium text-emerald-600">Online now</p>
+          <p className="text-xs font-medium text-on-surface-variant">
+            {isOnline ? (
+              <span className="text-emerald-600">Online now</span>
+            ) : lastSeen ? (
+              <span>{`Last seen ${formatDistanceToNow(new Date(lastSeen))} ago`}</span>
+            ) : (
+              <span>Offline</span>
+            )}
+          </p>
         </div>
         <div className="ml-auto flex items-center gap-2">
           <Button size="sm" className="h-9 rounded-full px-4 text-sm">
@@ -121,10 +239,22 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
               message={msg}
               isSelf={msg.senderId === session?.user?.id}
               onUnlock={unlockMessage}
+              onRetry={retryMessage}
+              onReact={reactToMessage}
               avatarUrl={conversation?.otherUser?.avatarUrl ?? null}
               avatarName={conversation?.otherUser?.displayName ?? 'U'}
             />
           ))}
+          {typingUsers.size > 0 && (
+            <div className="flex items-center gap-2 px-6 py-2">
+              <div className="flex items-center gap-1">
+                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-on-surface-variant [animation-delay:-0.3s]" />
+                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-on-surface-variant [animation-delay:-0.15s]" />
+                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-on-surface-variant" />
+              </div>
+              <span className="text-xs italic text-on-surface-variant">typing…</span>
+            </div>
+          )}
           <div ref={scrollRef} />
         </div>
       </ScrollArea>
@@ -133,6 +263,8 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
       <MessageInput
         onSend={handleSendMessage}
         isCreator={isCreator}
+        conversationId={conversationId}
+        recipientId={conversation?.otherUser?.id}
         className="border-b border-surface-container-high md:order-3 md:border-b-0 md:border-t"
       />
     </div>

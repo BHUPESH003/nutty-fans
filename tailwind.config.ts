@@ -6,19 +6,19 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Primary — Deep Rose
+        // Primary — Pink 500 (#E91E63)
         primary: {
-          DEFAULT: '#ba0048',
+          DEFAULT: '#E91E63',
           foreground: '#ffffff',
         },
-        'primary-container': '#e0245e',
+        'primary-container': '#F06292',
         'on-primary': '#ffffff',
-        'on-primary-container': '#fffeff',
-        'primary-fixed': '#ffd9dd',
-        'primary-fixed-dim': '#ffb2bd',
-        'on-primary-fixed': '#400013',
-        'on-primary-fixed-variant': '#900036',
-        'inverse-primary': '#ffb2bd',
+        'on-primary-container': '#ffffff',
+        'primary-fixed': '#F8BBD0',
+        'primary-fixed-dim': '#F48FB1',
+        'on-primary-fixed': '#880E4F',
+        'on-primary-fixed-variant': '#AD1457',
+        'inverse-primary': '#F48FB1',
 
         // Secondary — Sky Blue
         secondary: {
@@ -50,7 +50,7 @@ const config: Config = {
         surface: '#fbf8ff',
         'surface-dim': '#dcd9e0',
         'surface-bright': '#fbf8ff',
-        'surface-tint': '#bd0049',
+        'surface-tint': '#E91E63',
         'surface-variant': '#e4e1e9',
         'surface-container-lowest': '#ffffff',
         'surface-container-low': '#f6f2fa',
@@ -91,7 +91,7 @@ const config: Config = {
         },
         border: '#e4e1e9',
         input: '#e4e1e9',
-        ring: '#ffd9dd',
+        ring: '#F8BBD0',
         popover: {
           DEFAULT: '#ffffff',
           foreground: '#1b1b20',
@@ -112,10 +112,10 @@ const config: Config = {
         full: '9999px',
       },
       boxShadow: {
-        ambient: '0 8px 32px rgba(186, 0, 72, 0.08)',
+        ambient: '0 8px 32px rgba(233, 30, 99, 0.08)',
         card: '0 2px 16px rgba(27, 27, 32, 0.06)',
         modal: '0 16px 64px rgba(27, 27, 32, 0.12)',
-        glow: '0 0 0 3px rgba(255, 217, 221, 0.6)',
+        glow: '0 0 0 3px rgba(248, 187, 208, 0.6)',
         popover: '0 16px 64px rgba(27, 27, 32, 0.12)',
       },
       spacing: {

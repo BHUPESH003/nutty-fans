@@ -13,7 +13,14 @@ import type {
 const BLOCKED_COUNTRIES = ['KP', 'IR', 'SY', 'CU', 'RU'];
 
 // Banned username patterns
-const BANNED_USERNAME_PATTERNS = [/admin/i, /nuttyfans/i, /support/i, /moderator/i, /official/i];
+const BANNED_USERNAME_PATTERNS = [
+  /admin/i,
+  /nuttyfans/i,
+  /^nf$/i,
+  /support/i,
+  /moderator/i,
+  /official/i,
+];
 
 // Banned bio keywords
 const BANNED_BIO_KEYWORDS = ['underage', 'minor', 'child'];

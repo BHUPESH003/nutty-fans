@@ -34,10 +34,12 @@ const s3Client = new S3Client({
 // File size limits
 const MAX_IMAGE_SIZE = 20 * 1024 * 1024; // 20MB
 const MAX_VIDEO_SIZE = 5 * 1024 * 1024 * 1024; // 5GB
+const MAX_AUDIO_SIZE = 50 * 1024 * 1024; // 50MB
 
 // Allowed MIME types
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/quicktime', 'video/webm'];
+const ALLOWED_AUDIO_TYPES = ['audio/webm'];
 
 export class MediaService {
   private mediaRepo: MediaRepository;
@@ -119,6 +121,50 @@ export class MediaService {
     const expiresIn = 3600; // 1 hour
 
     // Create presigned URL for S3 upload (same as images)
+    const command = new PutObjectCommand({
+      Bucket: AWS_S3_BUCKET,
+      Key: key,
+      ContentType: file.contentType,
+    });
+
+    const uploadUrl = await getSignedUrl(s3Client, command, { expiresIn });
+
+    return {
+      uploadUrl,
+      mediaId,
+      key,
+      expiresAt: new Date(Date.now() + expiresIn * 1000),
+    };
+  }
+
+  /**
+   * Get S3 presigned URL for audio upload (MVP: S3 -> originalUrl only)
+   */
+  async getAudioUploadUrl(creatorId: string, file: FileMetadata): Promise<UploadUrlResponse> {
+    // Validate file type
+    if (!ALLOWED_AUDIO_TYPES.includes(file.contentType)) {
+      throw new Error('Invalid audio type. Allowed: audio/webm');
+    }
+
+    // Validate file size
+    if (file.size > MAX_AUDIO_SIZE) {
+      throw new Error('Audio too large. Maximum size: 50MB');
+    }
+
+    // Create media record first to get the actual ID
+    const media = await this.mediaRepo.create({
+      creatorId,
+      mediaType: 'audio',
+      originalUrl: '', // Will be set on confirm
+      mimeType: file.contentType,
+      fileSize: file.size,
+    });
+
+    const mediaId = media.id;
+    const key = `uploads/${creatorId}/${mediaId}/${file.filename}`;
+    const expiresIn = 3600; // 1 hour
+
+    // Create presigned URL for S3 upload
     const command = new PutObjectCommand({
       Bucket: AWS_S3_BUCKET,
       Key: key,
@@ -284,6 +330,39 @@ export class MediaService {
   }
 
   /**
+   * Confirm audio upload (MVP: mark completed immediately, no transcoding).
+   */
+  async confirmAudioUpload(
+    mediaId: string,
+    creatorId: string,
+    data: {
+      key: string;
+    }
+  ) {
+    const media = await this.mediaRepo.findById(mediaId);
+    if (!media) throw new Error('Media not found');
+    if (media.creatorId !== creatorId) throw new Error('Unauthorized');
+    if (media.mediaType !== 'audio') throw new Error('Media is not an audio file');
+
+    const originalUrl = `${CLOUDFRONT_URL}/${data.key}`;
+
+    // Mark as completed immediately (MVP)
+    await this.mediaRepo.confirmUpload(mediaId, {
+      originalUrl,
+    });
+
+    await this.mediaRepo.updateProcessingStatus(mediaId, 'completed', {
+      processedUrl: originalUrl,
+      metadata: {
+        ...(media.metadata && typeof media.metadata === 'object' ? media.metadata : {}),
+        s3Key: data.key,
+      },
+    });
+
+    return this.mediaRepo.findById(mediaId);
+  }
+
+  /**
    * Confirm upload (image or video) by looking up the media record
    * and dispatching to the correct confirm handler.
    */
@@ -301,6 +380,10 @@ export class MediaService {
 
     if (media.mediaType === 'video') {
       return this.confirmVideoUpload(mediaId, creatorId, data);
+    }
+
+    if (media.mediaType === 'audio') {
+      return this.confirmAudioUpload(mediaId, creatorId, { key: data.key });
     }
 
     return this.confirmImageUpload(mediaId, creatorId, data);
@@ -431,6 +514,7 @@ export class MediaService {
   getMediaType(contentType: string): MediaType {
     if (ALLOWED_IMAGE_TYPES.includes(contentType)) return 'image';
     if (ALLOWED_VIDEO_TYPES.includes(contentType)) return 'video';
+    if (ALLOWED_AUDIO_TYPES.includes(contentType)) return 'audio';
     throw new Error('Unsupported media type');
   }
 }

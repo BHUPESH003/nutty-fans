@@ -212,14 +212,19 @@ export const contentController = {
     try {
       const mediaType = mediaService.getMediaType(file.contentType);
 
-      // Both images and videos now use S3 presigned URLs
+      // Images, videos, and audio all use S3 presigned URLs (audio is MVP: no transcoding).
       if (mediaType === 'video') {
         const result = await mediaService.getVideoUploadUrl(creatorId, file);
         return successResponse(result);
-      } else {
-        const result = await mediaService.getImageUploadUrl(creatorId, file);
+      }
+
+      if (mediaType === 'audio') {
+        const result = await mediaService.getAudioUploadUrl(creatorId, file);
         return successResponse(result);
       }
+
+      const result = await mediaService.getImageUploadUrl(creatorId, file);
+      return successResponse(result);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to get upload URL';
       return NextResponse.json({ error: { message } }, { status: 400 });

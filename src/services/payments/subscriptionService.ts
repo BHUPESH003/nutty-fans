@@ -11,6 +11,7 @@
  */
 
 import { prisma } from '@/lib/db/prisma';
+import { welcomeMessageQueue } from '@/lib/queues';
 import { SubscriptionRepository } from '@/repositories/subscriptionRepository';
 import { transactionService } from '@/services/finance/transactionService';
 import type {
@@ -100,6 +101,33 @@ export class SubscriptionService {
       pricePaid: plan.finalPrice,
       autoRenew: true,
     });
+
+    // Phase 6: enqueue welcome automation (best-effort).
+    try {
+      const template = await prisma.welcomeMessageTemplate.findUnique({
+        where: { creatorId },
+        select: { id: true, isEnabled: true },
+      });
+
+      if (template?.isEnabled) {
+        await welcomeMessageQueue.add(
+          'send',
+          {
+            subscriptionId: subscription.id,
+            creatorId,
+            fanId: userId,
+          },
+          {
+            jobId: `welcome:${subscription.id}`,
+            removeOnComplete: true,
+            removeOnFail: false,
+          }
+        );
+      }
+    } catch (err) {
+      // Do not fail subscription purchase due to welcome automation.
+      console.error('[WelcomeAutomation] enqueue failed:', err);
+    }
 
     // Update transaction with subscription ID
     await prisma.transaction.update({

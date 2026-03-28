@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
@@ -34,11 +35,17 @@ export function AuthScreenFrame({
     >
       <div className="rounded-b-[24px] bg-[#070913] px-6 pb-8 pt-7 text-white sm:px-7">
         {showBrand ? (
-          <Link href="/" className="inline-flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary-fixed-dim" aria-hidden>
-              auto_awesome
-            </span>
-            <span className="font-headline text-[2rem] font-extrabold leading-none tracking-tight">
+          <Link href="/" className="inline-flex items-center gap-2.5">
+            <Image
+              src="/Group.svg"
+              alt=""
+              width={48}
+              height={29}
+              className="h-7 w-auto shrink-0"
+              priority
+              unoptimized
+            />
+            <span className="font-headline text-[2rem] font-extrabold leading-none tracking-tight text-primary-fixed-dim">
               NuttyFans
             </span>
           </Link>

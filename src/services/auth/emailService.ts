@@ -43,7 +43,7 @@ export class EmailService {
           <h1 style="color: #6366f1;">Welcome to NuttyFans!</h1>
           <p>Please verify your email address by clicking the button below:</p>
           <p style="text-align: center; margin: 30px 0;">
-            <a href="${verifyUrl}" style="background-color: #6366f1; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Verify Email</a>
+            <a href="${verifyUrl}" style="background-color: #E91E63; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Verify Email</a>
           </p>
           <p>Or copy and paste this link into your browser:</p>
           <p style="word-break: break-all; color: #666;">${verifyUrl}</p>

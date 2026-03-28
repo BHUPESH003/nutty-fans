@@ -11,8 +11,9 @@
 
 import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
 import { Pool } from 'pg';
+import bcrypt from 'bcryptjs';
 
 // Create connection pool with Neon-compatible SSL settings
 const connectionString = process.env['DATABASE_URL'];
@@ -180,6 +181,188 @@ async function seedCategories() {
 }
 
 // ============================================================================
+// DEV USERS (CREATORS + FANS)
+// ============================================================================
+
+type SeedUserSpec = {
+  email: string;
+  username: string;
+  displayName: string;
+  password: string;
+  role: 'user' | 'creator';
+};
+
+const seedCreators: SeedUserSpec[] = [
+  {
+    email: 'creator1@seed.local',
+    username: 'creator1',
+    displayName: 'Creator One',
+    password: 'SeedPass!234',
+    role: 'creator',
+  },
+  {
+    email: 'creator2@seed.local',
+    username: 'creator2',
+    displayName: 'Creator Two',
+    password: 'SeedPass!234',
+    role: 'creator',
+  },
+  {
+    email: 'creator3@seed.local',
+    username: 'creator3',
+    displayName: 'Creator Three',
+    password: 'SeedPass!234',
+    role: 'creator',
+  },
+];
+
+const seedUsers: SeedUserSpec[] = [
+  {
+    email: 'user1@seed.local',
+    username: 'user1',
+    displayName: 'User One',
+    password: 'SeedPass!234',
+    role: 'user',
+  },
+  {
+    email: 'user2@seed.local',
+    username: 'user2',
+    displayName: 'User Two',
+    password: 'SeedPass!234',
+    role: 'user',
+  },
+  {
+    email: 'user3@seed.local',
+    username: 'user3',
+    displayName: 'User Three',
+    password: 'SeedPass!234',
+    role: 'user',
+  },
+  {
+    email: 'user4@seed.local',
+    username: 'user4',
+    displayName: 'User Four',
+    password: 'SeedPass!234',
+    role: 'user',
+  },
+  {
+    email: 'user5@seed.local',
+    username: 'user5',
+    displayName: 'User Five',
+    password: 'SeedPass!234',
+    role: 'user',
+  },
+];
+
+async function seedDevAccounts() {
+  // eslint-disable-next-line no-console
+  console.log('👤 Seeding dev users + creators...');
+
+  const now = new Date();
+
+  const defaultCategory = await prisma.category.findUnique({ where: { slug: 'fitness' } });
+  if (!defaultCategory) {
+    throw new Error('Default category "fitness" not found; seedCategories must run first');
+  }
+
+  const all = [...seedCreators, ...seedUsers];
+
+  for (const spec of all) {
+    const email = spec.email.toLowerCase();
+    const passwordHash = await bcrypt.hash(spec.password, 12);
+
+    const existing = await prisma.user.findUnique({
+      where: { email },
+      include: { creatorProfile: true },
+    });
+
+    if (!existing) {
+      const created = await prisma.user.create({
+        data: {
+          email,
+          username: spec.username,
+          displayName: spec.displayName,
+          passwordHash,
+          role: spec.role,
+          status: 'active',
+          emailVerified: now,
+          walletBalance: new Prisma.Decimal(1000),
+          metadata: {
+            authState: {
+              accountState: 'active',
+              failedLoginAttempts: 0,
+              lockUntil: null,
+            },
+          },
+        },
+      });
+
+      if (spec.role === 'creator') {
+        await prisma.creatorProfile.create({
+          data: {
+            userId: created.id,
+            categoryId: defaultCategory.id,
+            subscriptionPrice: new Prisma.Decimal(9.99),
+            tipsEnabled: true,
+            onboardingStatus: 'active',
+            isVerified: true,
+            kycStatus: 'approved',
+          },
+        });
+      }
+
+      // eslint-disable-next-line no-console
+      console.log(`  ✅ Created ${spec.role}: ${spec.email}`);
+      continue;
+    }
+
+    // Keep seed idempotent: ensure verification + balance exist, and creator profile exists for creators.
+    await prisma.user.update({
+      where: { id: existing.id },
+      data: {
+        username: existing.username ?? spec.username,
+        displayName: existing.displayName ?? spec.displayName,
+        passwordHash: existing.passwordHash ?? passwordHash,
+        emailVerified: existing.emailVerified ?? now,
+        role: spec.role,
+        status: 'active',
+        walletBalance: new Prisma.Decimal(1000),
+        metadata: {
+          ...(typeof existing.metadata === 'object' && existing.metadata !== null
+            ? (existing.metadata as object)
+            : {}),
+          authState: {
+            accountState: 'active',
+            failedLoginAttempts: 0,
+            lockUntil: null,
+          },
+        },
+      },
+    });
+
+    if (spec.role === 'creator' && !existing.creatorProfile) {
+      await prisma.creatorProfile.create({
+        data: {
+          userId: existing.id,
+          categoryId: defaultCategory.id,
+          subscriptionPrice: new Prisma.Decimal(9.99),
+          tipsEnabled: true,
+          onboardingStatus: 'active',
+          isVerified: true,
+          kycStatus: 'approved',
+        },
+      });
+    }
+
+    // eslint-disable-next-line no-console
+    console.log(`  ⏭️  Updated ${spec.role}: ${spec.email}`);
+  }
+
+  // eslint-disable-next-line no-console
+  console.log('✅ Dev accounts seeded successfully!\n');
+}
+
+// ============================================================================
 // MAIN
 // ============================================================================
 
@@ -190,6 +373,7 @@ async function main() {
   try {
     await seedAdminRoles();
     await seedCategories();
+    await seedDevAccounts();
 
     // eslint-disable-next-line no-console
     console.log('🎉 Database seeding completed successfully!\n');
