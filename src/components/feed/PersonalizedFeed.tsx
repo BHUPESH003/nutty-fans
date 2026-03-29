@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { FeedContainer } from '@/components/containers/feed/FeedContainer';
 import { ExploreRailContent } from '@/components/explore/ExploreRailExtras';
 import { AppRailLayout } from '@/components/layout/AppRailLayout';
+import { DesktopTopBar } from '@/components/layout/DesktopTopBar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export function PersonalizedFeed() {
@@ -15,13 +16,14 @@ export function PersonalizedFeed() {
       centerMaxWidthClassName="max-w-[725px]"
       rail={<ExploreRailContent showLiveTeaser={false} />}
     >
+      <DesktopTopBar />
       <Tabs
         defaultValue="for-you"
         value={activeTab}
         onValueChange={(value) => setActiveTab(value as 'for-you' | 'following')}
         className="w-full"
       >
-        <div className="sticky top-14 z-10 -mx-px border-b border-neutral-200/90 bg-white/85 backdrop-blur-md md:top-0">
+        <div className="sticky top-14 z-10 -mx-px border-b border-neutral-200/90 bg-white/85 backdrop-blur-md md:top-16">
           <TabsList className="grid h-14 w-full grid-cols-2 rounded-none border-0 bg-transparent p-0">
             <TabsTrigger
               value="for-you"

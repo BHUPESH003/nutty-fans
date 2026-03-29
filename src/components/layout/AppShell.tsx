@@ -596,32 +596,6 @@ export function AppShell({ children, user }: AppShellProps) {
             sidebarExpanded ? 'md:ml-[290px]' : 'md:ml-[72px]'
           )}
         >
-          {!isExploreRoute ? (
-            <header className="sticky top-0 z-20 hidden bg-[#f4f5fc]/95 backdrop-blur-xl md:block">
-              <div className="mx-auto flex h-16 w-full max-w-[725px] items-center gap-3 px-4 lg:px-5">
-                <Suspense
-                  fallback={
-                    <div className="h-11 w-full animate-pulse rounded-full bg-surface-container-low" />
-                  }
-                >
-                  <SearchBar
-                    variant="discover"
-                    className="min-w-0 flex-1"
-                    placeholder="Search creators, posts..."
-                  />
-                </Suspense>
-                {/* Keep Messages visible on desktop/tablet wherever the header nav exists */}
-                <Link
-                  href="/messages"
-                  className="flex h-10 w-10 items-center justify-center rounded-full text-on-surface-variant transition-colors hover:bg-surface-container-low"
-                  aria-label="Messages"
-                >
-                  <span className="material-symbols-outlined text-[22px]">chat_bubble</span>
-                </Link>
-                <NotificationBell />
-              </div>
-            </header>
-          ) : null}
           {children}
         </main>
       </div>
