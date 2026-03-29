@@ -61,7 +61,7 @@ export function AppRailLayout({
     <div className="mx-auto flex w-full min-w-0 max-w-[1520px] justify-center gap-4 px-3 md:px-4 xl:gap-5 xl:px-5">
       <div
         className={cn(
-          'min-h-screen w-full min-w-0 flex-1 bg-background',
+          'min-h-screen w-full min-w-0 flex-1 border-x border-neutral-200/50 bg-white',
           centerMaxWidthClassName,
           centerClassName
         )}

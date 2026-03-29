@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { CreatorCTA } from '@/components/creator/CreatorCTA';
 import { ExploreRailContent } from '@/components/explore/ExploreRailExtras';
 import { AppRailLayout } from '@/components/layout/AppRailLayout';
+import { DesktopTopBar } from '@/components/layout/DesktopTopBar';
 import { PostCard } from '@/components/posts/PostCard';
 import { useAuthPrompt } from '@/components/providers/AuthPromptProvider';
 import { Button } from '@/components/ui/button';
@@ -41,6 +42,7 @@ export function PublicFeed() {
       centerMaxWidthClassName="max-w-[725px]"
       rail={<ExploreRailContent showLiveTeaser={false} />}
     >
+      <DesktopTopBar />
       <div className="space-y-6 px-4 py-4 md:px-5">
         {/* Hero / CTA Section */}
         {!isAuthenticated && (

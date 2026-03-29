@@ -2,60 +2,44 @@ import { prisma } from '@/lib/db/prisma';
 
 /**
  * WalletRepository
- * Note: Users don't have a separate wallet table - we calculate balance from transactions
+ * Balance is stored on `User.walletBalance` (canonical). Transactions are the audit trail.
  */
 export class WalletRepository {
   /**
-   * Get user's wallet balance
-   * Balance = SUM(wallet_topup) - SUM(wallet debits)
+   * Get user's wallet balance from the user row (same source as PPV unlock checks).
    */
   async getBalance(userId: string): Promise<number> {
-    // Sum of topups
-    const topups = await prisma.transaction.aggregate({
-      where: {
-        userId,
-        transactionType: 'wallet_topup',
-        status: 'completed',
-      },
-      _sum: { amount: true },
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { walletBalance: true },
     });
-
-    // Sum of wallet debits (negative amounts in metadata or separate query)
-    // For simplicity, we'll track "wallet_debit" in transaction description
-    const debits = await prisma.transaction.aggregate({
-      where: {
-        userId,
-        status: 'completed',
-        metadata: {
-          path: ['paidWithWallet'],
-          equals: true,
-        },
-      },
-      _sum: { amount: true },
-    });
-
-    const topupTotal = topups._sum.amount?.toNumber() ?? 0;
-    const debitTotal = debits._sum.amount?.toNumber() ?? 0;
-
-    return topupTotal - debitTotal;
+    if (!user) return 0;
+    return user.walletBalance.toNumber();
   }
 
   /**
    * Record wallet topup
    */
   async recordTopup(userId: string, amount: number, paymentId?: string) {
-    return prisma.transaction.create({
-      data: {
-        userId,
-        transactionType: 'wallet_topup',
-        amount,
-        currency: 'USD',
-        status: 'completed',
-        stripePaymentId: paymentId,
-        description: 'Wallet top-up',
-        metadata: { type: 'topup' },
-      },
-    });
+    const [tx] = await prisma.$transaction([
+      prisma.transaction.create({
+        data: {
+          userId,
+          transactionType: 'wallet_topup',
+          amount,
+          currency: 'USD',
+          status: 'completed',
+          stripePaymentId: paymentId,
+          description: 'Wallet top-up',
+          metadata: { type: 'topup' },
+        },
+      }),
+      prisma.user.update({
+        where: { id: userId },
+        data: { walletBalance: { increment: amount } },
+      }),
+    ]);
+    return tx;
   }
 
   /**
