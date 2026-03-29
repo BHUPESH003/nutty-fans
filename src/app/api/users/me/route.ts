@@ -41,3 +41,21 @@ export async function GET(): Promise<NextResponse> {
     ageStatus: authState['ageStatus'] ?? null,
   });
 }
+
+export async function DELETE(): Promise<NextResponse> {
+  const session = await getServerSession(authOptions);
+  const userId = session?.user?.id;
+
+  if (!userId) {
+    return new NextResponse('Unauthorized', { status: 401 });
+  }
+
+  const userRepo = new UserRepository();
+  await userRepo.softDelete(userId);
+
+  return NextResponse.json({
+    code: 200,
+    message: 'Account deleted successfully',
+    data: { success: true },
+  });
+}

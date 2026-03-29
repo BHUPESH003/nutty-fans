@@ -4,6 +4,7 @@ import type { Route } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { signOut } from 'next-auth/react';
 import React, { Suspense, useCallback, useEffect, useState } from 'react';
 
 import { CreatorCTA } from '@/components/creator/CreatorCTA';
@@ -43,7 +44,7 @@ const navItems: Array<{ href: Route; label: string; icon: string }> = [
   { href: '/explore' as Route, label: 'Explore', icon: 'search' },
   { href: '/notifications' as Route, label: 'Notifications', icon: 'notifications' },
   { href: '/messages' as Route, label: 'Messages', icon: 'chat_bubble' },
-  { href: '/subscriptions' as Route, label: 'Subscriptions', icon: 'subscriptions' },
+  { href: '/account/subscriptions' as Route, label: 'Subscriptions', icon: 'subscriptions' },
 ];
 
 function accountInitials(user?: UserSummary | null) {
@@ -69,10 +70,7 @@ function MobileAccountDropdown({
 }) {
   const { theme, setTheme } = useTheme();
   const accountActive =
-    pathname === '/profile' ||
-    pathname.startsWith('/profile/') ||
-    pathname.startsWith('/settings') ||
-    (showCreatorDashboard && pathname.startsWith('/creator/'));
+    pathname.startsWith('/account') || (showCreatorDashboard && pathname.startsWith('/creator/'));
 
   return (
     <DropdownMenu>
@@ -119,7 +117,10 @@ function MobileAccountDropdown({
         </DropdownMenuRadioGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild className="cursor-pointer rounded-lg p-0">
-          <Link href="/profile" className="flex w-full items-center gap-2 px-2 py-1.5 text-sm">
+          <Link
+            href={'/account/profile' as Route}
+            className="flex w-full items-center gap-2 px-2 py-1.5 text-sm"
+          >
             <span className="material-symbols-outlined text-[20px] text-on-surface-variant">
               person
             </span>
@@ -127,12 +128,26 @@ function MobileAccountDropdown({
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild className="cursor-pointer rounded-lg p-0">
-          <Link href="/settings" className="flex w-full items-center gap-2 px-2 py-1.5 text-sm">
+          <Link
+            href={'/account/settings' as Route}
+            className="flex w-full items-center gap-2 px-2 py-1.5 text-sm"
+          >
             <span className="material-symbols-outlined text-[20px] text-on-surface-variant">
               settings
             </span>
             Settings
           </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          className="cursor-pointer rounded-lg"
+          onClick={() => {
+            void signOut({ redirect: true, callbackUrl: '/login' });
+          }}
+        >
+          <span className="material-symbols-outlined mr-2 text-[20px] text-on-surface-variant">
+            logout
+          </span>
+          Log out
         </DropdownMenuItem>
         {showCreatorDashboard ? (
           <>
@@ -207,16 +222,31 @@ function DesktopAccountMenu({
         className="z-[60] w-56 rounded-2xl border-border bg-popover p-1 text-popover-foreground shadow-lg"
       >
         <DropdownMenuItem asChild className="cursor-pointer rounded-lg p-0">
-          <Link href="/profile" className="flex w-full items-center gap-2 px-2 py-1.5 text-sm">
+          <Link
+            href={'/account/profile' as Route}
+            className="flex w-full items-center gap-2 px-2 py-1.5 text-sm"
+          >
             <span className="material-symbols-outlined text-[20px]">person</span>
             Profile
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild className="cursor-pointer rounded-lg p-0">
-          <Link href="/settings" className="flex w-full items-center gap-2 px-2 py-1.5 text-sm">
+          <Link
+            href={'/account/settings' as Route}
+            className="flex w-full items-center gap-2 px-2 py-1.5 text-sm"
+          >
             <span className="material-symbols-outlined text-[20px]">settings</span>
             Settings
           </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          className="cursor-pointer rounded-lg"
+          onClick={() => {
+            void signOut({ redirect: true, callbackUrl: '/login' });
+          }}
+        >
+          <span className="material-symbols-outlined mr-2 text-[20px]">logout</span>
+          Log out
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuLabel>Theme</DropdownMenuLabel>
@@ -331,22 +361,40 @@ function SidebarMoreMenu({
         className="z-[60] w-60 rounded-2xl border-border bg-popover p-1 text-popover-foreground shadow-xl"
       >
         <DropdownMenuItem asChild className="cursor-pointer rounded-xl p-0">
-          <Link href="/profile" className="flex w-full items-center gap-2 px-3 py-2.5 text-sm">
+          <Link
+            href={'/account/profile' as Route}
+            className="flex w-full items-center gap-2 px-3 py-2.5 text-sm"
+          >
             <span className="material-symbols-outlined text-[18px]">person</span>
             Profile
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild className="cursor-pointer rounded-xl p-0">
-          <Link href="/wallet" className="flex w-full items-center gap-2 px-3 py-2.5 text-sm">
+          <Link
+            href={'/account/wallet' as Route}
+            className="flex w-full items-center gap-2 px-3 py-2.5 text-sm"
+          >
             <span className="material-symbols-outlined text-[18px]">account_balance_wallet</span>
             Wallet
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild className="cursor-pointer rounded-xl p-0">
-          <Link href="/settings" className="flex w-full items-center gap-2 px-3 py-2.5 text-sm">
+          <Link
+            href={'/account/settings' as Route}
+            className="flex w-full items-center gap-2 px-3 py-2.5 text-sm"
+          >
             <span className="material-symbols-outlined text-[18px]">settings</span>
             Settings
           </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          className="cursor-pointer rounded-xl"
+          onClick={() => {
+            void signOut({ redirect: true, callbackUrl: '/login' });
+          }}
+        >
+          <span className="material-symbols-outlined mr-2 text-[18px]">logout</span>
+          Log out
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuLabel>Theme</DropdownMenuLabel>
@@ -663,7 +711,7 @@ export function AppShell({ children, user }: AppShellProps) {
                     >
                       <DropdownMenuItem asChild className="cursor-pointer rounded-lg p-0">
                         <Link
-                          href="/profile"
+                          href={'/account/profile' as Route}
                           className="flex w-full items-center gap-2 px-2 py-1.5 text-sm"
                         >
                           Profile
@@ -671,7 +719,7 @@ export function AppShell({ children, user }: AppShellProps) {
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild className="cursor-pointer rounded-lg p-0">
                         <Link
-                          href="/settings"
+                          href={'/account/settings' as Route}
                           className="flex w-full items-center gap-2 px-2 py-1.5 text-sm"
                         >
                           Settings
@@ -710,7 +758,9 @@ export function AppShell({ children, user }: AppShellProps) {
         <main
           className={cn(
             'w-full min-w-0 flex-1 transition-[margin] duration-200 ease-out',
-            hideMobileChrome ? 'pb-0 md:pb-6' : 'pb-24 md:pb-6',
+            hideMobileChrome
+              ? 'pb-0 md:pb-6'
+              : 'pb-[calc(var(--mobile-bottom-nav-height)+env(safe-area-inset-bottom)+1rem)] md:pb-6',
             sidebarExpanded ? 'md:ml-[290px]' : 'md:ml-[72px]'
           )}
         >
@@ -720,8 +770,8 @@ export function AppShell({ children, user }: AppShellProps) {
 
       {/* Mobile bottom navigation */}
       {!isReelsRoute && !hideMobileChrome ? (
-        <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-background/90 backdrop-blur-xl md:hidden">
-          <div className="mx-auto flex max-w-lg items-center justify-around px-1 py-2">
+        <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-background/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl md:hidden">
+          <div className="mx-auto flex h-[var(--mobile-bottom-nav-height)] max-w-lg items-center justify-around px-1 py-2">
             {navItems.map((item) => {
               // Keep Messages out of the mobile bottom tray.
               if (item.href === '/messages') return null;

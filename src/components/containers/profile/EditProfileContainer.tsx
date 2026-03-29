@@ -1,5 +1,6 @@
 'use client';
 
+import type { Route } from 'next';
 import Link from 'next/link';
 import * as React from 'react';
 
@@ -347,7 +348,7 @@ export function EditProfileContainer() {
 
         <div className="flex justify-end gap-2">
           <Button type="button" variant="outline" asChild>
-            <Link href="/profile">Cancel</Link>
+            <Link href={'/account/profile' as Route}>Cancel</Link>
           </Button>
           <Button type="submit" disabled={isSubmitting} className="md:hidden">
             {isSubmitting ? 'Saving…' : 'Save changes'}

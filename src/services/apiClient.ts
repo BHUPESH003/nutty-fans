@@ -4,6 +4,7 @@ import axios, {
   type AxiosRequestConfig,
   type InternalAxiosRequestConfig,
 } from 'axios';
+import { signOut } from 'next-auth/react';
 
 import { toast } from '@/hooks/use-toast';
 import type { ApiResponse } from '@/lib/api/response';
@@ -39,6 +40,7 @@ import type {
 import type { SettingsResponse, UpdateSettingsPayload } from '@/types/settings';
 
 const API_BASE_URL = process.env['NEXT_PUBLIC_API_BASE_URL'] ?? '';
+let unauthorizedRedirectInFlight = false;
 
 export class ApiError extends Error {
   code?: string;
@@ -155,7 +157,7 @@ axiosInstance.interceptors.response.use(
 
         // Handle error toasts and low balance modal (only in browser)
         if (typeof window !== 'undefined') {
-          handleApiError(apiError, apiResponse.code);
+          handleApiError(apiError, apiResponse.code, error.response.config.url);
         }
 
         throw apiError;
@@ -170,7 +172,7 @@ axiosInstance.interceptors.response.use(
       );
 
       if (typeof window !== 'undefined') {
-        handleApiError(apiError, error.response.status);
+        handleApiError(apiError, error.response.status, error.response.config.url);
       }
       throw apiError;
     }
@@ -214,7 +216,30 @@ axiosInstance.interceptors.response.use(
  * Centralized error handling for API errors
  * Shows toasts and triggers low balance modal when appropriate
  */
-function handleApiError(error: ApiError, statusCode: number) {
+function handleApiError(error: ApiError, statusCode: number, requestUrl?: string) {
+  const normalizedUrl = requestUrl ?? '';
+
+  if (
+    statusCode === 401 &&
+    typeof window !== 'undefined' &&
+    !normalizedUrl.startsWith('/api/auth/') &&
+    !normalizedUrl.includes('/api/auth/')
+  ) {
+    if (!unauthorizedRedirectInFlight) {
+      unauthorizedRedirectInFlight = true;
+      const callbackUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+      toast({
+        title: 'Session expired',
+        description: 'Please sign in again to continue.',
+        variant: 'destructive',
+      });
+      void signOut({ redirect: false }).finally(() => {
+        window.location.assign(`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`);
+      });
+    }
+    return;
+  }
+
   // Check for insufficient balance
   const isLowBalance =
     isInsufficientBalanceError(error.code) || isInsufficientBalanceStatus(statusCode);
@@ -295,6 +320,11 @@ export const apiClient = {
     logout() {
       return request<SimpleMessageResponse>('/api/auth/logout', {
         method: 'POST',
+      });
+    },
+    deleteAccount() {
+      return request<SimpleMessageResponse>('/api/users/me', {
+        method: 'DELETE',
       });
     },
     /**

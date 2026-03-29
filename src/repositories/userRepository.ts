@@ -124,4 +124,49 @@ export class UserRepository {
       data,
     });
   }
+
+  async softDelete(id: string) {
+    const deletedEmail = `deleted+${id}@nuttyfans.invalid`;
+    const deletedUsername = `deleted_${id.slice(0, 8)}`;
+
+    return prisma.$transaction(async (tx) => {
+      const user = await tx.user.findUnique({
+        where: { id },
+        select: { metadata: true },
+      });
+
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      const metadata = (user.metadata ?? {}) as Record<string, unknown>;
+      const authState = (metadata['authState'] as Record<string, unknown>) ?? {};
+
+      await tx.session.deleteMany({ where: { userId: id } });
+      await tx.account.deleteMany({ where: { userId: id } });
+
+      return tx.user.update({
+        where: { id },
+        data: {
+          email: deletedEmail,
+          username: deletedUsername,
+          displayName: 'Deleted User',
+          avatarUrl: null,
+          bio: null,
+          location: null,
+          passwordHash: null,
+          status: 'deleted',
+          isDiscoverable: false,
+          showLocation: false,
+          metadata: {
+            ...metadata,
+            authState: {
+              ...authState,
+              accountState: 'deleted',
+            },
+          } as Prisma.InputJsonValue,
+        },
+      });
+    });
+  }
 }

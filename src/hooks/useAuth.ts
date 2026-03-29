@@ -14,6 +14,8 @@ export interface AuthUser {
   avatarUrl?: string | null;
   role?: string;
   accountState?: string;
+  isCreator?: boolean;
+  creatorOnboardingStatus?: string;
 }
 
 export function useAuth() {
@@ -29,6 +31,9 @@ export function useAuth() {
       avatarUrl: session.user.image,
       role: (session.user as { role?: string }).role,
       accountState: (session.user as { accountState?: string }).accountState,
+      isCreator: (session.user as { isCreator?: boolean }).isCreator,
+      creatorOnboardingStatus: (session.user as { creatorOnboardingStatus?: string })
+        .creatorOnboardingStatus,
     } as AuthUser;
   }, [session]);
 

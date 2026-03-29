@@ -56,7 +56,14 @@ export function WalletPageContainer() {
   }
 
   return (
-    <div className="grid gap-6">
+    <div className="grid gap-5 md:gap-6">
+      <div className="space-y-1">
+        <h1 className="font-headline text-2xl font-bold text-on-surface sm:text-3xl">Wallet</h1>
+        <p className="text-sm text-on-surface-variant">
+          Top up your balance and review recent wallet activity.
+        </p>
+      </div>
+
       <div>
         <WalletCard balance={balance} onTopup={handleTopup} />
       </div>

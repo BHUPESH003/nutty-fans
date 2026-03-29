@@ -1,5 +1,6 @@
 'use client';
 
+import type { Route } from 'next';
 import Link from 'next/link';
 import * as React from 'react';
 
@@ -82,56 +83,66 @@ export function MyProfilePageContainer() {
     .toUpperCase();
 
   return (
-    <div className="space-y-6 pb-20 md:pb-6">
-      <Card className="rounded-[28px] bg-surface-container-low">
-        <CardContent className="px-6 py-8">
+    <div className="space-y-5 pb-6 md:space-y-6 md:pb-6">
+      <Card className="overflow-hidden rounded-[28px] bg-surface-container-low">
+        <CardContent className="px-3 py-5 sm:px-6 sm:py-8">
           <div className="flex flex-col items-center text-center">
-            <Avatar className="h-28 w-28 border-4 border-primary">
+            <Avatar className="h-20 w-20 border-4 border-primary sm:h-28 sm:w-28">
               <AvatarImage src={profile.avatarUrl || ''} />
               <AvatarFallback>{initials}</AvatarFallback>
             </Avatar>
-            <h1 className="mt-4 font-headline text-4xl font-bold text-on-surface">
+            <h1 className="mt-4 break-words font-headline text-2xl font-bold text-on-surface sm:text-4xl">
               {profile.displayName}
             </h1>
-            <p className="text-lg text-on-surface-variant">@{profile.username}</p>
+            <p className="text-sm text-on-surface-variant sm:text-lg">@{profile.username}</p>
             {profile.bio ? (
-              <p className="mt-3 max-w-xl text-on-surface-variant">{profile.bio}</p>
+              <p className="mt-3 max-w-xl text-sm leading-5 text-on-surface-variant sm:text-base sm:leading-6">
+                {profile.bio}
+              </p>
             ) : null}
 
-            <div className="mt-6 grid w-full max-w-md grid-cols-3 gap-2">
-              <div className="rounded-2xl bg-white px-4 py-3">
-                <p className="text-xs uppercase tracking-widest text-on-surface-variant">Posts</p>
-                <p className="mt-1 font-headline text-2xl font-bold">{profile.postsCount || 0}</p>
+            <div className="xs:grid-cols-2 mt-5 grid w-full grid-cols-1 gap-2 sm:max-w-md sm:grid-cols-3">
+              <div className="rounded-2xl bg-background px-4 py-3">
+                <p className="text-[11px] uppercase tracking-[0.18em] text-on-surface-variant">
+                  Posts
+                </p>
+                <p className="mt-1 font-headline text-xl font-bold sm:text-2xl">
+                  {profile.postsCount || 0}
+                </p>
               </div>
-              <div className="rounded-2xl bg-white px-4 py-3">
-                <p className="text-xs uppercase tracking-widest text-on-surface-variant">
+              <div className="rounded-2xl bg-background px-4 py-3">
+                <p className="text-[11px] uppercase tracking-[0.18em] text-on-surface-variant">
                   Followers
                 </p>
-                <p className="mt-1 font-headline text-2xl font-bold">{profile.followersCount}</p>
+                <p className="mt-1 font-headline text-xl font-bold sm:text-2xl">
+                  {profile.followersCount}
+                </p>
               </div>
-              <div className="rounded-2xl bg-white px-4 py-3">
-                <p className="text-xs uppercase tracking-widest text-on-surface-variant">
+              <div className="xs:col-span-2 rounded-2xl bg-background px-4 py-3 sm:col-span-1">
+                <p className="text-[11px] uppercase tracking-[0.18em] text-on-surface-variant">
                   Following
                 </p>
-                <p className="mt-1 font-headline text-2xl font-bold">{profile.followingCount}</p>
+                <p className="mt-1 font-headline text-xl font-bold sm:text-2xl">
+                  {profile.followingCount}
+                </p>
               </div>
             </div>
 
-            <div className="mt-6 flex flex-wrap justify-center gap-2">
-              <Button asChild>
-                <Link href="/profile/edit">Edit profile</Link>
+            <div className="mt-5 grid w-full grid-cols-1 gap-2 sm:flex sm:flex-wrap sm:justify-center">
+              <Button asChild className="h-11 w-full text-sm sm:h-10 sm:w-auto">
+                <Link href={'/account/profile/edit' as Route}>Edit profile</Link>
               </Button>
-              <Button asChild variant="outline">
-                <Link href="/settings">Settings</Link>
+              <Button asChild variant="outline" className="h-11 w-full text-sm sm:h-10 sm:w-auto">
+                <Link href={'/account/settings' as Route}>Settings</Link>
               </Button>
-              <Button asChild variant="outline">
-                <Link href="/wallet">
+              <Button asChild variant="outline" className="h-11 w-full text-sm sm:h-10 sm:w-auto">
+                <Link href={'/account/wallet' as Route}>
                   <span className="material-symbols-outlined mr-2 text-[18px]">credit_card</span>
                   Wallet
                 </Link>
               </Button>
-              <Button asChild variant="outline">
-                <Link href="/subscriptions">Subscriptions</Link>
+              <Button asChild variant="outline" className="h-11 w-full text-sm sm:h-10 sm:w-auto">
+                <Link href={'/account/subscriptions' as Route}>Subscriptions</Link>
               </Button>
             </div>
           </div>

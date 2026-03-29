@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
@@ -110,7 +111,7 @@ export function SubscriptionsPageContainer() {
         <h3 className="text-lg font-medium">No active subscriptions</h3>
         <p className="mt-2 text-muted-foreground">Subscribe to creators to see them here.</p>
         <Button className="mt-4" asChild>
-          <a href="/feed">Explore Creators</a>
+          <Link href="/explore">Explore Creators</Link>
         </Button>
       </div>
     );
@@ -128,19 +129,23 @@ export function SubscriptionsPageContainer() {
   return (
     <div className="space-y-6 pb-20 md:pb-8">
       <div className="space-y-3">
-        <h1 className="font-headline text-3xl font-bold text-on-surface">My Subscriptions</h1>
+        <h1 className="font-headline text-2xl font-bold text-on-surface sm:text-3xl">
+          My Subscriptions
+        </h1>
         <p className="text-sm text-on-surface-variant">
           Manage your active memberships and curated content.
         </p>
       </div>
 
-      <div className="grid grid-cols-3 gap-3 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Card className="rounded-2xl bg-surface-container-low">
           <CardContent className="px-4 py-4">
             <p className="text-xs font-semibold uppercase tracking-widest text-on-surface-variant">
               Active
             </p>
-            <p className="mt-1 font-headline text-4xl font-bold">{activeItems.length}</p>
+            <p className="mt-1 font-headline text-3xl font-bold sm:text-4xl">
+              {activeItems.length}
+            </p>
           </CardContent>
         </Card>
         <Card className="rounded-2xl bg-surface-container-low">
@@ -148,7 +153,7 @@ export function SubscriptionsPageContainer() {
             <p className="text-xs font-semibold uppercase tracking-widest text-on-surface-variant">
               This month
             </p>
-            <p className="mt-1 font-headline text-4xl font-bold text-primary">
+            <p className="mt-1 break-words font-headline text-3xl font-bold text-primary sm:text-4xl">
               {formatCurrency(monthSpent)}
             </p>
           </CardContent>
@@ -158,20 +163,24 @@ export function SubscriptionsPageContainer() {
             <p className="text-xs font-semibold uppercase tracking-widest text-on-surface-variant">
               Total spent
             </p>
-            <p className="mt-1 font-headline text-4xl font-bold">{formatCurrency(totalSpent)}</p>
+            <p className="mt-1 break-words font-headline text-3xl font-bold sm:text-4xl">
+              {formatCurrency(totalSpent)}
+            </p>
           </CardContent>
         </Card>
-        <Card className="col-span-3 rounded-2xl bg-surface-container-low md:col-span-1">
+        <Card className="col-span-2 rounded-2xl bg-surface-container-low lg:col-span-1">
           <CardContent className="px-4 py-4">
             <p className="text-xs font-semibold uppercase tracking-widest text-on-surface-variant">
               Next billing
             </p>
-            <p className="mt-1 font-headline text-4xl font-bold">{nextBilling}</p>
+            <p className="mt-1 break-words font-headline text-3xl font-bold sm:text-4xl">
+              {nextBilling}
+            </p>
           </CardContent>
         </Card>
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 sm:flex-wrap">
         {[
           { id: 'active', label: `Active (${activeItems.length})` },
           { id: 'paused', label: `Paused (${pausedItems.length})` },
@@ -182,7 +191,7 @@ export function SubscriptionsPageContainer() {
             type="button"
             onClick={() => setTab(item.id as 'active' | 'paused' | 'expired')}
             className={cn(
-              'rounded-full px-5 py-2 text-sm font-semibold transition',
+              'shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition',
               tab === item.id
                 ? 'bg-primary text-white'
                 : 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container'
@@ -204,44 +213,53 @@ export function SubscriptionsPageContainer() {
 
         {visibleItems.map((sub) => (
           <Card key={sub.id} className="rounded-3xl">
-            <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
-              <div className="flex items-center gap-3">
-                <Avatar className="h-14 w-14">
-                  <AvatarImage src={sub.creator.avatarUrl || ''} />
-                  <AvatarFallback>{sub.creator.displayName[0]}</AvatarFallback>
-                </Avatar>
-                <div>
-                  <CardTitle className="text-lg">{sub.creator.displayName}</CardTitle>
-                  <CardDescription className="text-sm">
-                    {sub.planType} • {formatCurrency(sub.pricePaid)}/mo
-                  </CardDescription>
+            <CardHeader className="space-y-4 pb-2">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="flex min-w-0 items-center gap-3">
+                  <Avatar className="h-14 w-14">
+                    <AvatarImage src={sub.creator.avatarUrl || ''} />
+                    <AvatarFallback>{sub.creator.displayName[0]}</AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0">
+                    <CardTitle className="truncate text-base sm:text-lg">
+                      {sub.creator.displayName}
+                    </CardTitle>
+                    <CardDescription className="text-sm">
+                      {sub.planType} • {formatCurrency(sub.pricePaid)}/mo
+                    </CardDescription>
+                  </div>
                 </div>
+                <Badge variant={sub.status === 'active' ? 'default' : 'secondary'}>
+                  {sub.status}
+                </Badge>
               </div>
-              <Badge variant={sub.status === 'active' ? 'default' : 'secondary'}>
-                {sub.status}
-              </Badge>
             </CardHeader>
             <CardContent className="space-y-3 pt-3 text-sm">
               <div className="flex items-center justify-between rounded-xl bg-surface-container-low px-3 py-2">
                 <span className="text-on-surface-variant">Renews</span>
-                <span className="font-medium">{formatDate(sub.expiresAt)}</span>
+                <span className="pl-3 text-right font-medium">{formatDate(sub.expiresAt)}</span>
               </div>
               <div className="flex items-center justify-between rounded-xl bg-surface-container-low px-3 py-2">
                 <span className="text-on-surface-variant">Auto-renew</span>
                 <span className="font-medium">{sub.autoRenew ? 'On' : 'Off'}</span>
               </div>
             </CardContent>
-            <CardFooter className="flex flex-wrap justify-end gap-2">
-              <Button variant="outline" size="sm" asChild>
-                <a href={`/messages`}>Message</a>
+            <CardFooter className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap sm:justify-end">
+              <Button variant="outline" size="sm" asChild className="w-full sm:w-auto">
+                <Link href="/messages">Message</Link>
               </Button>
-              <Button variant="outline" size="sm" asChild>
-                <a href={`/c/${sub.creator.handle}`}>View</a>
+              <Button variant="outline" size="sm" asChild className="w-full sm:w-auto">
+                <Link href={`/c/${sub.creator.handle}`}>View</Link>
               </Button>
               {sub.status === 'active' && sub.autoRenew ? (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button variant="destructive" size="sm" disabled={loadingId === sub.id}>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      disabled={loadingId === sub.id}
+                      className="w-full sm:w-auto"
+                    >
                       {loadingId === sub.id && (
                         <span className="material-symbols-outlined mr-2 animate-spin text-[18px]">
                           progress_activity
@@ -272,10 +290,10 @@ export function SubscriptionsPageContainer() {
               {sub.status !== 'active' ? (
                 <Button
                   size="sm"
-                  className="bg-neutral-700 text-white hover:bg-neutral-800"
+                  className="w-full bg-neutral-700 text-white hover:bg-neutral-800 sm:w-auto"
                   asChild
                 >
-                  <a href={`/c/${sub.creator.handle}`}>Renew</a>
+                  <Link href={`/c/${sub.creator.handle}`}>Renew</Link>
                 </Button>
               ) : null}
             </CardFooter>
@@ -287,7 +305,7 @@ export function SubscriptionsPageContainer() {
         <CardContent className="flex flex-col items-center gap-3 py-6">
           <p className="text-sm text-on-surface-variant">Discover new creators and memberships.</p>
           <Button asChild className="h-12 w-full max-w-sm text-base">
-            <a href="/explore">Browse creators</a>
+            <Link href="/explore">Browse creators</Link>
           </Button>
         </CardContent>
       </Card>

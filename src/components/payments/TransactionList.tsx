@@ -119,32 +119,32 @@ export function TransactionList({ transactions, loading, isCreator }: Transactio
       {/* Mobile card view */}
       <div className="space-y-3 md:hidden">
         {transactions.map((t) => (
-          <div key={t.id} className="space-y-2 rounded-lg border p-4">
-            <div className="flex items-start justify-between">
+          <div key={t.id} className="space-y-3 rounded-lg border p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0 flex-1">
-                <div className="mb-1 flex items-center gap-2">
+                <div className="mb-1 flex flex-wrap items-center gap-2">
                   <span className="text-sm font-medium">{getTypeLabel(t.transactionType)}</span>
                   {getStatusBadge(t.status)}
                 </div>
                 {t.description && (
-                  <p className="truncate text-sm text-muted-foreground" title={t.description}>
+                  <p className="break-words text-sm text-muted-foreground" title={t.description}>
                     {t.description}
                   </p>
                 )}
                 <p className="mt-1 text-xs text-muted-foreground">{formatDate(t.createdAt)}</p>
               </div>
-              <div className="ml-2 flex flex-col items-end gap-1">
+              <div className="flex shrink-0 flex-col gap-1 sm:items-end">
                 <span
                   className={
                     t.transactionType === 'wallet_topup'
-                      ? 'font-semibold text-green-600'
-                      : 'font-semibold'
+                      ? 'break-all font-semibold text-green-600 sm:break-normal'
+                      : 'break-all font-semibold sm:break-normal'
                   }
                 >
                   {formatCurrency(t.amount)}
                 </span>
                 {isCreator && t.creatorEarnings && (
-                  <span className="text-xs font-medium text-green-600">
+                  <span className="break-words text-xs font-medium text-green-600 sm:text-right">
                     Earned: {formatCurrency(t.creatorEarnings)}
                   </span>
                 )}

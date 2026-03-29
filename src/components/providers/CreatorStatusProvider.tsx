@@ -1,7 +1,7 @@
 'use client';
 
-import { createContext, useContext, type ReactNode } from 'react';
-import useSWR from 'swr';
+import { useSession } from 'next-auth/react';
+import { createContext, useContext, useMemo, type ReactNode } from 'react';
 
 type OnboardingStatus =
   | 'not_started'
@@ -29,35 +29,36 @@ interface CreatorStatusContextType {
 
 const CreatorStatusContext = createContext<CreatorStatusContextType | null>(null);
 
-const fetcher = async (url: string): Promise<CreatorStatus> => {
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error('Failed to fetch creator status');
-  }
-  const data = await response.json();
-  return {
-    onboardingStatus: data.data?.onboardingStatus || 'not_started',
-    isCreator: data.data?.onboardingStatus === 'active',
-  };
-};
-
 interface CreatorStatusProviderProps {
   children: ReactNode;
 }
 
 export function CreatorStatusProvider({ children }: CreatorStatusProviderProps) {
-  const { data, error, isLoading, mutate } = useSWR<CreatorStatus>('/api/creator/status', fetcher, {
-    revalidateOnFocus: false,
-    dedupingInterval: 60000, // Deduplicate requests within 60 seconds
-  });
+  const { data: session, status, update } = useSession();
+
+  const data = useMemo<CreatorStatus | null>(() => {
+    if (!session?.user) return null;
+
+    const onboardingStatus =
+      ((session.user as { creatorOnboardingStatus?: string }).creatorOnboardingStatus as
+        | OnboardingStatus
+        | undefined) ?? 'not_started';
+
+    return {
+      onboardingStatus,
+      isCreator: Boolean((session.user as { isCreator?: boolean }).isCreator),
+    };
+  }, [session]);
 
   return (
     <CreatorStatusContext.Provider
       value={{
         status: data ?? null,
-        isLoading,
-        isError: !!error,
-        refresh: () => mutate(),
+        isLoading: status === 'loading',
+        isError: false,
+        refresh: () => {
+          void update();
+        },
       }}
     >
       {children}
