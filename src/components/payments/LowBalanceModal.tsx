@@ -1,5 +1,6 @@
 'use client';
 
+import type { Route } from 'next';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
@@ -36,7 +37,7 @@ export function LowBalanceModal({
     // Close modal first
     onOpenChange(false);
     // Use router.push for client-side navigation (better UX, preserves state)
-    router.push('/profile?tab=wallet');
+    router.push('/account/wallet' as Route);
   };
 
   const handleCancel = () => {

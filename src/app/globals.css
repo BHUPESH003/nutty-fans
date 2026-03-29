@@ -5,6 +5,7 @@
 @tailwind utilities;
 
 :root {
+  --mobile-bottom-nav-height: 76px;
   --primary: 336 82% 52%;
   --primary-foreground: 0 0% 100%;
   --primary-container: 336 80% 67%;
@@ -155,6 +156,10 @@
   html {
     background-color: hsl(var(--background));
     color-scheme: light;
+    min-height: 100%;
+    overflow-x: clip;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
 
   html.dark {
@@ -164,6 +169,8 @@
   body {
     font-family: var(--font-body), 'Inter', sans-serif;
     @apply bg-background text-foreground;
+    min-height: 100vh;
+    overflow-x: clip;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -183,6 +190,10 @@
   button:focus-visible {
     outline: none;
     box-shadow: 0 0 0 3px hsl(var(--ring) / 0.25);
+  }
+
+  #__next {
+    min-height: 100%;
   }
 }
 

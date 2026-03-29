@@ -1,27 +1,44 @@
 'use client';
 
+import type { Route } from 'next';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { signOut } from 'next-auth/react';
 import * as React from 'react';
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
+import { useAuth } from '@/hooks/useAuth';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { apiClient, ApiError } from '@/services/apiClient';
 import type { Profile } from '@/types/profile';
 import type { SettingsResponse } from '@/types/settings';
 
 export function SettingsPageContainer() {
+  const router = useRouter();
   const [settings, setSettings] = React.useState<SettingsResponse | null>(null);
   const [profile, setProfile] = React.useState<Profile | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [savingField, setSavingField] = React.useState<string | null>(null);
+  const [isDeletingAccount, setIsDeletingAccount] = React.useState(false);
   const push = usePushNotifications();
+  const { user } = useAuth();
 
   React.useEffect(() => {
     let cancelled = false;
@@ -52,6 +69,19 @@ export function SettingsPageContainer() {
       cancelled = true;
     };
   }, []);
+
+  const handleDeleteAccount = React.useCallback(async () => {
+    try {
+      setIsDeletingAccount(true);
+      await apiClient.auth.deleteAccount();
+      await signOut({ redirect: false });
+      router.replace('/');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to delete account.');
+    } finally {
+      setIsDeletingAccount(false);
+    }
+  }, [router]);
 
   const handleToggle =
     <S extends 'notifications' | 'privacy'>(section: S, field: keyof SettingsResponse[S]) =>
@@ -125,7 +155,7 @@ export function SettingsPageContainer() {
   return (
     <div className="space-y-6 pb-20 md:pb-6">
       {/* Mobile-first overview */}
-      <section className="rounded-[24px] bg-surface-container-low p-5 md:hidden">
+      <section className="rounded-[24px] bg-surface-container-low p-4 sm:p-5 md:hidden">
         <div className="flex flex-col items-center text-center">
           <div className="relative">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -138,11 +168,16 @@ export function SettingsPageContainer() {
               <span className="material-symbols-outlined text-[16px]">verified</span>
             </span>
           </div>
-          <h2 className="mt-4 font-headline text-3xl font-bold text-on-surface">
+          <h2 className="mt-4 break-words font-headline text-2xl font-bold text-on-surface sm:text-3xl">
             {profile?.displayName || 'User'}
           </h2>
-          <p className="text-base text-on-surface-variant">@{profile?.username || 'user'}</p>
-          <Link href="/profile/edit" className="mt-1 text-lg font-semibold text-primary">
+          <p className="text-sm text-on-surface-variant sm:text-base">
+            @{profile?.username || 'user'}
+          </p>
+          <Link
+            href={'/account/profile/edit' as Route}
+            className="mt-1 text-base font-semibold text-primary sm:text-lg"
+          >
             Edit profile
           </Link>
         </div>
@@ -154,10 +189,10 @@ export function SettingsPageContainer() {
             </p>
             <div className="space-y-1 rounded-3xl bg-surface-container p-2">
               <Link
-                href="/profile/edit"
-                className="flex items-center justify-between rounded-2xl p-3"
+                href={'/account/profile/edit' as Route}
+                className="flex items-center justify-between gap-3 rounded-2xl p-3"
               >
-                <span className="flex items-center gap-3 text-lg">
+                <span className="flex min-w-0 items-center gap-3 text-base sm:text-lg">
                   <span className="material-symbols-outlined text-on-surface-variant">person</span>
                   Account
                 </span>
@@ -167,9 +202,9 @@ export function SettingsPageContainer() {
               </Link>
               <button
                 type="button"
-                className="flex w-full items-center justify-between rounded-2xl p-3 text-left"
+                className="flex w-full items-center justify-between gap-3 rounded-2xl p-3 text-left"
               >
-                <span className="flex items-center gap-3 text-lg">
+                <span className="flex min-w-0 items-center gap-3 text-base sm:text-lg">
                   <span className="material-symbols-outlined text-on-surface-variant">
                     notifications
                   </span>
@@ -181,9 +216,9 @@ export function SettingsPageContainer() {
               </button>
               <button
                 type="button"
-                className="flex w-full items-center justify-between rounded-2xl p-3 text-left"
+                className="flex w-full items-center justify-between gap-3 rounded-2xl p-3 text-left"
               >
-                <span className="flex items-center gap-3 text-lg">
+                <span className="flex min-w-0 items-center gap-3 text-base sm:text-lg">
                   <span className="material-symbols-outlined text-on-surface-variant">shield</span>
                   Security
                 </span>
@@ -198,21 +233,26 @@ export function SettingsPageContainer() {
             </p>
             <div className="space-y-1 rounded-3xl bg-surface-container p-2">
               <Link
-                href="/transactions"
-                className="flex items-center justify-between rounded-2xl p-3"
+                href={
+                  (user?.isCreator ? '/creator/transactions' : '/account/subscriptions') as Route
+                }
+                className="flex items-center justify-between gap-3 rounded-2xl p-3"
               >
-                <span className="flex items-center gap-3 text-lg">
+                <span className="flex min-w-0 items-center gap-3 text-base sm:text-lg">
                   <span className="material-symbols-outlined text-on-surface-variant">
                     payments
                   </span>
-                  Payouts
+                  {user?.isCreator ? 'Transactions' : 'Subscriptions'}
                 </span>
-                <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">
-                  Active
+                <span className="text-sm text-on-surface-variant">
+                  {user?.isCreator ? 'Creator' : 'Manage'}
                 </span>
               </Link>
-              <Link href="/wallet" className="flex items-center justify-between rounded-2xl p-3">
-                <span className="flex items-center gap-3 text-lg">
+              <Link
+                href={'/account/wallet' as Route}
+                className="flex items-center justify-between gap-3 rounded-2xl p-3"
+              >
+                <span className="flex min-w-0 items-center gap-3 text-base sm:text-lg">
                   <span className="material-symbols-outlined text-on-surface-variant">
                     credit_card
                   </span>
@@ -220,6 +260,21 @@ export function SettingsPageContainer() {
                 </span>
                 <span className="text-sm text-on-surface-variant">Wallet</span>
               </Link>
+              <button
+                type="button"
+                className="flex w-full items-center justify-between gap-3 rounded-2xl p-3 text-left"
+                onClick={() => {
+                  void signOut({ redirect: true, callbackUrl: '/login' });
+                }}
+              >
+                <span className="flex min-w-0 items-center gap-3 text-base sm:text-lg">
+                  <span className="material-symbols-outlined text-on-surface-variant">logout</span>
+                  Log out
+                </span>
+                <span className="material-symbols-outlined text-on-surface-variant">
+                  chevron_right
+                </span>
+              </button>
             </div>
           </div>
 
@@ -230,27 +285,47 @@ export function SettingsPageContainer() {
             <div className="space-y-1 rounded-3xl bg-surface-container p-2">
               <button
                 type="button"
-                className="flex w-full items-center justify-between rounded-2xl p-3 text-left text-amber-700"
+                className="flex w-full items-center justify-between gap-3 rounded-2xl p-3 text-left text-amber-700"
               >
-                <span className="flex items-center gap-3 text-lg">
+                <span className="flex min-w-0 items-center gap-3 text-base sm:text-lg">
                   <span className="material-symbols-outlined">block</span>Deactivate account
                 </span>
                 <span className="material-symbols-outlined text-on-surface-variant">
                   chevron_right
                 </span>
               </button>
-              <button
-                type="button"
-                className="flex w-full items-center justify-between rounded-2xl p-3 text-left text-destructive"
-                disabled
-              >
-                <span className="flex items-center gap-3 text-lg">
-                  <span className="material-symbols-outlined">delete</span>Delete account
-                </span>
-                <span className="material-symbols-outlined text-on-surface-variant">
-                  chevron_right
-                </span>
-              </button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <button
+                    type="button"
+                    className="flex w-full items-center justify-between gap-3 rounded-2xl p-3 text-left text-destructive"
+                  >
+                    <span className="flex min-w-0 items-center gap-3 text-base sm:text-lg">
+                      <span className="material-symbols-outlined">delete</span>Delete account
+                    </span>
+                    <span className="material-symbols-outlined text-on-surface-variant">
+                      chevron_right
+                    </span>
+                  </button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete account?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will deactivate your NuttyFans account and sign you out immediately.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() => void handleDeleteAccount()}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      {isDeletingAccount ? 'Deleting...' : 'Delete account'}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           </div>
         </div>
@@ -267,7 +342,7 @@ export function SettingsPageContainer() {
               </p>
               <div className="space-y-1">
                 <Link
-                  href="/profile/edit"
+                  href={'/account/profile/edit' as Route}
                   className="block rounded-xl bg-primary/10 px-3 py-2 font-semibold text-primary"
                 >
                   Profile
@@ -283,13 +358,13 @@ export function SettingsPageContainer() {
               </p>
               <div className="space-y-1">
                 <Link
-                  href="/wallet"
+                  href={'/account/wallet' as Route}
                   className="block rounded-xl px-3 py-2 text-on-surface-variant hover:bg-surface-container"
                 >
                   Wallet
                 </Link>
                 <Link
-                  href="/subscriptions"
+                  href={'/account/subscriptions' as Route}
                   className="block rounded-xl px-3 py-2 text-on-surface-variant hover:bg-surface-container"
                 >
                   Subscriptions
@@ -301,7 +376,7 @@ export function SettingsPageContainer() {
             variant="outline"
             className="mt-8 w-full"
             onClick={() => {
-              void signOut();
+              void signOut({ redirect: true, callbackUrl: '/login' });
             }}
           >
             Log Out
@@ -403,6 +478,36 @@ export function SettingsPageContainer() {
                   disabled={savingField === 'privacy.showLocation'}
                 />
               </div>
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-[24px] border-destructive/20">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-2xl text-destructive">Danger zone</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive">Delete account</Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete account?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will deactivate your account and immediately end your current session.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() => void handleDeleteAccount()}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      {isDeletingAccount ? 'Deleting...' : 'Delete account'}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </CardContent>
           </Card>
         </div>

@@ -1,5 +1,5 @@
-import { EditProfileContainer } from '@/components/containers/profile/EditProfileContainer';
+import { redirect } from 'next/navigation';
 
 export default function EditProfilePage() {
-  return <EditProfileContainer />;
+  redirect('/account/profile/edit' as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 }

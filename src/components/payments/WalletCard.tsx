@@ -47,20 +47,22 @@ export function WalletCard({ balance, onTopup }: WalletCardProps) {
 
   return (
     <Card className="overflow-hidden border-0 bg-gradient-to-br from-primary to-primary-container text-white shadow-ambient">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 font-headline text-white">
+      <CardHeader className="px-4 pb-3 pt-5 sm:px-6">
+        <CardTitle className="flex items-center gap-2 font-headline text-lg text-white sm:text-xl">
           <span className="material-symbols-outlined text-[22px]">account_balance_wallet</span>
           Wallet Balance
         </CardTitle>
-        <CardDescription className="text-white/80">
+        <CardDescription className="text-sm text-white/80">
           Use your wallet for instant purchases and tips.
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-4 pb-5 sm:px-6">
         <div className="flex flex-col gap-6">
           <div>
             <p className="text-sm opacity-80">Available Balance</p>
-            <div className="font-headline text-4xl font-black">{formatCurrency(balance)}</div>
+            <div className="break-words font-headline text-3xl font-black sm:text-4xl">
+              {formatCurrency(balance)}
+            </div>
           </div>
 
           <div className="space-y-4">
@@ -94,7 +96,7 @@ export function WalletCard({ balance, onTopup }: WalletCardProps) {
                 Top Up
               </Button>
             </div>
-            <div className="flex flex-wrap gap-2 text-sm">
+            <div className="grid grid-cols-2 gap-2 text-sm sm:flex sm:flex-wrap">
               <Button
                 variant="outline"
                 size="sm"

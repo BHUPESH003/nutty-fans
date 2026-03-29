@@ -13,7 +13,7 @@ export function ProfileBio({ bio, isSelf }: ProfileBioProps) {
           {isSelf ? (
             <>
               .{' '}
-              <a href="/profile/edit" className="underline">
+              <a href="/account/profile/edit" className="underline">
                 Add a bio →
               </a>
             </>

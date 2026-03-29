@@ -1,3 +1,4 @@
+import type { Route } from 'next';
 import Link from 'next/link';
 
 import { CreatorCTA } from '@/components/creator/CreatorCTA';
@@ -65,7 +66,7 @@ export function ProfileHeader({ profile, isSelf, coverUrl, stats }: ProfileHeade
             {isSelf ? (
               <>
                 <Button variant="outline" className="rounded-full" asChild>
-                  <Link href="/profile/edit">Edit Profile</Link>
+                  <Link href={'/account/profile/edit' as Route}>Edit Profile</Link>
                 </Button>
                 <CreatorCTA variant="compact" />
               </>

@@ -1,5 +1,5 @@
-import { SubscriptionsPageContainer } from '@/components/containers/subscriptions/SubscriptionsPageContainer';
+import { redirect } from 'next/navigation';
 
 export default function SubscriptionsPage() {
-  return <SubscriptionsPageContainer />;
+  redirect('/account/subscriptions' as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 }

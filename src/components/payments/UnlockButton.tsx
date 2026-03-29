@@ -1,5 +1,6 @@
 'use client';
 
+import type { Route } from 'next';
 import Link from 'next/link';
 import { useState } from 'react';
 
@@ -201,7 +202,7 @@ export function UnlockButton({
               </Button>
             ) : (
               <Button asChild className="flex-1" variant="default">
-                <Link href="/profile?tab=wallet">Add Funds</Link>
+                <Link href={'/account/wallet' as Route}>Add Funds</Link>
               </Button>
             )}
           </div>

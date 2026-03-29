@@ -96,20 +96,74 @@ export const authOptions: NextAuthOptions = {
   },
   callbacks: {
     async jwt({ token, user }) {
+      const userId = user?.id ?? token.id;
+
       if (user) {
         token.id = user.id;
         token.email = user.email;
-        // @ts-expect-error accountState is added to user
-        token.accountState = user.accountState;
+        token.name = user.name;
+        token.picture = user.image;
+        token.username = (user as { username?: string }).username;
+        token.role = (user as { role?: string }).role;
+        token.accountState = (user as { accountState?: string }).accountState;
       }
+
+      if (
+        userId &&
+        (user ||
+          token.username === undefined ||
+          token.role === undefined ||
+          token.isCreator === undefined ||
+          token.creatorOnboardingStatus === undefined)
+      ) {
+        const dbUser = await prisma.user.findUnique({
+          where: { id: userId },
+          select: {
+            id: true,
+            email: true,
+            displayName: true,
+            username: true,
+            avatarUrl: true,
+            role: true,
+            metadata: true,
+            creatorProfile: {
+              select: {
+                onboardingStatus: true,
+              },
+            },
+          },
+        });
+
+        if (dbUser) {
+          const metadata = (dbUser.metadata ?? {}) as Record<string, unknown>;
+          const authState = (metadata['authState'] as Record<string, unknown>) ?? {};
+
+          token.id = dbUser.id;
+          token.email = dbUser.email;
+          token.name = dbUser.displayName;
+          token.picture = dbUser.avatarUrl ?? undefined;
+          token.username = dbUser.username ?? undefined;
+          token.role = dbUser.role;
+          token.accountState = (authState['accountState'] as string | undefined) ?? 'active';
+          token.creatorOnboardingStatus = dbUser.creatorProfile?.onboardingStatus ?? 'not_started';
+          token.isCreator = dbUser.creatorProfile?.onboardingStatus === 'active';
+        }
+      }
+
       return token;
     },
     async session({ session, token }) {
       if (session.user && token) {
         (session.user as { id?: string }).id = token.id as string;
         session.user.email = token.email as string;
-        // @ts-expect-error accountState is added to session
+        session.user.name = (token.name as string | undefined) ?? session.user.name;
+        session.user.image = (token.picture as string | undefined) ?? session.user.image;
+        (session.user as { username?: string }).username = token.username;
+        (session.user as { role?: string }).role = token.role;
         (session.user as { accountState?: string }).accountState = token.accountState as string;
+        (session.user as { isCreator?: boolean }).isCreator = Boolean(token.isCreator);
+        (session.user as { creatorOnboardingStatus?: string }).creatorOnboardingStatus =
+          (token.creatorOnboardingStatus as string | undefined) ?? 'not_started';
       }
       return session;
     },

@@ -1,5 +1,5 @@
-import { SettingsPageContainer } from '@/components/containers/settings/SettingsPageContainer';
+import { redirect } from 'next/navigation';
 
 export default function SettingsPage() {
-  return <SettingsPageContainer />;
+  redirect('/account/settings' as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 }
