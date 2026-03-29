@@ -18,7 +18,7 @@ export class MessageService {
     senderId: string,
     conversationId: string,
     content: string | null,
-    mediaId?: string,
+    mediaIds: string[] = [],
     price?: number,
     clientId?: string,
     metadata?: Record<string, unknown>,
@@ -39,10 +39,16 @@ export class MessageService {
       throw new AppError(RESOURCE_FORBIDDEN, 'Conversation is blocked', 403);
     }
 
+    const recipientId =
+      conversation.participant1 === senderId
+        ? conversation.participant2
+        : conversation.participant1;
+    await this.assertMessagingPermission(senderId, recipientId);
+
     // Determine message type
     let messageType: MessageType = messageTypeOverride ?? 'text';
     if (!messageTypeOverride) {
-      if (mediaId) messageType = 'media';
+      if (mediaIds.length > 0) messageType = 'media';
       if (price && price > 0) messageType = 'ppv';
     }
 
@@ -76,7 +82,7 @@ export class MessageService {
 
     // Create message (only when not deduped)
     if (isNew) {
-      message = await prisma.message.create({
+      const createdMessage = await prisma.message.create({
         data: {
           conversationId,
           senderId,
@@ -86,11 +92,30 @@ export class MessageService {
           clientId: clientId ?? null,
           ppvPrice,
           isPaid,
-          media: mediaId ? { connect: { id: mediaId } } : undefined,
           metadata: (metadata ?? {}) as unknown as Prisma.InputJsonValue,
         },
+      });
+
+      if (mediaIds.length > 0) {
+        await prisma.$transaction(
+          mediaIds.map((mediaId, index) =>
+            prisma.media.update({
+              where: { id: mediaId },
+              data: {
+                messageId: createdMessage.id,
+                sortOrder: index,
+              },
+            })
+          )
+        );
+      }
+
+      message = await prisma.message.findUnique({
+        where: { id: createdMessage.id },
         include: {
-          media: true,
+          media: {
+            orderBy: { sortOrder: 'asc' },
+          },
         },
       });
     }
@@ -197,6 +222,47 @@ export class MessageService {
     return message;
   }
 
+  private async assertMessagingPermission(senderId: string, recipientId: string) {
+    const users = await prisma.user.findMany({
+      where: { id: { in: [senderId, recipientId] } },
+      select: {
+        id: true,
+        creatorProfile: {
+          select: { id: true },
+        },
+      },
+    });
+
+    const sender = users.find((user) => user.id === senderId);
+    const recipient = users.find((user) => user.id === recipientId);
+
+    if (!sender || !recipient) {
+      throw new AppError(RESOURCE_UNAUTHORIZED, 'Unauthorized access to conversation', 401);
+    }
+
+    if (sender.creatorProfile || !recipient.creatorProfile) {
+      return;
+    }
+
+    const subscription = await prisma.subscription.findFirst({
+      where: {
+        userId: senderId,
+        creatorId: recipient.creatorProfile.id,
+        status: 'active',
+        expiresAt: { gt: new Date() },
+      },
+      select: { id: true },
+    });
+
+    if (!subscription) {
+      throw new AppError(
+        RESOURCE_FORBIDDEN,
+        'Subscribe to this creator before sending messages',
+        403
+      );
+    }
+  }
+
   async list(userId: string, conversationId: string, cursor?: string, limit = 50) {
     // Verify participation
     const conversation = await prisma.conversation.findUnique({
@@ -216,7 +282,9 @@ export class MessageService {
       cursor: cursor ? { id: cursor } : undefined,
       orderBy: { createdAt: 'desc' },
       include: {
-        media: true,
+        media: {
+          orderBy: { sortOrder: 'asc' },
+        },
         ppvPurchases: {
           where: { userId },
         },
@@ -379,7 +447,11 @@ export class MessageService {
       // Get the updated message with media
       const unlockedMessage = await tx.message.findUnique({
         where: { id: messageId },
-        include: { media: true },
+        include: {
+          media: {
+            orderBy: { sortOrder: 'asc' },
+          },
+        },
       });
 
       // Emit event for message unlock (so recipients can see unlocked content)

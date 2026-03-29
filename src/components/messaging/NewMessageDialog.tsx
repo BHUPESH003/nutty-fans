@@ -1,8 +1,9 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -22,21 +23,71 @@ interface NewMessageDialogProps {
   onOpenChange: (_open: boolean) => void;
 }
 
+interface CreatorSearchResult {
+  id: string;
+  handle: string;
+  displayName: string;
+  avatarUrl: string | null;
+  isVerified?: boolean;
+  subscriberCount?: number;
+}
+
 export function NewMessageDialog({ open, onOpenChange }: NewMessageDialogProps) {
   const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const [results, setResults] = useState<CreatorSearchResult[]>([]);
   const { toast } = useToast();
   const router = useRouter();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!username.trim()) return;
+  useEffect(() => {
+    if (!open) {
+      setUsername('');
+      setResults([]);
+      return;
+    }
+
+    const query = username.trim();
+    if (query.length < 2) {
+      setResults([]);
+      return;
+    }
+
+    let cancelled = false;
+    setSearching(true);
+
+    const timeoutId = window.setTimeout(() => {
+      void apiClient.search
+        .searchCreators(query, undefined, 8)
+        .then((response) => {
+          if (cancelled) return;
+          setResults((response.creators || []) as CreatorSearchResult[]);
+        })
+        .catch((error) => {
+          if (cancelled) return;
+          console.error('Failed to search creators:', error);
+          setResults([]);
+        })
+        .finally(() => {
+          if (!cancelled) {
+            setSearching(false);
+          }
+        });
+    }, 250);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeoutId);
+      setSearching(false);
+    };
+  }, [open, username]);
+
+  const startConversation = async (handle: string) => {
+    if (!handle.trim()) return;
 
     try {
       setLoading(true);
-      // First, we need to get the user ID from username
-      // For MVP, we'll try to get the profile by handle
-      const profile = await apiClient.profile.byHandle(username.trim());
+      const profile = await apiClient.profile.byHandle(handle.trim());
 
       if (!profile?.id) {
         toast({
@@ -57,6 +108,7 @@ export function NewMessageDialog({ open, onOpenChange }: NewMessageDialogProps) 
       router.push(`/messages/${conversation.id}`);
       onOpenChange(false);
       setUsername('');
+      setResults([]);
     } catch (error) {
       console.error('Failed to create conversation:', error);
       toast({
@@ -66,6 +118,18 @@ export function NewMessageDialog({ open, onOpenChange }: NewMessageDialogProps) 
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (results[0]?.handle) {
+      await startConversation(results[0].handle);
+      return;
+    }
+
+    if (!username.trim()) return;
+    await startConversation(username.trim());
   };
 
   return (
@@ -79,7 +143,7 @@ export function NewMessageDialog({ open, onOpenChange }: NewMessageDialogProps) 
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="username">Username</Label>
+            <Label htmlFor="username">Creator</Label>
             <div className="relative">
               <span className="material-symbols-outlined pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[20px] text-on-surface-variant">
                 search
@@ -95,9 +159,63 @@ export function NewMessageDialog({ open, onOpenChange }: NewMessageDialogProps) 
               />
             </div>
             <p className="text-xs text-muted-foreground">
-              Enter the username (without @) of the person you want to message.
+              Search by creator handle or display name to start a conversation.
             </p>
           </div>
+
+          <div className="max-h-72 overflow-y-auto rounded-2xl border border-surface-container-high bg-surface-container-lowest">
+            {searching ? (
+              <div className="flex items-center justify-center py-8 text-on-surface-variant">
+                <span className="material-symbols-outlined animate-spin text-[22px]">
+                  progress_activity
+                </span>
+              </div>
+            ) : results.length > 0 ? (
+              <div className="divide-y divide-surface-container-high">
+                {results.map((creator) => (
+                  <button
+                    key={creator.id}
+                    type="button"
+                    onClick={() => void startConversation(creator.handle)}
+                    disabled={loading}
+                    className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-surface-container-low"
+                  >
+                    <Avatar className="h-11 w-11">
+                      <AvatarImage src={creator.avatarUrl ?? undefined} alt={creator.displayName} />
+                      <AvatarFallback>{creator.displayName[0] ?? 'C'}</AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <p className="truncate text-sm font-semibold text-on-surface">
+                          {creator.displayName}
+                        </p>
+                        {creator.isVerified ? (
+                          <span className="material-symbols-outlined text-[16px] text-primary">
+                            verified
+                          </span>
+                        ) : null}
+                      </div>
+                      <p className="truncate text-xs text-on-surface-variant">@{creator.handle}</p>
+                    </div>
+                    {creator.subscriberCount ? (
+                      <span className="text-xs text-on-surface-variant">
+                        {creator.subscriberCount.toLocaleString()} fans
+                      </span>
+                    ) : null}
+                  </button>
+                ))}
+              </div>
+            ) : username.trim().length >= 2 ? (
+              <div className="px-4 py-8 text-center text-sm text-on-surface-variant">
+                No creators matched your search.
+              </div>
+            ) : (
+              <div className="px-4 py-8 text-center text-sm text-on-surface-variant">
+                Start typing to search creators.
+              </div>
+            )}
+          </div>
+
           <div className="flex justify-end gap-2">
             <Button
               type="button"

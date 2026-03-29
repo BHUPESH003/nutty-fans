@@ -168,12 +168,12 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
 
   const handleSendMessage = async (
     content: string,
-    mediaId?: string,
+    mediaIds?: string[],
     price?: number,
     options?: { messageTypeOverride?: Message['messageType']; metadata?: Record<string, unknown> }
   ) => {
     if (!conversationId) return;
-    await sendMessage(content, mediaId, price, {
+    await sendMessage(content, mediaIds, price, {
       messageTypeOverride: options?.messageTypeOverride,
       metadata: options?.metadata,
     });
@@ -188,12 +188,11 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
   }
 
   return (
-    <div className="flex h-full flex-col">
-      {/* Header */}
-      <div className="flex items-center gap-3 border-b border-surface-container-high bg-white p-4">
+    <div className="flex h-full min-h-0 flex-col bg-surface">
+      <div className="flex items-center gap-3 border-b border-border bg-surface-container-lowest px-4 py-4 md:px-5">
         <Link
           href="/messages"
-          className="mr-2 inline-flex h-9 w-9 items-center justify-center rounded-full hover:bg-surface-container-low md:hidden"
+          className="mr-1 inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-surface-container-low hover:bg-surface-container md:hidden"
         >
           <span className="material-symbols-outlined text-[22px] text-on-surface">arrow_back</span>
           <span className="sr-only">Back</span>
@@ -202,11 +201,11 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
           <AvatarImage src={conversation?.otherUser?.avatarUrl || ''} className="object-cover" />
           <AvatarFallback>{conversation?.otherUser?.displayName?.[0] ?? '?'}</AvatarFallback>
         </Avatar>
-        <div>
-          <h2 className="font-headline text-base font-bold text-on-surface">
+        <div className="min-w-0">
+          <h2 className="truncate font-headline text-base font-bold text-on-surface">
             {conversation?.otherUser?.displayName ?? 'Unknown User'}
           </h2>
-          <p className="text-xs font-medium text-on-surface-variant">
+          <p className="truncate text-xs font-medium text-on-surface-variant">
             {isOnline ? (
               <span className="text-emerald-600">Online now</span>
             ) : lastSeen ? (
@@ -221,15 +220,18 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
             <span className="material-symbols-outlined mr-1 text-[16px]">local_atm</span>
             Tip
           </Button>
-          <Button size="icon" variant="ghost" className="h-9 w-9 rounded-full">
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-9 w-9 rounded-full border border-border bg-surface-container-low"
+          >
             <span className="material-symbols-outlined text-[20px]">more_vert</span>
           </Button>
         </div>
       </div>
 
-      {/* Messages */}
-      <ScrollArea className="flex-1 bg-surface p-4 md:p-6">
-        <div className="no-scrollbar space-y-4">
+      <ScrollArea className="min-h-0 flex-1 bg-[radial-gradient(circle_at_top,_hsl(var(--surface-container-low))_0%,_transparent_28%),linear-gradient(180deg,hsl(var(--surface))_0%,hsl(var(--surface-container-lowest))_100%)] p-4 md:p-6">
+        <div className="mx-auto w-full max-w-4xl space-y-4">
           <div className="mx-auto my-2 w-fit rounded-full bg-surface-container px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-on-surface-variant">
             Today
           </div>
@@ -265,7 +267,7 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
         isCreator={isCreator}
         conversationId={conversationId}
         recipientId={conversation?.otherUser?.id}
-        className="border-b border-surface-container-high md:order-3 md:border-b-0 md:border-t"
+        className="border-t border-border bg-surface-container-lowest md:order-3"
       />
     </div>
   );

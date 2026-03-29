@@ -23,24 +23,27 @@ export default function MessagesLayout({ children }: { children: React.ReactNode
 
   return (
     <>
-      <div className="flex h-[calc(100vh-4rem)] overflow-hidden bg-white md:rounded-[12px] md:border md:border-surface-container-high md:shadow-card">
-        {/* Sidebar */}
+      <div className="flex h-[100vh] overflow-hidden bg-background md:rounded-[28px] md:border md:border-border md:bg-surface-container-lowest md:shadow-card">
         <div
           className={cn(
-            'flex flex-col border-surface-container-high bg-white md:border-r',
-            // Mobile: Hidden if conversation is active
-            isConversationActive ? 'hidden md:flex' : 'flex w-full md:w-[340px]',
-            // Desktop: Always visible as sidebar
-            'md:w-[340px]'
+            'flex shrink-0 flex-col border-border bg-surface-container-lowest md:border-r',
+            isConversationActive ? 'hidden md:flex' : 'flex w-full md:w-[340px] lg:w-[380px]'
           )}
         >
-          <div className="flex flex-col gap-4 border-b border-surface-container-high p-4">
+          <div className="flex flex-col gap-4 border-b border-border px-4 py-5 md:px-5">
             <div className="flex items-center justify-between">
-              <h2 className="font-headline text-xl font-extrabold tracking-tight">Messages</h2>
+              <div>
+                <h2 className="font-headline text-xl font-extrabold tracking-tight text-on-surface">
+                  Messages
+                </h2>
+                <p className="mt-1 text-xs text-on-surface-variant">
+                  Jump back into creator and fan conversations.
+                </p>
+              </div>
               <Button
                 size="icon"
                 variant="secondary"
-                className="h-10 w-10 rounded-full"
+                className="h-10 w-10 rounded-full border border-border bg-surface-container-low text-on-surface hover:bg-surface-container"
                 onClick={() => setNewMessageOpen(true)}
                 aria-label="New message"
               >
@@ -55,10 +58,10 @@ export default function MessagesLayout({ children }: { children: React.ReactNode
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search chats..."
-                className="h-11 pl-10"
+                className="h-11 rounded-full border-border bg-surface-container-low pl-10"
               />
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               {[
                 { id: 'all', label: 'All' },
                 { id: 'unread', label: 'Unread' },
@@ -69,10 +72,10 @@ export default function MessagesLayout({ children }: { children: React.ReactNode
                   type="button"
                   onClick={() => setActiveTab(tab.id as 'all' | 'unread' | 'requests')}
                   className={cn(
-                    'rounded-full px-4 py-2 text-sm font-semibold transition',
+                    'rounded-full border px-4 py-2 text-sm font-semibold transition',
                     activeTab === tab.id
-                      ? 'bg-primary text-white'
-                      : 'border border-surface-container-high bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container-low'
+                      ? 'border-primary bg-primary text-primary-foreground shadow-sm'
+                      : 'border-border bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface'
                   )}
                 >
                   {tab.label}
@@ -91,11 +94,9 @@ export default function MessagesLayout({ children }: { children: React.ReactNode
           </div>
         </div>
 
-        {/* Main Content */}
         <div
           className={cn(
-            'flex-1 flex-col overflow-hidden',
-            // Mobile: Hidden if NO conversation is active (show list instead)
+            'min-w-0 flex-1 flex-col overflow-hidden bg-surface',
             !isConversationActive ? 'hidden md:flex' : 'flex'
           )}
         >

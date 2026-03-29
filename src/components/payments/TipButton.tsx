@@ -22,6 +22,7 @@ interface TipButtonProps {
   variant?: ButtonProps['variant'];
   size?: ButtonProps['size'];
   className?: string;
+  onBeforeOpen?: () => boolean;
 }
 
 const PRESET_AMOUNTS = [5, 10, 25, 50, 100];
@@ -32,6 +33,7 @@ export function TipButton({
   variant = 'default',
   size,
   className,
+  onBeforeOpen,
 }: TipButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [amount, setAmount] = useState<string>('');
@@ -72,7 +74,17 @@ export function TipButton({
 
   return (
     <>
-      <Button variant={variant} size={size} onClick={() => setIsOpen(true)} className={className}>
+      <Button
+        variant={variant}
+        size={size}
+        onClick={() => {
+          if (onBeforeOpen && !onBeforeOpen()) {
+            return;
+          }
+          setIsOpen(true);
+        }}
+        className={className}
+      >
         <span className="material-symbols-outlined mr-2 text-[18px]">favorite</span>
         Tip
       </Button>

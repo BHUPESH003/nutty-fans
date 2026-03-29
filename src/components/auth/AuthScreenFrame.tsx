@@ -33,7 +33,7 @@ export function AuthScreenFrame({
         className
       )}
     >
-      <div className="rounded-b-[24px] bg-[#070913] px-6 pb-8 pt-7 text-white sm:px-7">
+      <div className="rounded-b-[24px] bg-[linear-gradient(135deg,hsl(var(--primary))_0%,hsl(var(--primary-container))_55%,hsl(var(--secondary))_100%)] px-6 pb-8 pt-7 text-white sm:px-7">
         {showBrand ? (
           <Link href="/" className="inline-flex items-center gap-2.5">
             <Image
@@ -45,13 +45,13 @@ export function AuthScreenFrame({
               priority
               unoptimized
             />
-            <span className="font-headline text-[2rem] font-extrabold leading-none tracking-tight text-primary-fixed-dim">
+            <span className="font-headline text-[2rem] font-extrabold leading-none tracking-tight text-white">
               NuttyFans
             </span>
           </Link>
         ) : null}
         <h1 className="mt-8 font-headline text-5xl font-bold tracking-tight">{bannerTitle}</h1>
-        <p className="mt-2 text-lg text-white/70">{bannerSubtitle}</p>
+        <p className="mt-2 max-w-lg text-lg text-white/80">{bannerSubtitle}</p>
       </div>
 
       <div className="px-6 pb-8 pt-6 sm:px-7">

@@ -16,7 +16,7 @@ import { InChatTipModal } from './InChatTipModal';
 interface MessageInputProps {
   onSend: (
     _content: string,
-    _mediaId?: string,
+    _mediaIds?: string[],
     _price?: number,
     _options?: { messageTypeOverride?: Message['messageType']; metadata?: Record<string, unknown> }
   ) => Promise<void>;
@@ -25,6 +25,13 @@ interface MessageInputProps {
   recipientId?: string;
   disabled?: boolean;
   className?: string;
+}
+
+interface PendingAttachment {
+  id: string;
+  file: File;
+  url: string;
+  mediaType: 'image' | 'video';
 }
 
 export function MessageInput({
@@ -39,9 +46,11 @@ export function MessageInput({
   const [price, setPrice] = useState<number>(0);
   const [sending, setSending] = useState(false);
   const [uploadingVoice, setUploadingVoice] = useState(false);
+  const [uploadingAttachment, setUploadingAttachment] = useState(false);
   const [showTipModal, setShowTipModal] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
+  const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
   const { toast } = useToast();
 
   const socket = getSocket();
@@ -53,6 +62,13 @@ export function MessageInput({
   const audioChunksRef = useRef<Blob[]>([]);
   const durationTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const recordingDurationRef = useRef(0);
+  const imageInputRef = useRef<HTMLInputElement | null>(null);
+  const videoInputRef = useRef<HTMLInputElement | null>(null);
+  const attachmentsRef = useRef<PendingAttachment[]>([]);
+
+  const revokeAttachmentUrls = (items: PendingAttachment[]) => {
+    items.forEach((item) => URL.revokeObjectURL(item.url));
+  };
 
   const emitTypingStop = () => {
     if (!isTypingRef.current) return;
@@ -61,9 +77,14 @@ export function MessageInput({
   };
 
   useEffect(() => {
+    attachmentsRef.current = attachments;
+  }, [attachments]);
+
+  useEffect(() => {
     return () => {
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
       emitTypingStop();
+      revokeAttachmentUrls(attachmentsRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversationId]);
@@ -82,7 +103,12 @@ export function MessageInput({
       const filename = `voice-${Date.now()}.webm`;
       const contentType = 'audio/webm';
 
-      const uploadResult = await apiClient.content.getUploadUrl(filename, contentType, blob.size);
+      const uploadResult = await apiClient.content.getUploadUrl(
+        filename,
+        contentType,
+        blob.size,
+        conversationId
+      );
       const { uploadUrl, mediaId, key } = uploadResult;
 
       await fetch(uploadUrl, {
@@ -91,9 +117,9 @@ export function MessageInput({
         headers: { 'Content-Type': contentType },
       });
 
-      await apiClient.content.confirmUpload(mediaId, key);
+      await apiClient.content.confirmUpload(mediaId, key, undefined, conversationId);
 
-      await onSend('', mediaId, undefined, {
+      await onSend('', [mediaId], undefined, {
         messageTypeOverride: 'audio',
         metadata: { duration: durationSeconds },
       });
@@ -165,21 +191,93 @@ export function MessageInput({
     }
   };
 
-  // MVP: No real media upload yet, just placeholder logic
-  // In real app: Use MediaUpload component to get mediaId
+  const uploadAttachments = async (files: File[]) => {
+    setUploadingAttachment(true);
+    try {
+      return await Promise.all(
+        files.map(async (file) => {
+          const uploadResult = await apiClient.content.getUploadUrl(
+            file.name,
+            file.type,
+            file.size,
+            conversationId
+          );
+          const { uploadUrl, mediaId, key } = uploadResult;
+
+          await fetch(uploadUrl, {
+            method: 'PUT',
+            body: file,
+            headers: { 'Content-Type': file.type },
+          });
+
+          await apiClient.content.confirmUpload(mediaId, key, undefined, conversationId);
+          return mediaId;
+        })
+      );
+    } finally {
+      setUploadingAttachment(false);
+    }
+  };
+
+  const handleAttachmentPicked = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files ?? []).filter(
+      (file) => file.type.startsWith('image/') || file.type.startsWith('video/')
+    );
+    if (files.length === 0) {
+      event.target.value = '';
+      return;
+    }
+
+    const nextAttachments: PendingAttachment[] = files.map((file) => ({
+      id:
+        typeof crypto !== 'undefined' && 'randomUUID' in crypto
+          ? crypto.randomUUID()
+          : `${Date.now()}-${Math.random()}`,
+      file,
+      url: URL.createObjectURL(file),
+      mediaType: file.type.startsWith('video/') ? 'video' : 'image',
+    }));
+
+    setAttachments((prev) => [...prev, ...nextAttachments]);
+    event.target.value = '';
+  };
+
+  const removeAttachment = (id: string) => {
+    setAttachments((prev) => {
+      const target = prev.find((item) => item.id === id);
+      if (target) URL.revokeObjectURL(target.url);
+      return prev.filter((item) => item.id !== id);
+    });
+  };
 
   const handleSend = async () => {
-    if (!content.trim()) return;
+    const trimmedContent = content.trim();
+    if (!trimmedContent && attachments.length === 0) return;
     if (isRecording) return;
+
+    const pendingContent = trimmedContent;
+    const pendingPrice = price || undefined;
+    const pendingAttachments = attachments;
 
     try {
       setSending(true);
-      await onSend(content, undefined, price);
       emitTypingStop();
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
       setContent('');
       setPrice(0);
+      setAttachments([]);
+
+      const mediaIds =
+        pendingAttachments.length > 0
+          ? await uploadAttachments(pendingAttachments.map((attachment) => attachment.file))
+          : undefined;
+
+      await onSend(pendingContent || '', mediaIds, pendingPrice);
+      revokeAttachmentUrls(pendingAttachments);
     } catch (error) {
+      setContent(pendingContent);
+      setPrice(pendingPrice ?? 0);
+      setAttachments(pendingAttachments);
       console.error(error);
       toast({
         title: 'Failed to send message',
@@ -215,7 +313,24 @@ export function MessageInput({
   };
 
   return (
-    <div className={cn('bg-white p-3 md:p-4', className)}>
+    <div className={cn('p-3 md:p-4', className)}>
+      <input
+        ref={imageInputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        className="hidden"
+        onChange={handleAttachmentPicked}
+      />
+      <input
+        ref={videoInputRef}
+        type="file"
+        accept="video/*"
+        multiple
+        className="hidden"
+        onChange={handleAttachmentPicked}
+      />
+
       {price > 0 && (
         <div className="mb-2 flex w-fit items-center gap-2 rounded-md bg-secondary-fixed/10 p-2 text-sm text-secondary">
           <span className="material-symbols-outlined text-[18px]">toll</span>
@@ -226,14 +341,65 @@ export function MessageInput({
         </div>
       )}
 
+      {attachments.length > 0 && (
+        <div className="mb-3 flex gap-3 overflow-x-auto pb-1">
+          {attachments.map((attachment) => (
+            <div
+              key={attachment.id}
+              className="relative h-24 w-24 shrink-0 overflow-hidden rounded-2xl border border-surface-container-high bg-surface-container-low"
+            >
+              {attachment.mediaType === 'video' ? (
+                <video
+                  src={attachment.url}
+                  className="h-full w-full object-cover"
+                  muted
+                  playsInline
+                />
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={attachment.url}
+                  alt={attachment.file.name}
+                  className="h-full w-full object-cover"
+                />
+              )}
+              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-2 pb-2 pt-5">
+                <p className="truncate text-[10px] font-medium text-white">
+                  {attachment.file.name}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => removeAttachment(attachment.id)}
+                className="absolute right-1.5 top-1.5 rounded-full bg-black/65 p-1 text-white"
+              >
+                <span className="material-symbols-outlined text-[14px]">close</span>
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
       <div className="mb-2 flex items-center justify-between gap-3">
         <div className="flex gap-1">
-          <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full" disabled>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-10 w-10 rounded-full"
+            disabled={uploadingAttachment || sending || isRecording}
+            onClick={() => imageInputRef.current?.click()}
+          >
             <span className="material-symbols-outlined text-[22px] text-on-surface-variant">
               image
             </span>
           </Button>
-          <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full" disabled>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-10 w-10 rounded-full"
+            disabled={uploadingAttachment || sending || isRecording}
+            onClick={() => videoInputRef.current?.click()}
+          >
             <span className="material-symbols-outlined text-[22px] text-on-surface-variant">
               videocam
             </span>
@@ -333,11 +499,23 @@ export function MessageInput({
         />
         <Button
           onClick={handleSend}
-          disabled={!content.trim() || sending || isRecording || uploadingVoice}
+          disabled={
+            (!content.trim() && attachments.length === 0) ||
+            sending ||
+            isRecording ||
+            uploadingVoice ||
+            uploadingAttachment
+          }
           size="icon"
           className="h-12 w-12 shrink-0 rounded-full bg-primary-container text-white hover:opacity-90"
         >
-          <span className="material-symbols-outlined text-[20px]">send</span>
+          {sending || uploadingAttachment ? (
+            <span className="material-symbols-outlined animate-spin text-[20px]">
+              progress_activity
+            </span>
+          ) : (
+            <span className="material-symbols-outlined text-[20px]">send</span>
+          )}
         </Button>
       </div>
     </div>

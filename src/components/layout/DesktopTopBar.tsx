@@ -8,7 +8,7 @@ import { SearchBar } from '@/components/search/SearchBar';
 
 export function DesktopTopBar() {
   return (
-    <header className="sticky top-0 z-20 hidden border-b border-surface-container-low bg-white/95 backdrop-blur-xl md:block">
+    <header className="sticky top-0 z-20 hidden border-b border-border bg-background/95 backdrop-blur-xl md:block">
       <div className="flex h-16 w-full items-center gap-3 px-4 lg:px-5">
         <Suspense
           fallback={
@@ -17,7 +17,7 @@ export function DesktopTopBar() {
         >
           <SearchBar
             variant="discover"
-            className="min-w-0 flex-1 [&>div]:border [&>div]:border-neutral-200 [&>div]:bg-white"
+            className="min-w-0 flex-1 [&>div]:border [&>div]:border-border [&>div]:bg-surface-container-lowest"
             placeholder="Search creators or tags..."
           />
         </Suspense>

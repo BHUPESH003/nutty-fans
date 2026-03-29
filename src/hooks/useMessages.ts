@@ -278,7 +278,7 @@ export function useMessages(conversationId: string | null) {
   const sendMessageWithClientId = useCallback(
     async (args: {
       content: string | null;
-      mediaId?: string;
+      mediaIds?: string[];
       price?: number;
       clientId: string;
       metadata?: Record<string, unknown>;
@@ -287,13 +287,13 @@ export function useMessages(conversationId: string | null) {
       if (!conversationId) throw new Error('No conversation ID');
       if (!myUserId) throw new Error('No authenticated user');
 
-      const { content, mediaId, price, clientId, metadata, messageTypeOverride } = args;
+      const { content, mediaIds, price, clientId, metadata, messageTypeOverride } = args;
       const tempId = `${OPTIMISTIC_PREFIX}${clientId}`;
 
       // Optimistic placeholder for immediate UI feedback.
       const messageType: Message['messageType'] = messageTypeOverride
         ? messageTypeOverride
-        : mediaId
+        : mediaIds && mediaIds.length > 0
           ? 'media'
           : price && price > 0
             ? 'ppv'
@@ -334,7 +334,7 @@ export function useMessages(conversationId: string | null) {
         await apiClient.messaging.sendMessage(
           conversationId,
           content,
-          mediaId,
+          mediaIds,
           price,
           clientId,
           metadata,
@@ -355,7 +355,7 @@ export function useMessages(conversationId: string | null) {
   const sendMessage = useCallback(
     async (
       content: string | null,
-      mediaId?: string,
+      mediaIds?: string[],
       price?: number,
       options?: { messageTypeOverride?: Message['messageType']; metadata?: Record<string, unknown> }
     ) => {
@@ -368,7 +368,7 @@ export function useMessages(conversationId: string | null) {
 
       await sendMessageWithClientId({
         content,
-        mediaId,
+        mediaIds,
         price,
         clientId: id,
         metadata: options?.metadata,
@@ -384,7 +384,7 @@ export function useMessages(conversationId: string | null) {
 
       await sendMessageWithClientId({
         content: message.content,
-        mediaId: message.media?.[0]?.id,
+        mediaIds: message.media?.map((media) => media.id),
         price: message.ppvPrice ?? undefined,
         clientId: message.clientId,
         metadata: message.metadata,

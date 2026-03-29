@@ -565,17 +565,22 @@ export const apiClient = {
         method: 'POST',
       });
     },
-    getUploadUrl(filename: string, contentType: string, size: number) {
+    getUploadUrl(filename: string, contentType: string, size: number, conversationId?: string) {
       return request<{ uploadUrl: string; mediaId: string; key: string }>('/api/media/upload-url', {
         method: 'POST',
-        data: { filename, contentType, size },
+        data: { filename, contentType, size, conversationId },
       });
     },
-    confirmUpload(mediaId: string, key: string, dimensions?: { width?: number; height?: number }) {
+    confirmUpload(
+      mediaId: string,
+      key: string,
+      dimensions?: { width?: number; height?: number },
+      conversationId?: string
+    ) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return request<any>('/api/media/confirm', {
         method: 'POST',
-        data: { mediaId, key, ...dimensions },
+        data: { mediaId, key, conversationId, ...dimensions },
       });
     },
   },
@@ -610,7 +615,7 @@ export const apiClient = {
     sendMessage(
       conversationId: string,
       content: string | null,
-      mediaId?: string,
+      mediaIds?: string[],
       price?: number,
       clientId?: string,
       metadata?: Record<string, unknown>,
@@ -619,7 +624,7 @@ export const apiClient = {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return request<any>(`/api/conversations/${conversationId}/messages`, {
         method: 'POST',
-        data: { content, mediaId, price, clientId, metadata, messageType },
+        data: { content, mediaIds, price, clientId, metadata, messageType },
       });
     },
     unlockMessage(messageId: string) {

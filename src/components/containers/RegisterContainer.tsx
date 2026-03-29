@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import * as React from 'react';
 
@@ -20,6 +21,8 @@ interface RegisterFormState {
 }
 
 export function RegisterContainer() {
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get('callbackUrl') || '/';
   const [form, setForm] = React.useState<RegisterFormState>({
     email: '',
     password: '',
@@ -62,7 +65,7 @@ export function RegisterContainer() {
       if (!isMountedRef.current) return;
       setSuccessMessage('Account created. Check your email to verify your account. Redirecting...');
       setTimeout(() => {
-        window.location.href = '/login';
+        window.location.href = `/login?callbackUrl=${encodeURIComponent(callbackUrl)}`;
       }, 1200);
     } catch (err) {
       if (!isMountedRef.current) return;
@@ -88,7 +91,7 @@ export function RegisterContainer() {
       <Button
         variant="outline"
         className="h-12 w-full border-outline-variant bg-white text-on-surface hover:bg-surface-container-low"
-        onClick={() => void signIn('google')}
+        onClick={() => void signIn('google', { callbackUrl })}
       >
         Continue with Google
       </Button>
@@ -176,7 +179,10 @@ export function RegisterContainer() {
 
       <p className="mt-6 text-center text-base text-on-surface-variant">
         Already have an account?{' '}
-        <Link href="/login" className="font-semibold text-primary hover:underline">
+        <Link
+          href={`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`}
+          className="font-semibold text-primary hover:underline"
+        >
           Sign in
         </Link>
       </p>

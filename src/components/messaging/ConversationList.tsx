@@ -94,7 +94,7 @@ export function ConversationList({
 
   return (
     <ScrollArea className="h-full">
-      <div className="flex flex-col gap-0 p-0">
+      <div className="flex flex-col gap-1 p-2 md:p-3">
         {filtered.map((conversation) => {
           const isActive = pathname === `/messages/${conversation.id}`;
           const preview =
@@ -106,11 +106,13 @@ export function ConversationList({
               key={conversation.id}
               href={`/messages/${conversation.id}`}
               className={cn(
-                'relative flex items-center gap-3 border-b border-surface-container-low px-4 py-4 transition-colors hover:bg-surface-container-low',
-                isActive && 'bg-primary/5'
+                'relative flex items-center gap-3 rounded-3xl border border-transparent px-4 py-4 transition-colors hover:bg-surface-container-low',
+                isActive && 'bg-primary/8 border-primary/20 shadow-sm'
               )}
             >
-              {isActive ? <span className="absolute inset-y-0 left-0 w-1 bg-primary" /> : null}
+              {isActive ? (
+                <span className="absolute inset-y-3 left-0 w-1 rounded-full bg-primary" />
+              ) : null}
               <Avatar className="h-12 w-12 flex-shrink-0">
                 <AvatarImage
                   src={conversation?.otherUser?.avatarUrl || ''}
@@ -124,13 +126,20 @@ export function ConversationList({
                     {conversation?.otherUser?.displayName ?? 'Unknown User'}
                   </span>
                   {conversation.lastMessage?.createdAt && (
-                    <span className="ml-2 whitespace-nowrap text-xs text-on-surface-variant">
+                    <span className="ml-2 whitespace-nowrap text-[11px] text-on-surface-variant">
                       {formatCompactTime(conversation.lastMessage.createdAt)}
                     </span>
                   )}
                 </div>
-                <div className="mt-1 flex items-center justify-between">
-                  <span className="truncate text-sm text-on-surface-variant">{preview}</span>
+                <div className="mt-1 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <span className="block truncate text-xs text-on-surface-variant">
+                      @{conversation?.otherUser?.username ?? 'unknown'}
+                    </span>
+                    <span className="block truncate text-sm text-on-surface-variant">
+                      {preview}
+                    </span>
+                  </div>
                   {conversation.unreadCount > 0 && (
                     <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white">
                       {conversation.unreadCount}

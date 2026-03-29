@@ -1,10 +1,18 @@
 import { Conversation } from '@prisma/client';
 
 import { prisma } from '@/lib/db/prisma';
-import { AppError, RESOURCE_UNAUTHORIZED } from '@/lib/errors/errorHandler';
+import { AppError, RESOURCE_UNAUTHORIZED, VALIDATION_ERROR } from '@/lib/errors/errorHandler';
 
 export class ConversationService {
   async create(userId: string, participantId: string): Promise<Conversation> {
+    if (userId === participantId) {
+      throw new AppError(VALIDATION_ERROR, 'Cannot create a conversation with yourself', 400);
+    }
+
+    const sortedParticipants = [userId, participantId].sort() as [string, string];
+    const [participant1, participant2] = sortedParticipants;
+    await this.assertMessagingPermission(userId, participantId);
+
     // Check if conversation already exists
     const existing = await prisma.conversation.findFirst({
       where: {
@@ -20,8 +28,8 @@ export class ConversationService {
     // Create new conversation
     return prisma.conversation.create({
       data: {
-        participant1: userId,
-        participant2: participantId,
+        participant1,
+        participant2,
       },
     });
   }
@@ -64,13 +72,41 @@ export class ConversationService {
           const msg = await prisma.message.findUnique({
             where: { id: conv.lastMessageId },
             select: {
+              senderId: true,
               content: true,
               createdAt: true,
+              messageType: true,
+              isPaid: true,
+              ppvPrice: true,
+              media: {
+                select: {
+                  mediaType: true,
+                },
+              },
+              ppvPurchases: {
+                where: { userId },
+                select: { id: true },
+              },
             },
           });
           if (msg) {
+            const isLocked =
+              msg.messageType === 'ppv' &&
+              msg.isPaid &&
+              msg.senderId !== userId &&
+              msg.ppvPurchases.length === 0;
+
             lastMessage = {
-              content: msg.content,
+              content: isLocked
+                ? `Locked message • ${msg.ppvPrice ? `$${Number(msg.ppvPrice).toFixed(2)}` : 'Unlock to view'}`
+                : msg.content ||
+                  (msg.media.length > 0
+                    ? msg.media[0]?.mediaType === 'video'
+                      ? 'Sent a video'
+                      : msg.media[0]?.mediaType === 'audio'
+                        ? 'Sent a voice message'
+                        : 'Sent an image'
+                    : 'Start chatting...'),
               createdAt: msg.createdAt.toISOString(),
             };
           }
@@ -149,5 +185,46 @@ export class ConversationService {
         unreadCount2: isUser1 ? conversation.unreadCount2 : 0,
       },
     });
+  }
+
+  private async assertMessagingPermission(userId: string, participantId: string) {
+    const users = await prisma.user.findMany({
+      where: { id: { in: [userId, participantId] } },
+      select: {
+        id: true,
+        creatorProfile: {
+          select: { id: true },
+        },
+      },
+    });
+
+    const viewer = users.find((user) => user.id === userId);
+    const participant = users.find((user) => user.id === participantId);
+
+    if (!viewer || !participant) {
+      throw new AppError(RESOURCE_UNAUTHORIZED, 'Unauthorized access to conversation', 401);
+    }
+
+    if (viewer.creatorProfile || !participant.creatorProfile) {
+      return;
+    }
+
+    const subscription = await prisma.subscription.findFirst({
+      where: {
+        userId,
+        creatorId: participant.creatorProfile.id,
+        status: 'active',
+        expiresAt: { gt: new Date() },
+      },
+      select: { id: true },
+    });
+
+    if (!subscription) {
+      throw new AppError(
+        RESOURCE_UNAUTHORIZED,
+        'You must subscribe to this creator before sending messages',
+        403
+      );
+    }
   }
 }
