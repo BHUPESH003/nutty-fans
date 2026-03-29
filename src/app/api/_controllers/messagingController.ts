@@ -69,6 +69,7 @@ export const messagingController = {
     body: {
       content?: string;
       mediaId?: string;
+      mediaIds?: string[];
       price?: number;
       clientId?: string;
       messageType?: MessageType;
@@ -81,18 +82,22 @@ export const messagingController = {
         throw new AppError(VALIDATION_MISSING_FIELD, 'Conversation ID is required', 400);
       }
 
-      const { content, mediaId, price, clientId, metadata, messageType } = body;
+      const { content, mediaId, mediaIds, price, clientId, metadata, messageType } = body;
+      const normalizedMediaIds = Array.isArray(mediaIds)
+        ? mediaIds.filter((id): id is string => typeof id === 'string' && id.length > 0)
+        : mediaId
+          ? [mediaId]
+          : [];
 
-      // Validate that at least content or mediaId is provided
-      if (!content && !mediaId) {
+      if (!content?.trim() && normalizedMediaIds.length === 0) {
         throw new AppError(VALIDATION_ERROR, 'Message content or media is required', 400);
       }
 
       const message = await messageService.send(
         user.id,
         conversationId,
-        content ?? null,
-        mediaId,
+        content?.trim() ? content.trim() : null,
+        normalizedMediaIds,
         price,
         clientId,
         metadata,

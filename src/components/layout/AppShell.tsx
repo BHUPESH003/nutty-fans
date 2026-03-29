@@ -9,6 +9,7 @@ import React, { Suspense, useCallback, useEffect, useState } from 'react';
 import { CreatorCTA } from '@/components/creator/CreatorCTA';
 import { CreatorNavButton } from '@/components/creator/CreatorNavButton';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
+import { useTheme } from '@/components/providers/ThemeProvider';
 import { SearchBar } from '@/components/search/SearchBar';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -16,6 +17,8 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
@@ -37,10 +40,10 @@ interface AppShellProps {
 
 const navItems: Array<{ href: Route; label: string; icon: string }> = [
   { href: '/' as Route, label: 'Home', icon: 'home' },
-  { href: '/explore' as Route, label: 'Explore', icon: 'explore' },
-  { href: '/live' as Route, label: 'Live', icon: 'live_tv' },
-  { href: '/reels' as Route, label: 'Reels', icon: 'movie' },
+  { href: '/explore' as Route, label: 'Explore', icon: 'search' },
+  { href: '/notifications' as Route, label: 'Notifications', icon: 'notifications' },
   { href: '/messages' as Route, label: 'Messages', icon: 'chat_bubble' },
+  { href: '/subscriptions' as Route, label: 'Subscriptions', icon: 'subscriptions' },
 ];
 
 function accountInitials(user?: UserSummary | null) {
@@ -64,6 +67,7 @@ function MobileAccountDropdown({
   user?: UserSummary | null;
   showCreatorDashboard: boolean;
 }) {
+  const { theme, setTheme } = useTheme();
   const accountActive =
     pathname === '/profile' ||
     pathname.startsWith('/profile/') ||
@@ -103,6 +107,16 @@ function MobileAccountDropdown({
             <p className="truncate text-xs text-on-surface-variant">@{user.username}</p>
           ) : null}
         </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuLabel>Theme</DropdownMenuLabel>
+        <DropdownMenuRadioGroup
+          value={theme}
+          onValueChange={(value) => setTheme(value as typeof theme)}
+        >
+          <DropdownMenuRadioItem value="light">Light</DropdownMenuRadioItem>
+          <DropdownMenuRadioItem value="dark">Dark</DropdownMenuRadioItem>
+          <DropdownMenuRadioItem value="system">System</DropdownMenuRadioItem>
+        </DropdownMenuRadioGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild className="cursor-pointer rounded-lg p-0">
           <Link href="/profile" className="flex w-full items-center gap-2 px-2 py-1.5 text-sm">
@@ -159,12 +173,13 @@ function DesktopAccountMenu({
   user?: UserSummary | null;
   showCreatorDashboard: boolean;
 }) {
+  const { theme, setTheme } = useTheme();
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          className="flex w-full min-w-0 items-center gap-3 rounded-full p-3 text-left outline-none transition-colors hover:bg-neutral-100 focus-visible:ring-2 focus-visible:ring-primary"
+          className="flex w-full min-w-0 items-center gap-3 rounded-2xl border border-outline-variant bg-surface-container-low p-3 text-left outline-none transition-colors hover:bg-surface-container focus-visible:ring-2 focus-visible:ring-primary"
           aria-label="Account menu"
         >
           <Avatar className="h-10 w-10 shrink-0">
@@ -189,7 +204,7 @@ function DesktopAccountMenu({
       <DropdownMenuContent
         side="top"
         align="start"
-        className="z-[60] w-56 rounded-xl p-1 shadow-lg"
+        className="z-[60] w-56 rounded-2xl border-border bg-popover p-1 text-popover-foreground shadow-lg"
       >
         <DropdownMenuItem asChild className="cursor-pointer rounded-lg p-0">
           <Link href="/profile" className="flex w-full items-center gap-2 px-2 py-1.5 text-sm">
@@ -203,6 +218,16 @@ function DesktopAccountMenu({
             Settings
           </Link>
         </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuLabel>Theme</DropdownMenuLabel>
+        <DropdownMenuRadioGroup
+          value={theme}
+          onValueChange={(value) => setTheme(value as typeof theme)}
+        >
+          <DropdownMenuRadioItem value="light">Light</DropdownMenuRadioItem>
+          <DropdownMenuRadioItem value="dark">Dark</DropdownMenuRadioItem>
+          <DropdownMenuRadioItem value="system">System</DropdownMenuRadioItem>
+        </DropdownMenuRadioGroup>
         {showCreatorDashboard ? (
           <>
             <DropdownMenuSeparator />
@@ -249,11 +274,11 @@ function SidebarNavLink({
       href={href}
       title={label}
       className={cn(
-        'group flex items-center rounded-2xl py-2.5 text-[15px] transition-colors',
+        'group flex items-center rounded-2xl py-3 text-[15px] transition-colors',
         expanded ? 'gap-4 px-4' : 'mx-auto w-12 justify-center px-0',
         active
-          ? 'bg-white font-bold text-primary shadow-sm'
-          : 'font-normal text-neutral-600 hover:bg-white/80'
+          ? 'bg-primary/10 font-bold text-primary'
+          : 'font-normal text-on-surface-variant hover:bg-surface-container hover:text-on-surface'
       )}
     >
       <span className="material-symbols-outlined shrink-0 text-[26px] leading-none">{icon}</span>
@@ -269,12 +294,95 @@ function SidebarNavLink({
   );
 }
 
+function SidebarMoreMenu({
+  expanded,
+  showCreatorDashboard,
+}: {
+  expanded: boolean;
+  showCreatorDashboard: boolean;
+}) {
+  const { theme, setTheme } = useTheme();
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          className={cn(
+            'flex items-center rounded-2xl py-3 text-[15px] text-on-surface-variant transition-colors hover:bg-surface-container hover:text-on-surface',
+            expanded ? 'gap-4 px-4' : 'mx-auto w-12 justify-center px-0'
+          )}
+        >
+          <span className="material-symbols-outlined shrink-0 text-[26px] leading-none">
+            more_horiz
+          </span>
+          <span
+            className={cn(
+              'truncate transition-opacity duration-200',
+              !expanded && 'sr-only w-0 overflow-hidden opacity-0'
+            )}
+          >
+            More
+          </span>
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        side="right"
+        align="start"
+        className="z-[60] w-60 rounded-2xl border-border bg-popover p-1 text-popover-foreground shadow-xl"
+      >
+        <DropdownMenuItem asChild className="cursor-pointer rounded-xl p-0">
+          <Link href="/profile" className="flex w-full items-center gap-2 px-3 py-2.5 text-sm">
+            <span className="material-symbols-outlined text-[18px]">person</span>
+            Profile
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild className="cursor-pointer rounded-xl p-0">
+          <Link href="/wallet" className="flex w-full items-center gap-2 px-3 py-2.5 text-sm">
+            <span className="material-symbols-outlined text-[18px]">account_balance_wallet</span>
+            Wallet
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild className="cursor-pointer rounded-xl p-0">
+          <Link href="/settings" className="flex w-full items-center gap-2 px-3 py-2.5 text-sm">
+            <span className="material-symbols-outlined text-[18px]">settings</span>
+            Settings
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuLabel>Theme</DropdownMenuLabel>
+        <DropdownMenuRadioGroup
+          value={theme}
+          onValueChange={(value) => setTheme(value as typeof theme)}
+        >
+          <DropdownMenuRadioItem value="light">Light</DropdownMenuRadioItem>
+          <DropdownMenuRadioItem value="dark">Dark</DropdownMenuRadioItem>
+          <DropdownMenuRadioItem value="system">System</DropdownMenuRadioItem>
+        </DropdownMenuRadioGroup>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild className="cursor-pointer rounded-xl p-0">
+          <Link
+            href={showCreatorDashboard ? '/creator/dashboard' : '/creator/start'}
+            className="flex w-full items-center gap-2 px-3 py-2.5 text-sm"
+          >
+            <span className="material-symbols-outlined text-[18px]">
+              {showCreatorDashboard ? 'dashboard' : 'auto_awesome'}
+            </span>
+            {showCreatorDashboard ? 'Creator dashboard' : 'Become a creator'}
+          </Link>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 export function AppShell({ children, user }: AppShellProps) {
   const pathname = usePathname();
   const { onboardingStatus, isLoading: creatorStatusLoading } = useCreatorStatus();
   const showCreatorDashboard = !creatorStatusLoading && onboardingStatus === 'active';
   const isExploreRoute = pathname === '/explore' || pathname.startsWith('/explore/');
   const isReelsRoute = pathname === '/reels' || pathname.startsWith('/reels/');
+  const isMessageDetailRoute = /^\/messages\/[^/]+$/.test(pathname);
+  const hideMobileChrome = isMessageDetailRoute;
 
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
@@ -307,90 +415,96 @@ export function AppShell({ children, user }: AppShellProps) {
   }, [pathname]);
 
   return (
-    <div className="min-h-screen bg-[#f4f5fc] text-foreground selection:bg-primary/30">
+    <div className="min-h-screen bg-background text-foreground selection:bg-primary/20">
       {/* Mobile top bar — icon-triggered search + quick actions */}
-      <header className="sticky top-0 z-40 w-full bg-[#f4f5fc]/95 backdrop-blur-xl md:hidden">
-        <div className="mx-auto flex h-14 max-w-[1440px] items-center gap-2 px-3 sm:px-4">
-          {!mobileSearchOpen ? (
-            <Link
-              href="/"
-              className="flex shrink-0 items-center gap-1.5"
-              aria-label="NuttyFans home"
-            >
-              <Image
-                src="/Group.svg"
-                alt=""
-                width={36}
-                height={22}
-                className="h-6 w-auto"
-                unoptimized
-              />
-              <span className="font-headline text-lg font-black text-primary">NuttyFans</span>
-            </Link>
-          ) : null}
-          <div className="min-w-0 flex-1">
-            {mobileSearchOpen && !isExploreRoute ? (
-              <Suspense
-                fallback={
-                  <div className="h-10 w-full animate-pulse rounded-full bg-surface-container-low" />
-                }
+      {!hideMobileChrome ? (
+        <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur-xl md:hidden">
+          <div className="mx-auto flex h-14 max-w-[1440px] items-center gap-2 px-3 sm:px-4">
+            {!mobileSearchOpen ? (
+              <Link
+                href="/"
+                className="flex shrink-0 items-center gap-1.5"
+                aria-label="NuttyFans home"
               >
-                <SearchBar
-                  variant="discover"
-                  className="w-full"
-                  placeholder="Search creators, posts..."
+                <Image
+                  src="/Group.svg"
+                  alt=""
+                  width={36}
+                  height={22}
+                  className="h-6 w-auto"
+                  unoptimized
                 />
-              </Suspense>
-            ) : (
-              isExploreRoute && (
-                <p className="truncate text-center font-headline text-sm font-bold text-on-surface">
-                  Discover
-                </p>
-              )
-            )}
-          </div>
-          <div className="flex shrink-0 items-center gap-1">
-            {!isExploreRoute ? (
-              <button
-                type="button"
-                onClick={() => setMobileSearchOpen((prev) => !prev)}
-                className="flex h-10 w-10 items-center justify-center rounded-full text-on-surface-variant transition-colors hover:bg-surface-container-low"
-                aria-label={mobileSearchOpen ? 'Close search' : 'Open search'}
-              >
-                <span className="material-symbols-outlined text-[22px]">
-                  {mobileSearchOpen ? 'close' : 'search'}
-                </span>
-              </button>
-            ) : null}
-            <CreatorNavButton className="hidden sm:flex" />
-            {/* Mobile Messages lives at the top (Instagram-like). */}
-            {!isExploreRoute ? (
-              <Link
-                href="/messages"
-                className="flex h-10 w-10 items-center justify-center rounded-full text-on-surface-variant transition-colors hover:bg-surface-container-low"
-                aria-label="Messages"
-              >
-                <span className="material-symbols-outlined text-[22px]">chat_bubble</span>
+                <span className="font-headline text-lg font-black text-primary">NuttyFans</span>
               </Link>
             ) : null}
-            {showCreatorDashboard ? (
-              <Link
-                href="/creator/dashboard"
-                className="hidden items-center justify-center rounded-full border border-surface-container-high bg-surface-container-low px-2 py-1.5 text-[10px] font-bold text-primary sm:flex"
-              >
-                <span className="material-symbols-outlined text-[16px]">dashboard</span>
-              </Link>
-            ) : null}
-            <NotificationBell />
+            <div className="min-w-0 flex-1">
+              {mobileSearchOpen && !isExploreRoute ? (
+                <Suspense
+                  fallback={
+                    <div className="h-10 w-full animate-pulse rounded-full bg-surface-container-low" />
+                  }
+                >
+                  <SearchBar
+                    variant="discover"
+                    className="w-full"
+                    placeholder="Search creators, posts..."
+                  />
+                </Suspense>
+              ) : (
+                isExploreRoute && (
+                  <p className="truncate text-center font-headline text-sm font-bold text-on-surface">
+                    Discover
+                  </p>
+                )
+              )}
+            </div>
+            <div className="flex shrink-0 items-center gap-1">
+              {!isExploreRoute ? (
+                <button
+                  type="button"
+                  onClick={() => setMobileSearchOpen((prev) => !prev)}
+                  className="flex h-10 w-10 items-center justify-center rounded-full text-on-surface-variant transition-colors hover:bg-surface-container-low"
+                  aria-label={mobileSearchOpen ? 'Close search' : 'Open search'}
+                >
+                  <span className="material-symbols-outlined text-[22px]">
+                    {mobileSearchOpen ? 'close' : 'search'}
+                  </span>
+                </button>
+              ) : null}
+              <CreatorNavButton className="hidden sm:flex" />
+              {!isExploreRoute ? (
+                <Link
+                  href="/messages"
+                  className="flex h-10 w-10 items-center justify-center rounded-full text-on-surface-variant transition-colors hover:bg-surface-container-low"
+                  aria-label="Messages"
+                >
+                  <span className="material-symbols-outlined text-[22px]">chat_bubble</span>
+                </Link>
+              ) : null}
+              {showCreatorDashboard ? (
+                <Link
+                  href="/creator/dashboard"
+                  className="hidden items-center justify-center rounded-full border border-surface-container-high bg-surface-container-low px-2 py-1.5 text-[10px] font-bold text-primary sm:flex"
+                >
+                  <span className="material-symbols-outlined text-[16px]">dashboard</span>
+                </Link>
+              ) : null}
+              <NotificationBell />
+            </div>
           </div>
-        </div>
-      </header>
+        </header>
+      ) : null}
 
-      <div className="relative flex min-h-[calc(100vh-3.5rem)] w-full md:min-h-screen">
+      <div
+        className={cn(
+          'relative flex w-full md:min-h-screen',
+          hideMobileChrome ? 'min-h-screen' : 'min-h-[calc(100vh-3.5rem)]'
+        )}
+      >
         {/* Desktop sidebar — X-style: icons + labels, collapsible */}
         <aside
           className={cn(
-            'fixed bottom-0 left-0 top-0 z-30 hidden h-screen bg-transparent transition-[width] duration-200 ease-out md:flex md:flex-col',
+            'fixed bottom-0 left-0 top-0 z-30 hidden h-screen border-r border-outline-variant bg-surface-container-lowest transition-[width] duration-200 ease-out md:flex md:flex-col',
             sidebarExpanded ? 'w-[290px]' : 'w-[72px]'
           )}
         >
@@ -404,7 +518,7 @@ export function AppShell({ children, user }: AppShellProps) {
               <Link
                 href="/"
                 className={cn(
-                  'flex min-w-0 items-center rounded-full py-2 transition-colors hover:bg-neutral-100/80',
+                  'flex min-w-0 items-center rounded-full py-2 transition-colors hover:bg-surface-container',
                   sidebarExpanded ? 'gap-2 px-3' : 'h-12 w-12 justify-center px-0'
                 )}
                 aria-label="NuttyFans home"
@@ -453,6 +567,10 @@ export function AppShell({ children, user }: AppShellProps) {
                   />
                 );
               })}
+              <SidebarMoreMenu
+                expanded={sidebarExpanded}
+                showCreatorDashboard={showCreatorDashboard}
+              />
 
               <div
                 className={cn(
@@ -469,7 +587,7 @@ export function AppShell({ children, user }: AppShellProps) {
                     href="/creator/dashboard"
                     title="Creator dashboard"
                     className={cn(
-                      'flex items-center justify-center gap-2 rounded-full border border-surface-container-high bg-surface-container-low text-xs font-bold text-primary transition-colors hover:bg-primary/5',
+                      'flex items-center justify-center gap-2 rounded-full border border-outline-variant bg-surface-container-low text-xs font-bold text-primary transition-colors hover:bg-surface-container',
                       sidebarExpanded ? 'px-4 py-2.5' : 'h-12 w-12 border-0 p-0'
                     )}
                   >
@@ -492,7 +610,7 @@ export function AppShell({ children, user }: AppShellProps) {
               ) : (
                 <Link
                   href={showCreatorDashboard ? '/creator/dashboard' : '/creator/start'}
-                  className="flex h-12 w-12 items-center justify-center rounded-full text-primary transition-colors hover:bg-primary/5"
+                  className="flex h-12 w-12 items-center justify-center rounded-full text-primary transition-colors hover:bg-surface-container"
                   title={showCreatorDashboard ? 'Creator' : 'Become a creator'}
                 >
                   <span className="material-symbols-outlined text-[26px]">
@@ -507,7 +625,7 @@ export function AppShell({ children, user }: AppShellProps) {
                 type="button"
                 onClick={toggleSidebar}
                 className={cn(
-                  'flex w-full items-center rounded-full py-2 text-sm text-neutral-500 transition-colors hover:bg-neutral-100/80',
+                  'flex w-full items-center rounded-full py-2 text-sm text-on-surface-variant transition-colors hover:bg-surface-container hover:text-on-surface',
                   sidebarExpanded ? 'gap-3 px-4' : 'justify-center'
                 )}
                 aria-expanded={sidebarExpanded}
@@ -592,7 +710,7 @@ export function AppShell({ children, user }: AppShellProps) {
         <main
           className={cn(
             'w-full min-w-0 flex-1 transition-[margin] duration-200 ease-out',
-            'pb-24 md:pb-6',
+            hideMobileChrome ? 'pb-0 md:pb-6' : 'pb-24 md:pb-6',
             sidebarExpanded ? 'md:ml-[290px]' : 'md:ml-[72px]'
           )}
         >
@@ -601,8 +719,8 @@ export function AppShell({ children, user }: AppShellProps) {
       </div>
 
       {/* Mobile bottom navigation */}
-      {!isReelsRoute ? (
-        <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-neutral-200/90 bg-white/90 backdrop-blur-xl md:hidden">
+      {!isReelsRoute && !hideMobileChrome ? (
+        <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-background/90 backdrop-blur-xl md:hidden">
           <div className="mx-auto flex max-w-lg items-center justify-around px-1 py-2">
             {navItems.map((item) => {
               // Keep Messages out of the mobile bottom tray.
@@ -617,7 +735,7 @@ export function AppShell({ children, user }: AppShellProps) {
                   href={item.href}
                   className={cn(
                     'flex h-12 w-12 shrink-0 items-center justify-center rounded-full transition-colors',
-                    active ? 'text-primary' : 'text-neutral-400'
+                    active ? 'text-primary' : 'text-on-surface-variant'
                   )}
                   aria-label={item.label}
                 >

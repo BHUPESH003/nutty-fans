@@ -1,6 +1,6 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import * as React from 'react';
 
 import { AppShell } from '@/components/layout/AppShell';
@@ -14,12 +14,13 @@ interface AppShellContainerProps {
 export function AppShellContainer({ children }: AppShellContainerProps) {
   const { user, isLoading, isAuthenticated } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
   React.useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      router.push('/login');
+      router.push(`/login?callbackUrl=${encodeURIComponent(pathname || '/')}`);
     }
-  }, [isLoading, isAuthenticated, router]);
+  }, [isLoading, isAuthenticated, pathname, router]);
 
   if (isLoading) {
     return (

@@ -50,7 +50,7 @@ function createPrismaClient(pool: Pool): PrismaClient {
   return new PrismaClient({
     adapter,
     // Logging configuration
-    log: process.env['NODE_ENV'] === 'development' ? ['query', 'error', 'warn'] : ['error'],
+    log: process.env['NODE_ENV'] === 'development' ? ['error', 'warn'] : ['error'],
   });
 }
 

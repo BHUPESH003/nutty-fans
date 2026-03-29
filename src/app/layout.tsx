@@ -6,6 +6,7 @@ import type { ReactNode } from 'react';
 
 import { VerificationBanner } from '@/components/common/VerificationBanner';
 import { SessionProvider } from '@/components/providers/SessionProvider';
+import { ThemeProvider } from '@/components/providers/ThemeProvider';
 import { LowBalanceProvider } from '@/lib/contexts/LowBalanceContext';
 import './globals.css';
 
@@ -37,13 +38,40 @@ export default function RootLayout({
       className={`${plusJakartaSans.variable} ${inter.variable}`}
       suppressHydrationWarning
     >
-      <body className={`${inter.variable} bg-[#f4f5fc] font-body text-foreground antialiased`}>
-        <SessionProvider>
-          <LowBalanceProvider>
-            <VerificationBanner />
-            {children}
-          </LowBalanceProvider>
-        </SessionProvider>
+      <body className={`${inter.variable} bg-background font-body text-foreground antialiased`}>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  var storedTheme = localStorage.getItem('nuttyfans-theme');
+                  var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                  var resolvedTheme =
+                    storedTheme === 'light' || storedTheme === 'dark'
+                      ? storedTheme
+                      : prefersDark
+                        ? 'dark'
+                        : 'light';
+                  document.documentElement.classList.toggle('dark', resolvedTheme === 'dark');
+                  document.documentElement.dataset.theme = resolvedTheme;
+                  document.documentElement.style.colorScheme = resolvedTheme;
+                } catch (error) {
+                  document.documentElement.classList.remove('dark');
+                  document.documentElement.dataset.theme = 'light';
+                  document.documentElement.style.colorScheme = 'light';
+                }
+              })();
+            `,
+          }}
+        />
+        <ThemeProvider>
+          <SessionProvider>
+            <LowBalanceProvider>
+              <VerificationBanner />
+              {children}
+            </LowBalanceProvider>
+          </SessionProvider>
+        </ThemeProvider>
         <Analytics />
         <SpeedInsights />
       </body>

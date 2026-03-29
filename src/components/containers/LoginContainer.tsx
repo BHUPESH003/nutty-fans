@@ -95,7 +95,7 @@ export function LoginContainer({ onLoggedIn }: LoginContainerProps) {
       <Button
         variant="outline"
         className="h-12 w-full border-outline-variant bg-white text-on-surface hover:bg-surface-container-low"
-        onClick={() => void signIn('google', { callbackUrl: '/' })}
+        onClick={() => void signIn('google', { callbackUrl })}
       >
         Continue with Google
       </Button>
@@ -150,7 +150,10 @@ export function LoginContainer({ onLoggedIn }: LoginContainerProps) {
 
       <p className="mt-6 text-center text-base text-on-surface-variant">
         No account?{' '}
-        <Link href="/register" className="font-semibold text-primary hover:underline">
+        <Link
+          href={`/register?callbackUrl=${encodeURIComponent(callbackUrl)}`}
+          className="font-semibold text-primary hover:underline"
+        >
           Sign up
         </Link>
       </p>

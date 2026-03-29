@@ -4,31 +4,188 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ─── Base Reset ─── */
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
+:root {
+  --primary: 336 82% 52%;
+  --primary-foreground: 0 0% 100%;
+  --primary-container: 336 80% 67%;
+  --on-primary: 0 0% 100%;
+  --on-primary-container: 0 0% 100%;
+  --primary-fixed: 333 78% 86%;
+  --primary-fixed-dim: 334 81% 76%;
+  --on-primary-fixed: 330 88% 24%;
+  --on-primary-fixed-variant: 335 70% 38%;
+  --inverse-primary: 334 81% 76%;
+
+  --secondary: 202 100% 30%;
+  --secondary-foreground: 0 0% 100%;
+  --secondary-container: 203 100% 60%;
+  --on-secondary: 0 0% 100%;
+  --on-secondary-container: 201 100% 20%;
+  --secondary-fixed: 211 100% 90%;
+  --secondary-fixed-dim: 208 100% 79%;
+  --on-secondary-fixed: 208 100% 10%;
+  --on-secondary-fixed-variant: 202 100% 23%;
+
+  --tertiary: 346 100% 37%;
+  --tertiary-container: 345 100% 46%;
+  --on-tertiary: 0 0% 100%;
+  --on-tertiary-container: 0 0% 100%;
+  --tertiary-fixed: 0 100% 93%;
+  --tertiary-fixed-dim: 0 100% 85%;
+  --on-tertiary-fixed: 347 100% 13%;
+  --on-tertiary-fixed-variant: 346 100% 29%;
+
+  --background: 240 33% 98%;
+  --foreground: 240 11% 13%;
+  --on-background: 240 11% 13%;
+  --surface: 240 33% 98%;
+  --surface-dim: 240 11% 87%;
+  --surface-bright: 0 0% 100%;
+  --surface-tint: 336 82% 52%;
+  --surface-variant: 240 16% 91%;
+  --surface-container-lowest: 0 0% 100%;
+  --surface-container-low: 240 25% 96%;
+  --surface-container: 240 20% 94%;
+  --surface-container-high: 240 16% 91%;
+  --surface-container-highest: 240 15% 88%;
+  --on-surface: 240 11% 13%;
+  --on-surface-variant: 343 17% 30%;
+  --inverse-surface: 240 10% 21%;
+  --inverse-on-surface: 240 22% 95%;
+
+  --outline: 344 13% 50%;
+  --outline-variant: 343 42% 82%;
+
+  --error: 0 75% 42%;
+  --error-container: 7 100% 92%;
+  --on-error: 0 0% 100%;
+  --on-error-container: 356 100% 29%;
+
+  --card: 0 0% 100%;
+  --card-foreground: 240 11% 13%;
+  --muted: 240 20% 94%;
+  --muted-foreground: 343 17% 30%;
+  --accent: 240 20% 94%;
+  --accent-foreground: 240 11% 13%;
+  --border: 240 16% 91%;
+  --input: 240 16% 91%;
+  --ring: 336 82% 52%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 240 11% 13%;
 }
 
-body {
-  font-family: var(--font-body), 'Inter', sans-serif;
-  background-color: #fbf8ff;
-  color: #1b1b20;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+.dark {
+  --primary: 336 82% 58%;
+  --primary-foreground: 0 0% 100%;
+  --primary-container: 335 70% 40%;
+  --on-primary: 0 0% 100%;
+  --on-primary-container: 0 0% 100%;
+  --primary-fixed: 334 56% 34%;
+  --primary-fixed-dim: 336 69% 52%;
+  --on-primary-fixed: 0 0% 100%;
+  --on-primary-fixed-variant: 333 100% 92%;
+  --inverse-primary: 336 80% 67%;
+
+  --secondary: 203 96% 62%;
+  --secondary-foreground: 211 100% 12%;
+  --secondary-container: 203 79% 32%;
+  --on-secondary: 211 100% 12%;
+  --on-secondary-container: 210 100% 92%;
+  --secondary-fixed: 205 50% 24%;
+  --secondary-fixed-dim: 203 96% 62%;
+  --on-secondary-fixed: 210 100% 96%;
+  --on-secondary-fixed-variant: 210 100% 92%;
+
+  --tertiary: 347 100% 69%;
+  --tertiary-container: 347 70% 31%;
+  --on-tertiary: 0 0% 100%;
+  --on-tertiary-container: 0 100% 95%;
+  --tertiary-fixed: 347 65% 25%;
+  --tertiary-fixed-dim: 347 100% 69%;
+  --on-tertiary-fixed: 0 0% 100%;
+  --on-tertiary-fixed-variant: 0 100% 95%;
+
+  --background: 228 26% 9%;
+  --foreground: 240 17% 96%;
+  --on-background: 240 17% 96%;
+  --surface: 228 24% 10%;
+  --surface-dim: 228 18% 9%;
+  --surface-bright: 228 21% 15%;
+  --surface-tint: 336 82% 58%;
+  --surface-variant: 225 17% 17%;
+  --surface-container-lowest: 228 21% 8%;
+  --surface-container-low: 228 19% 11%;
+  --surface-container: 228 18% 13%;
+  --surface-container-high: 228 17% 16%;
+  --surface-container-highest: 228 16% 20%;
+  --on-surface: 240 17% 96%;
+  --on-surface-variant: 240 9% 72%;
+  --inverse-surface: 240 17% 96%;
+  --inverse-on-surface: 228 24% 10%;
+
+  --outline: 230 8% 46%;
+  --outline-variant: 228 14% 24%;
+
+  --error: 0 84% 69%;
+  --error-container: 0 63% 22%;
+  --on-error: 0 0% 100%;
+  --on-error-container: 0 100% 94%;
+
+  --card: 228 19% 11%;
+  --card-foreground: 240 17% 96%;
+  --muted: 228 17% 16%;
+  --muted-foreground: 240 9% 72%;
+  --accent: 228 17% 16%;
+  --accent-foreground: 240 17% 96%;
+  --border: 228 14% 24%;
+  --input: 228 14% 24%;
+  --ring: 336 82% 58%;
+  --popover: 228 19% 11%;
+  --popover-foreground: 240 17% 96%;
 }
 
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-  font-family: var(--font-headline), 'Plus Jakarta Sans', sans-serif;
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+    @apply border-border;
+  }
+
+  html {
+    background-color: hsl(var(--background));
+    color-scheme: light;
+  }
+
+  html.dark {
+    color-scheme: dark;
+  }
+
+  body {
+    font-family: var(--font-body), 'Inter', sans-serif;
+    @apply bg-background text-foreground;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-headline), 'Plus Jakarta Sans', sans-serif;
+  }
+
+  input:focus,
+  textarea:focus,
+  select:focus,
+  button:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px hsl(var(--ring) / 0.25);
+  }
 }
 
-/* ─── Material Symbols ─── */
 .material-symbols-outlined {
   font-variation-settings:
     'FILL' 0,
@@ -37,6 +194,7 @@ h6 {
     'opsz' 24;
   user-select: none;
 }
+
 .material-symbols-filled {
   font-variation-settings:
     'FILL' 1,
@@ -45,55 +203,55 @@ h6 {
     'opsz' 24;
 }
 
-/* ─── Glassmorphism ─── */
 .glass {
-  background: rgba(255, 255, 255, 0.8);
+  background: hsl(var(--surface-container-lowest) / 0.78);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
 }
+
 .glass-dark {
-  background: rgba(27, 27, 32, 0.75);
+  background: hsl(var(--surface) / 0.78);
   backdrop-filter: blur(20px);
 }
 
-/* ─── Navigation ─── */
 .nav-item-active {
-  background-color: rgba(186, 0, 72, 0.06);
-  color: #ba0048;
+  background-color: hsl(var(--primary) / 0.09);
+  color: hsl(var(--primary));
   font-weight: 600;
   border-radius: 9999px;
 }
+
 .nav-item-active-bordered {
-  border-left: 3px solid #e0245e;
-  background-color: rgba(224, 36, 94, 0.05);
-  color: #e0245e;
+  border-left: 3px solid hsl(var(--primary));
+  background-color: hsl(var(--primary) / 0.08);
+  color: hsl(var(--primary));
 }
 
-/* ─── Story Rings ─── */
 .story-ring {
-  border: 2px solid #e4e1e9;
-  padding: 2px;
-  border-radius: 9999px;
-}
-.story-ring-live {
-  border: 2px solid #bc002d;
+  border: 2px solid hsl(var(--surface-container-highest));
   padding: 2px;
   border-radius: 9999px;
 }
 
-/* ─── LIVE Badge Pulse ─── */
+.story-ring-live {
+  border: 2px solid hsl(var(--tertiary));
+  padding: 2px;
+  border-radius: 9999px;
+}
+
 @keyframes live-pulse {
   0%,
   100% {
-    box-shadow: 0 0 0 0 rgba(188, 0, 45, 0.5);
+    box-shadow: 0 0 0 0 hsl(var(--tertiary) / 0.45);
   }
   50% {
-    box-shadow: 0 0 0 6px rgba(188, 0, 45, 0);
+    box-shadow: 0 0 0 6px hsl(var(--tertiary) / 0);
   }
 }
+
 .badge-live {
-  background-color: #bc002d;
-  color: #ffffff;
+  background-color: hsl(var(--tertiary));
+  color: hsl(var(--on-tertiary));
   font-size: 8px;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -103,33 +261,22 @@ h6 {
   animation: live-pulse 2s ease-in-out infinite;
 }
 
-/* ─── Scrollbar Hide ─── */
 .no-scrollbar::-webkit-scrollbar,
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
+
 .no-scrollbar,
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
 
-/* ─── Focus Ring Override ─── */
-input:focus,
-textarea:focus,
-select:focus,
-button:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(255, 217, 221, 0.6);
-}
-
-/* ─── Verified Badge Halo ─── */
 .verified-halo {
-  filter: drop-shadow(0 0 0 1px #ffffff);
+  filter: drop-shadow(0 0 0 1px hsl(var(--surface-container-lowest)));
 }
 
 @layer utilities {
-  /* Aspect ratio utilities for media containers */
   .aspect-portrait {
     aspect-ratio: 4 / 5;
   }
@@ -146,7 +293,6 @@ button:focus-visible {
     aspect-ratio: 9 / 16;
   }
 
-  /* Snap scroll utilities */
   .snap-mandatory {
     scroll-snap-type: y mandatory;
   }

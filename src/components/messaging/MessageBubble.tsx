@@ -35,10 +35,11 @@ export function MessageBubble({
 
   const REACTION_EMOJIS = ['❤️', '🔥', '💰', '😍', '👏', '😂'];
   const reactions = message.reactions ?? [];
+  const mediaItems = message.media ?? [];
+  const visualMedia = mediaItems.filter((media) => media.mediaType !== 'audio');
 
   const isTipMessage = message.messageType === 'tip';
-  const isAudioMessage =
-    message.messageType === 'audio' || message.media?.[0]?.mediaType === 'audio';
+  const isAudioMessage = message.messageType === 'audio' || mediaItems[0]?.mediaType === 'audio';
 
   if (isTipMessage) {
     const amountRaw = message.metadata?.['amount'];
@@ -192,9 +193,9 @@ export function MessageBubble({
           </div>
         )}
 
-        {isAudioMessage && message.media && message.media.length > 0
+        {isAudioMessage && mediaItems.length > 0
           ? (() => {
-              const src = message.media?.[0]?.processedUrl || message.media?.[0]?.originalUrl;
+              const src = mediaItems[0]?.processedUrl || mediaItems[0]?.originalUrl;
               const durationRaw = message.metadata?.['duration'];
               const duration =
                 typeof durationRaw === 'number'
@@ -209,15 +210,33 @@ export function MessageBubble({
                 </div>
               ) : null;
             })()
-          : message.media &&
-            message.media.length > 0 && (
-              <div className="mb-2 overflow-hidden rounded-md">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={message.media?.[0]?.processedUrl || message.media?.[0]?.originalUrl}
-                  alt="Attachment"
-                  className="h-auto max-w-full"
-                />
+          : visualMedia.length > 0 && (
+              <div
+                className={cn(
+                  'mb-2 grid gap-2',
+                  visualMedia.length > 1 ? 'grid-cols-2' : 'grid-cols-1'
+                )}
+              >
+                {visualMedia.map((media) => {
+                  const src = media.processedUrl || media.originalUrl;
+                  if (!src) return null;
+
+                  return media.mediaType === 'video' ? (
+                    <div key={media.id} className="overflow-hidden rounded-xl">
+                      <video
+                        src={src}
+                        controls
+                        playsInline
+                        className="max-h-[360px] w-full rounded-xl bg-black object-cover"
+                      />
+                    </div>
+                  ) : (
+                    <div key={media.id} className="overflow-hidden rounded-xl">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={src} alt="Attachment" className="h-auto w-full object-cover" />
+                    </div>
+                  );
+                })}
               </div>
             )}
 

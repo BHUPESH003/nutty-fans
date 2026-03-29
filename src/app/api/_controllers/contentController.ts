@@ -2,11 +2,13 @@ import { NextResponse } from 'next/server';
 
 import { successResponse } from '@/lib/api/response';
 import { requireEmailVerification } from '@/lib/auth/verificationGuard';
+import { prisma } from '@/lib/db/prisma';
 import {
   AppError,
   handleAsyncRoute,
   VALIDATION_MISSING_FIELD,
   RESOURCE_NOT_FOUND,
+  RESOURCE_FORBIDDEN,
 } from '@/lib/errors/errorHandler';
 import { BookmarkRepository } from '@/repositories/bookmarkRepository';
 import { LikeRepository } from '@/repositories/likeRepository';
@@ -32,6 +34,48 @@ const likeRepo = new LikeRepository();
 const bookmarkRepo = new BookmarkRepository();
 const postRepo = new PostRepository();
 const creatorAccessService = new CreatorAccessService();
+
+async function resolveUploadCreatorId(userId: string, conversationId?: string) {
+  try {
+    return await creatorAccessService.requireCreatorIdByUserId(userId);
+  } catch {
+    if (!conversationId) {
+      throw new AppError(VALIDATION_MISSING_FIELD, 'Creator profile not found', 403);
+    }
+  }
+
+  const conversation = await prisma.conversation.findUnique({
+    where: { id: conversationId },
+    select: {
+      participant1: true,
+      participant2: true,
+    },
+  });
+
+  if (
+    !conversation ||
+    (conversation.participant1 !== userId && conversation.participant2 !== userId)
+  ) {
+    throw new AppError(RESOURCE_FORBIDDEN, 'Unauthorized chat media upload', 403);
+  }
+
+  const otherUserId =
+    conversation.participant1 === userId ? conversation.participant2 : conversation.participant1;
+  const creatorProfile = await prisma.creatorProfile.findUnique({
+    where: { userId: otherUserId },
+    select: { id: true },
+  });
+
+  if (!creatorProfile) {
+    throw new AppError(
+      RESOURCE_FORBIDDEN,
+      'Chat media uploads are only available in creator conversations',
+      403
+    );
+  }
+
+  return creatorProfile.id;
+}
 
 export const contentController = {
   // ============================================
@@ -231,17 +275,12 @@ export const contentController = {
     }
   },
 
-  async getUploadUrlForUser(userId: string, file: FileMetadata) {
+  async getUploadUrlForUser(userId: string, file: FileMetadata & { conversationId?: string }) {
     return handleAsyncRoute(async () => {
       if (!userId) {
         throw new AppError(VALIDATION_MISSING_FIELD, 'User ID is required', 400);
       }
-      let creatorId: string;
-      try {
-        creatorId = await creatorAccessService.requireCreatorIdByUserId(userId);
-      } catch {
-        throw new AppError(VALIDATION_MISSING_FIELD, 'Creator profile not found', 403);
-      }
+      const creatorId = await resolveUploadCreatorId(userId, file.conversationId);
       return await this.getUploadUrl(creatorId, file);
     });
   },
@@ -265,18 +304,20 @@ export const contentController = {
 
   async confirmUploadForUser(
     userId: string,
-    body: { mediaId: string; key: string; width?: number; height?: number; mediaType?: string }
+    body: {
+      mediaId: string;
+      key: string;
+      width?: number;
+      height?: number;
+      mediaType?: string;
+      conversationId?: string;
+    }
   ) {
     return handleAsyncRoute(async () => {
       if (!userId) {
         throw new AppError(VALIDATION_MISSING_FIELD, 'User ID is required', 400);
       }
-      let creatorId: string;
-      try {
-        creatorId = await creatorAccessService.requireCreatorIdByUserId(userId);
-      } catch {
-        throw new AppError(VALIDATION_MISSING_FIELD, 'Creator profile not found', 403);
-      }
+      const creatorId = await resolveUploadCreatorId(userId, body.conversationId);
       return this.confirmUpload(creatorId, body);
     });
   },
