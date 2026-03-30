@@ -1,15 +1,15 @@
+import { useEffect } from 'react';
 import useSWR from 'swr';
 
+import { getSocket } from '@/hooks/useMessages';
 import { apiClient } from '@/services/apiClient';
 
 /**
  * Conversations Hook
  *
- * Note: Polling removed (was 30s). For real-time updates, consider:
- * - Implementing SSE endpoint for conversation list updates
- * - Or using mutation after sending messages (messages already trigger conversation updates)
- *
- * For now, manual refresh via mutate() or automatic refresh on component focus
+ * Subscribes to `conversation:updated` Socket.IO events so the sidebar
+ * (preview text, unread badge, sort order) refreshes in real time when
+ * a new message arrives in any conversation.
  */
 export function useConversations() {
   const { data, error, isLoading, mutate } = useSWR(
@@ -18,11 +18,24 @@ export function useConversations() {
       return apiClient.messaging.listConversations();
     },
     {
-      // Polling removed - use revalidateOnFocus for better UX
       revalidateOnFocus: true,
       revalidateOnReconnect: true,
     }
   );
+
+  useEffect(() => {
+    const socket = getSocket();
+
+    const handleConversationUpdated = () => {
+      void mutate();
+    };
+
+    socket.on('conversation:updated', handleConversationUpdated);
+
+    return () => {
+      socket.off('conversation:updated', handleConversationUpdated);
+    };
+  }, [mutate]);
 
   return {
     conversations: data?.items || [],

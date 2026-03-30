@@ -23,6 +23,7 @@ export interface CreatePostInput {
   postType?: PostType;
   accessLevel?: AccessLevel;
   ppvPrice?: number;
+  categoryIds?: string[];
   isNsfw?: boolean;
   commentsEnabled?: boolean;
   scheduledAt?: Date;

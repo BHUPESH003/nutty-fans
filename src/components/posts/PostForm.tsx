@@ -2,12 +2,12 @@
 
 import * as React from 'react';
 
+import { MediaViewerModal } from '@/components/media/MediaViewerModal';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Slider } from '@/components/ui/slider';
 import { Textarea } from '@/components/ui/textarea';
 import { readMediaDimensionsFromFile } from '@/lib/media/readMediaDimensions';
 import { apiClient } from '@/services/apiClient';
@@ -25,6 +25,13 @@ interface PostFormProps {
   onUploadFiles: (_files: File[]) => Promise<string[]>;
   onCancel: () => void;
   isSubmitting?: boolean;
+}
+
+interface CategoryOption {
+  id: string;
+  name: string;
+  slug: string;
+  icon: string | null;
 }
 
 export function PostForm({
@@ -55,8 +62,13 @@ export function PostForm({
   );
   const [uploadedMedia, setUploadedMedia] = React.useState<string[]>(initialData?.mediaIds || []);
   const [mediaPreviewItems, setMediaPreviewItems] = React.useState<MediaPreviewItem[]>([]);
+  const [previewViewerOpen, setPreviewViewerOpen] = React.useState(false);
+  const [previewViewerIndex, setPreviewViewerIndex] = React.useState(0);
   const [uploading, setUploading] = React.useState(false);
   const [uploadError, setUploadError] = React.useState<string | null>(null);
+  const [categories, setCategories] = React.useState<CategoryOption[]>([]);
+  const [selectedCategoryIds, setSelectedCategoryIds] = React.useState<string[]>([]);
+  const [loadingCategories, setLoadingCategories] = React.useState(false);
   const [tagsText, setTagsText] = React.useState<string>(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (initialData as any)?.tags?.join(', ') || ''
@@ -67,26 +79,26 @@ export function PostForm({
   // ============================
   // Preview Settings
   // ============================
-  const [previewType, setPreviewType] = React.useState<PostPreviewType>(
+  const [previewType, _setPreviewType] = React.useState<PostPreviewType>(
     initialData?.previewConfig?.type ?? 'none'
   );
-  const [blurIntensity, setBlurIntensity] = React.useState<number>(
+  const [_blurIntensity, _setBlurIntensity] = React.useState<number>(
     initialData?.previewConfig?.blurIntensity ?? 12
   );
-  const [blurRegions, setBlurRegions] = React.useState<BlurRegion[]>(
+  const [_blurRegions, setBlurRegions] = React.useState<BlurRegion[]>(
     initialData?.previewConfig?.blurRegions ?? []
   );
-  const [cropRegion, setCropRegion] = React.useState<CropRegion | undefined>(
+  const [_cropRegion, setCropRegion] = React.useState<CropRegion | undefined>(
     initialData?.previewConfig?.cropRegion
   );
-  const [teaserDuration, setTeaserDuration] = React.useState<number>(
+  const [_teaserDuration, _setTeaserDuration] = React.useState<number>(
     initialData?.previewConfig?.teaserDuration ?? 5
   );
 
   const [overlays, setOverlays] = React.useState<PostOverlay[]>(initialData?.overlays ?? []);
-  const [overlayKind, setOverlayKind] = React.useState<PostOverlay['type']>('sticker');
-  const [stickerUploading, setStickerUploading] = React.useState(false);
-  const [stickerError, setStickerError] = React.useState<string | null>(null);
+  const [overlayKind, _setOverlayKind] = React.useState<PostOverlay['type']>('sticker');
+  const [_stickerUploading, setStickerUploading] = React.useState(false);
+  const [_stickerError, setStickerError] = React.useState<string | null>(null);
   const stickerFileInputRef = React.useRef<HTMLInputElement>(null);
 
   // Editor for region selection + overlay positioning (percent coords are stored).
@@ -98,7 +110,7 @@ export function PostForm({
     currentX: number;
     currentY: number;
   } | null>(null);
-  const [activeOverlayIndex, setActiveOverlayIndex] = React.useState<number | null>(null);
+  const [_activeOverlayIndex, setActiveOverlayIndex] = React.useState<number | null>(null);
   const overlayDragRef = React.useRef<null | {
     index: number;
     mode: 'drag' | 'resize';
@@ -124,7 +136,6 @@ export function PostForm({
     return imageItems[0] ?? mediaPreviewItems[0] ?? null;
   }, [mediaPreviewItems]);
 
-  const editorBaseUrl = editorBaseItem?.url ?? null;
   const editorIsImage = editorBaseItem?.mediaType === 'image';
   const isRegionSelectionMode = previewType === 'partial_blur' || previewType === 'crop';
 
@@ -138,7 +149,7 @@ export function PostForm({
     return { x: clampPercent(x), y: clampPercent(y) };
   };
 
-  const handleStickerFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const _handleStickerFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -201,7 +212,7 @@ export function PostForm({
     }
   };
 
-  const handleEditorPointerDown = (e: React.PointerEvent) => {
+  const _handleEditorPointerDown = (e: React.PointerEvent) => {
     if (!editorIsImage) return;
     if (!isRegionSelectionMode) return;
     if (previewType !== 'partial_blur' && previewType !== 'crop') return;
@@ -220,7 +231,7 @@ export function PostForm({
     }
   };
 
-  const handleEditorPointerMove = (e: React.PointerEvent) => {
+  const _handleEditorPointerMove = (e: React.PointerEvent) => {
     if (!selectionStartRef.current) return;
     const { x, y } = clientToPercent(e.clientX, e.clientY);
     setSelectionDraft((prev) => {
@@ -229,7 +240,7 @@ export function PostForm({
     });
   };
 
-  const handleEditorPointerUp = () => {
+  const _handleEditorPointerUp = () => {
     const start = selectionStartRef.current;
     const draft = selectionDraft;
     selectionStartRef.current = null;
@@ -266,7 +277,7 @@ export function PostForm({
     }
   };
 
-  const startOverlayInteraction = (
+  const _startOverlayInteraction = (
     index: number,
     mode: 'drag' | 'resize',
     e: React.PointerEvent
@@ -398,6 +409,35 @@ export function PostForm({
     };
   }, []);
 
+  React.useEffect(() => {
+    let cancelled = false;
+    setLoadingCategories(true);
+    void apiClient.common
+      .getCategories()
+      .then((result) => {
+        if (cancelled) return;
+        setCategories(result || []);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setCategories([]);
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setLoadingCategories(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const toggleCategory = React.useCallback((categoryId: string) => {
+    setSelectedCategoryIds((prev) =>
+      prev.includes(categoryId) ? prev.filter((id) => id !== categoryId) : [...prev, categoryId]
+    );
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent, publishNow = false) => {
     e.preventDefault();
 
@@ -409,17 +449,17 @@ export function PostForm({
       isNsfw,
       commentsEnabled,
       mediaIds: uploadedMedia,
-      previewConfig: {
-        type: previewType,
-        ...(previewType === 'blur' || previewType === 'partial_blur'
-          ? { blurIntensity: Math.max(0, Math.min(20, blurIntensity)) }
-          : {}),
-        ...(previewType === 'partial_blur' ? { blurRegions } : {}),
-        ...(previewType === 'crop' && cropRegion ? { cropRegion } : {}),
-        ...(previewType === 'teaser' ? { teaserDuration } : {}),
-      },
-      overlays,
-      tags: parsedTags,
+      previewConfig: { type: 'none' },
+      overlays: [],
+      categoryIds: selectedCategoryIds,
+      tags: Array.from(
+        new Set([
+          ...parsedTags,
+          ...categories
+            .filter((c) => selectedCategoryIds.includes(c.id))
+            .map((c) => c.slug.replace(/\s+/g, '').toLowerCase()),
+        ])
+      ),
       status: publishNow ? 'published' : 'draft',
     });
   };
@@ -520,7 +560,11 @@ export function PostForm({
                         return (
                           <div
                             key={item.url}
-                            className="relative aspect-[1/1] overflow-hidden rounded-lg border border-surface-container-high/80 bg-surface-container-lowest"
+                            className="relative aspect-[1/1] cursor-zoom-in overflow-hidden rounded-lg border border-surface-container-high/80 bg-surface-container-lowest"
+                            onClick={() => {
+                              setPreviewViewerIndex(idx);
+                              setPreviewViewerOpen(true);
+                            }}
                           >
                             {item.mediaType === 'image' ? (
                               // eslint-disable-next-line @next/next/no-img-element
@@ -550,300 +594,52 @@ export function PostForm({
                   ) : null}
                 </div>
               ) : null}
+
+              <MediaViewerModal
+                open={previewViewerOpen}
+                items={mediaPreviewItems.map((item) => ({
+                  type: item.mediaType === 'video' ? ('video' as const) : ('image' as const),
+                  src: item.url,
+                  alt: item.fileName,
+                }))}
+                initialIndex={previewViewerIndex}
+                onClose={() => setPreviewViewerOpen(false)}
+              />
             </div>
           </div>
 
-          {/* Preview Settings */}
+          {/* Categories */}
           <div className="space-y-3">
             <div className="space-y-2">
-              <Label>Preview Settings</Label>
-              <div className="flex flex-wrap gap-2">
-                {(['none', 'blur', 'partial_blur', 'crop', 'teaser'] as const).map((type) => (
-                  <Button
-                    key={type}
-                    type="button"
-                    variant={previewType === type ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setPreviewType(type)}
-                  >
-                    {type === 'none'
-                      ? 'None'
-                      : type === 'blur'
-                        ? 'Blur'
-                        : type === 'partial_blur'
-                          ? 'Partial blur'
-                          : type === 'crop'
-                            ? 'Crop'
-                            : 'Teaser'}
-                  </Button>
-                ))}
-              </div>
-            </div>
-
-            {(previewType === 'blur' || previewType === 'partial_blur') && (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between gap-3">
-                  <Label>Blur Intensity</Label>
-                  <span className="text-sm text-muted-foreground">{blurIntensity}</span>
-                </div>
-                <Slider
-                  value={[blurIntensity]}
-                  min={0}
-                  max={20}
-                  step={1}
-                  onValueChange={(v) => setBlurIntensity(v[0] ?? 0)}
-                />
-                <p className="text-xs text-muted-foreground">0 = no blur, 20 = max blur.</p>
-              </div>
-            )}
-
-            {previewType === 'partial_blur' && (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between gap-3">
-                  <Label>Partial Blur Regions</Label>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setBlurRegions([])}
-                    disabled={blurRegions.length === 0}
-                  >
-                    Clear
-                  </Button>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Drag on the frame to add one or more blur rectangles.
-                </p>
-              </div>
-            )}
-
-            {previewType === 'crop' && (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between gap-3">
-                  <Label>Crop Region</Label>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setCropRegion(undefined)}
-                    disabled={!cropRegion}
-                  >
-                    Reset
-                  </Button>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Drag on the frame to choose the crop rectangle.
-                </p>
-              </div>
-            )}
-
-            {previewType === 'teaser' && (
-              <div className="space-y-2">
-                <Label htmlFor="teaserDuration">Teaser Duration (seconds)</Label>
-                <Input
-                  id="teaserDuration"
-                  type="number"
-                  min={3}
-                  max={10}
-                  step={1}
-                  value={teaserDuration}
-                  onChange={(e) => setTeaserDuration(Number(e.target.value))}
-                />
-                <p className="text-xs text-muted-foreground">Used for locked teaser playback.</p>
-              </div>
-            )}
-
-            {/* Editor (sticker placement + region selection) */}
-            <div className="space-y-2">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <Label>Locked Preview Editor</Label>
-                <div className="flex items-center gap-2">
-                  <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant={overlayKind === 'sticker' ? 'default' : 'outline'}
-                      onClick={() => setOverlayKind('sticker')}
-                    >
-                      Sticker
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant={overlayKind === 'mask' ? 'default' : 'outline'}
-                      onClick={() => setOverlayKind('mask')}
-                    >
-                      Mask
-                    </Button>
-                  </div>
-                  <input
-                    ref={stickerFileInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleStickerFileChange}
-                  />
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={() => stickerFileInputRef.current?.click()}
-                    disabled={stickerUploading}
-                  >
-                    {stickerUploading ? 'Uploading...' : 'Add'}
-                  </Button>
-                </div>
-              </div>
-              {stickerError && <p className="text-sm text-destructive">{stickerError}</p>}
-
-              {editorBaseUrl ? (
-                <div className="relative">
-                  <div
-                    ref={editorFrameRef}
-                    className="relative w-full overflow-hidden rounded-md bg-black/10"
-                    style={{ aspectRatio: '4 / 5' }}
-                    onPointerDown={handleEditorPointerDown}
-                    onPointerMove={handleEditorPointerMove}
-                    onPointerUp={handleEditorPointerUp}
-                    role="application"
-                    aria-label="Locked preview editor"
-                  >
-                    {editorIsImage ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={editorBaseUrl}
-                        alt="Preview frame"
-                        className="absolute inset-0 h-full w-full object-contain"
-                        draggable={false}
-                        onContextMenu={(e) => e.preventDefault()}
-                      />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center p-4">
-                        <span className="text-sm text-muted-foreground">
-                          Select an image to enable blur/crop selection.
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Region draft */}
-                    {selectionDraft && editorIsImage && isRegionSelectionMode && (
-                      <div
-                        style={{
-                          position: 'absolute',
-                          left: `${Math.min(selectionDraft.startX, selectionDraft.currentX)}%`,
-                          top: `${Math.min(selectionDraft.startY, selectionDraft.currentY)}%`,
-                          width: `${Math.abs(selectionDraft.currentX - selectionDraft.startX)}%`,
-                          height: `${Math.abs(selectionDraft.currentY - selectionDraft.startY)}%`,
-                          background:
-                            previewType === 'partial_blur'
-                              ? 'rgba(255,255,255,0.15)'
-                              : 'rgba(59,130,246,0.12)',
-                          border:
-                            previewType === 'partial_blur'
-                              ? '1px dashed rgba(255,255,255,0.65)'
-                              : '1px dashed rgba(59,130,246,0.9)',
-                          pointerEvents: 'none',
-                        }}
-                      />
-                    )}
-
-                    {/* Existing blur regions / crop region outlines */}
-                    {editorIsImage && previewType === 'partial_blur' && (
-                      <>
-                        {blurRegions.map((r, idx) => (
-                          <div
-                            key={`${idx}-${r.x}-${r.y}`}
-                            style={{
-                              position: 'absolute',
-                              left: `${r.x}%`,
-                              top: `${r.y}%`,
-                              width: `${r.width}%`,
-                              height: `${r.height}%`,
-                              background: 'rgba(255,255,255,0.08)',
-                              border: '1px solid rgba(255,255,255,0.7)',
-                              pointerEvents: 'none',
-                            }}
-                          />
-                        ))}
-                      </>
-                    )}
-                    {editorIsImage && previewType === 'crop' && cropRegion && (
-                      <div
-                        style={{
-                          position: 'absolute',
-                          left: `${cropRegion.x}%`,
-                          top: `${cropRegion.y}%`,
-                          width: `${cropRegion.width}%`,
-                          height: `${cropRegion.height}%`,
-                          background: 'rgba(59,130,246,0.10)',
-                          border: '1px solid rgba(59,130,246,0.95)',
-                          pointerEvents: 'none',
-                        }}
-                      />
-                    )}
-
-                    {/* Stickers/masks overlays */}
-                    {overlays.map((o, index) => (
-                      <div
-                        key={`${index}-${o.assetUrl}`}
-                        style={{
-                          position: 'absolute',
-                          left: `${o.x}%`,
-                          top: `${o.y}%`,
-                          width: `${o.width}%`,
-                          height: `${o.height}%`,
-                          zIndex: activeOverlayIndex === index ? 5 : 3,
-                          touchAction: 'none',
-                        }}
-                        onPointerDown={(e) => startOverlayInteraction(index, 'drag', e)}
-                        role="group"
-                        aria-label={o.type}
-                      >
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={o.assetUrl}
-                          alt={o.type}
-                          className="h-full w-full object-contain"
-                          draggable={false}
-                          onPointerDown={(e) => e.stopPropagation()}
-                        />
-
-                        {/* delete button */}
-                        <button
-                          type="button"
-                          className="absolute right-0 top-0 z-10 -translate-y-1 translate-x-1 rounded-full bg-black/70 px-1 text-xs text-white hover:bg-black/90"
-                          onPointerDown={(e) => {
-                            e.stopPropagation();
-                            e.preventDefault();
-                          }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setOverlays((prev) => prev.filter((_, i) => i !== index));
-                            setActiveOverlayIndex(null);
-                          }}
-                          aria-label="Remove overlay"
-                        >
-                          ✕
-                        </button>
-
-                        {/* resize handle (bottom-right) */}
-                        <div
-                          onPointerDown={(e) => startOverlayInteraction(index, 'resize', e)}
-                          className="absolute bottom-0 right-0 h-4 w-4 translate-x-1/2 translate-y-1/2 cursor-se-resize rounded-full bg-primary/70 ring-2 ring-background"
-                          role="button"
-                          aria-label="Resize overlay"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
+              <Label>Categories</Label>
+              <p className="text-xs text-muted-foreground">
+                Select categories for better discoverability on Explore.
+              </p>
+              {loadingCategories ? (
+                <div className="h-8 w-40 animate-pulse rounded-full bg-surface-container-low" />
               ) : (
-                <div className="rounded-lg border bg-card p-4 text-sm text-muted-foreground">
-                  Add an image to configure preview blurs/crop and stickers.
+                <div className="flex flex-wrap gap-2">
+                  {categories.map((category) => {
+                    const selected = selectedCategoryIds.includes(category.id);
+                    return (
+                      <Button
+                        key={category.id}
+                        type="button"
+                        size="sm"
+                        variant={selected ? 'default' : 'outline'}
+                        onClick={() => toggleCategory(category.id)}
+                      >
+                        {category.icon ? `${category.icon} ` : ''}
+                        {category.name}
+                      </Button>
+                    );
+                  })}
                 </div>
               )}
             </div>
           </div>
+
+          {/* Preview settings removed intentionally */}
 
           {/* Tags */}
           <div className="space-y-2">

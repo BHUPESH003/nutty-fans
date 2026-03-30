@@ -153,7 +153,7 @@ export function SettingsPageContainer() {
     Number(!settings.notifications.pushNotifications);
 
   return (
-    <div className="space-y-6 pb-20 md:pb-6">
+    <div className="w-full min-w-0 space-y-6 overflow-x-hidden pb-20 md:pb-6">
       {/* Mobile-first overview */}
       <section className="rounded-[24px] bg-surface-container-low p-4 sm:p-5 md:hidden">
         <div className="flex flex-col items-center text-center">
@@ -234,7 +234,7 @@ export function SettingsPageContainer() {
             <div className="space-y-1 rounded-3xl bg-surface-container p-2">
               <Link
                 href={
-                  (user?.isCreator ? '/creator/transactions' : '/account/subscriptions') as Route
+                  (user?.isCreator ? '/account/transactions' : '/account/subscriptions') as Route
                 }
                 className="flex items-center justify-between gap-3 rounded-2xl p-3"
               >

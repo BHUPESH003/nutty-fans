@@ -10,6 +10,7 @@ export async function GET(req: Request) {
   return contentController.getExploreFeed(
     searchParams.get('cursor') ?? undefined,
     searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : 20,
-    session?.user?.id
+    session?.user?.id,
+    searchParams.get('category') ?? undefined
   );
 }

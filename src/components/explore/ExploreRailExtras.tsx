@@ -64,7 +64,7 @@ export function ExploreRailContent({ showLiveTeaser = true }: { showLiveTeaser?:
     <>
       <RailSection>
         <RailHeading>Suggested creators</RailHeading>
-        <RailCard className="space-y-3 rounded-3xl border-transparent bg-white p-4 shadow-sm">
+        <RailCard className="space-y-3 rounded-3xl border-transparent bg-surface-container-lowest p-4 shadow-sm">
           {suggestedCreators.length === 0 ? (
             <p className="text-xs text-on-surface-variant">No suggestions yet.</p>
           ) : (
@@ -77,7 +77,7 @@ export function ExploreRailContent({ showLiveTeaser = true }: { showLiveTeaser?:
 
       <RailSection>
         <RailHeading>New creators</RailHeading>
-        <RailCard className="space-y-3 rounded-3xl border-transparent bg-white p-4 shadow-sm">
+        <RailCard className="space-y-3 rounded-3xl border-transparent bg-surface-container-lowest p-4 shadow-sm">
           {newCreators.length === 0 ? (
             <p className="text-xs text-on-surface-variant">No new creators right now.</p>
           ) : (
@@ -88,7 +88,7 @@ export function ExploreRailContent({ showLiveTeaser = true }: { showLiveTeaser?:
 
       <RailSection>
         <RailHeading>Expired subscriptions</RailHeading>
-        <RailCard className="space-y-3 rounded-3xl border-transparent bg-white p-4 shadow-sm">
+        <RailCard className="space-y-3 rounded-3xl border-transparent bg-surface-container-lowest p-4 shadow-sm">
           {expiredSubscriptions.length === 0 ? (
             <p className="text-xs text-on-surface-variant">No expired subscriptions.</p>
           ) : (

@@ -675,6 +675,57 @@ export const apiClient = {
         method: 'POST',
       });
     },
+    getConversationPreferences(conversationId: string) {
+      return request<{
+        muted: boolean;
+        favorited: boolean;
+        hidden: boolean;
+        restricted: boolean;
+        blocked: boolean;
+        blockedBy: string | null;
+      }>(`/api/conversations/${conversationId}/preferences`);
+    },
+    updateConversationPreferences(
+      conversationId: string,
+      data: Partial<{
+        muted: boolean;
+        favorited: boolean;
+        hidden: boolean;
+        restricted: boolean;
+      }>
+    ) {
+      return request<{
+        success: boolean;
+        muted: boolean;
+        favorited: boolean;
+        hidden: boolean;
+        restricted: boolean;
+      }>(`/api/conversations/${conversationId}/preferences`, {
+        method: 'PATCH',
+        data,
+      });
+    },
+    setConversationBlocked(conversationId: string, blocked: boolean, reason?: string) {
+      return request<{ success: boolean; blocked: boolean }>(
+        `/api/conversations/${conversationId}/block`,
+        {
+          method: 'POST',
+          data: { blocked, reason },
+        }
+      );
+    },
+    reportConversation(conversationId: string, reason: string, description?: string) {
+      return request<{ success: boolean; report: { id: string; status: string } }>(
+        `/api/conversations/${conversationId}/report`,
+        {
+          method: 'POST',
+          data: { reason, description },
+        }
+      );
+    },
+    getUnreadMessageCount() {
+      return request<{ count: number }>('/api/conversations/unread-count');
+    },
   },
   notifications: {
     list(cursor?: string) {
@@ -744,10 +795,11 @@ export const apiClient = {
     },
   },
   explore: {
-    getFeed(cursor?: string, limit?: number) {
+    getFeed(cursor?: string, limit?: number, category?: string) {
       const searchParams = new URLSearchParams();
       if (cursor) searchParams.append('cursor', cursor);
       if (limit) searchParams.append('limit', limit.toString());
+      if (category) searchParams.append('category', category);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return request<any>(`/api/feed/explore?${searchParams.toString() || '?'}`);
     },

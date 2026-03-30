@@ -127,7 +127,7 @@ export function SubscriptionsPageContainer() {
   const nextBilling = activeItems[0]?.expiresAt ? formatDate(activeItems[0].expiresAt) : '—';
 
   return (
-    <div className="space-y-6 pb-20 md:pb-8">
+    <div className="w-full min-w-0 space-y-6 overflow-x-hidden pb-20 md:pb-8">
       <div className="space-y-3">
         <h1 className="font-headline text-2xl font-bold text-on-surface sm:text-3xl">
           My Subscriptions

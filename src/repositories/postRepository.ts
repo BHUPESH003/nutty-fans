@@ -18,6 +18,7 @@ export class PostRepository {
     scheduledAt?: Date;
     expiresAt?: Date;
     status?: 'draft' | 'scheduled' | 'published';
+    metadata?: Prisma.InputJsonValue;
     previewConfig?: Prisma.InputJsonValue;
     overlays?: Prisma.InputJsonValue;
   }) {
@@ -34,6 +35,7 @@ export class PostRepository {
         expiresAt: data.expiresAt ?? null,
         status: data.status ?? 'draft',
         publishedAt: data.status === 'published' ? new Date() : null,
+        ...(data.metadata != null ? { metadata: data.metadata } : {}),
         ...(data.previewConfig != null ? { previewConfig: data.previewConfig } : {}),
         ...(data.overlays != null ? { overlays: data.overlays } : {}),
       },
@@ -271,12 +273,45 @@ export class PostRepository {
    * Only includes FREE and PPV content - subscriber-only content requires subscription
    * PPV content shows in explore but media URLs are stripped until purchased
    */
-  async getExploreFeed(cursor?: string, limit = 20) {
+  async getExploreFeed(cursor?: string, limit = 20, categorySlug?: string) {
+    // If category is specified, ONLY show posts/creators with that category/tag
+    const categoryFilter = categorySlug
+      ? {
+          OR: [
+            {
+              creator: {
+                category: {
+                  is: {
+                    slug: {
+                      equals: categorySlug,
+                      mode: 'insensitive',
+                    },
+                  },
+                },
+              },
+            },
+            {
+              postTags: {
+                some: {
+                  tag: {
+                    slug: {
+                      equals: categorySlug,
+                      mode: 'insensitive',
+                    },
+                  },
+                },
+              },
+            },
+          ],
+        }
+      : {};
+
     return prisma.post.findMany({
       where: {
         status: 'published',
         // Only free and PPV - subscriber content is exclusive to subscribers
         accessLevel: { in: ['free', 'ppv'] },
+        ...categoryFilter,
         publishedAt: { lte: new Date() },
         // Include both posts and reels (exclude stories as they expire)
         postType: { in: ['post', 'reel'] },

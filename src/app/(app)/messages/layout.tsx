@@ -23,7 +23,7 @@ export default function MessagesLayout({ children }: { children: React.ReactNode
 
   return (
     <>
-      <div className="flex h-[100vh] overflow-hidden bg-background md:rounded-[28px] md:border md:border-border md:bg-surface-container-lowest md:shadow-card">
+      <div className="flex h-full min-h-0 overflow-hidden bg-background md:rounded-[28px] md:border md:border-border md:bg-surface-container-lowest md:shadow-card">
         <div
           className={cn(
             'flex shrink-0 flex-col border-border bg-surface-container-lowest md:border-r',

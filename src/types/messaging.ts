@@ -44,4 +44,10 @@ export interface Conversation {
     createdAt: string;
   };
   unreadCount: number;
+  isMuted?: boolean;
+  isFavorite?: boolean;
+  isRestricted?: boolean;
+  isHidden?: boolean;
+  isBlocked?: boolean;
+  blockedBy?: string | null;
 }

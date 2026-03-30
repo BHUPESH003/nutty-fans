@@ -43,3 +43,26 @@ export async function emitMessageReaction(conversationId: string, reaction: unkn
   };
   await redisPub.publish(CHANNEL, JSON.stringify(payload, jsonSafeReplacer));
 }
+
+export async function emitConversationUpdated(
+  userId: string,
+  conversationId: string,
+  preview: { content: string | null; createdAt: Date | string },
+  unreadCount: number
+) {
+  const payload: WsPublishPayload = {
+    event: 'conversation:updated',
+    room: `user:${userId}`,
+    data: { conversationId, lastMessage: preview, unreadCount },
+  };
+  await redisPub.publish(CHANNEL, JSON.stringify(payload, jsonSafeReplacer));
+}
+
+export async function emitNotificationCountUpdate(userId: string) {
+  const payload: WsPublishPayload = {
+    event: 'notification:count',
+    room: `user:${userId}`,
+    data: {},
+  };
+  await redisPub.publish(CHANNEL, JSON.stringify(payload, jsonSafeReplacer));
+}

@@ -37,8 +37,8 @@ export function ProfileTabs({ defaultValue = 'wallet', className }: ProfileTabsP
       onValueChange={setActiveTab}
       className={cn('w-full', className)}
     >
-      <div className="sticky top-[60px] z-30 w-full border-b border-surface-container-high bg-background/80 backdrop-blur-md md:top-[0px]">
-        <TabsPrimitive.List className="no-scrollbar mx-auto flex w-full max-w-2xl overflow-x-auto">
+      <div className="sticky top-[60px] z-30 w-full border-b border-surface-container-high bg-background/80 backdrop-blur-md md:top-[0]">
+        <TabsPrimitive.List className="no-scrollbar flex w-full overflow-x-auto">
           {tabs.map((tab) => (
             <TabsPrimitive.Trigger
               key={tab.id}
@@ -63,7 +63,7 @@ export function ProfileTabs({ defaultValue = 'wallet', className }: ProfileTabsP
         </TabsPrimitive.List>
       </div>
 
-      <div className="min-h-[50vh] max-w-2xl px-4 py-4 sm:px-6 sm:py-6">
+      <div className="min-h-[50vh] w-full px-4 py-4 sm:px-6 sm:py-6">
         <TabsPrimitive.Content value="wallet" className="outline-none focus-visible:ring-0">
           <WalletTab />
         </TabsPrimitive.Content>

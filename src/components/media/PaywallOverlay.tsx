@@ -1,7 +1,5 @@
 'use client';
 
-import Image from 'next/image';
-
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { AccessLevel } from '@/types/content';
@@ -19,7 +17,7 @@ interface PaywallOverlayProps {
 export function PaywallOverlay({
   accessLevel,
   ppvPrice,
-  previewUrl,
+  previewUrl: _previewUrl,
   onUnlock,
   onSubscribe,
   isLoading = false,
@@ -30,23 +28,10 @@ export function PaywallOverlay({
 
   return (
     <div className={cn('absolute inset-0 overflow-hidden', className)}>
-      {/* Blurred Background Preview */}
-      {previewUrl && (
-        <div className="absolute inset-0 scale-110">
-          <Image
-            src={previewUrl}
-            alt="Content preview"
-            fill
-            className="object-cover blur-2xl"
-            style={{ opacity: 0.5 }}
-          />
-        </div>
-      )}
-
       {/* Overlay */}
-      <div className="absolute inset-0 flex flex-col items-center justify-center bg-surface/70 p-6 text-center backdrop-blur-md">
+      <div className="absolute inset-0 flex flex-col items-center justify-center bg-surface/85 p-6 text-center">
         {/* Lock Icon */}
-        <div className="mb-4 rounded-full bg-white/10 p-4 backdrop-blur-md">
+        <div className="mb-4 rounded-full bg-white/10 p-4">
           <span className="material-symbols-outlined text-4xl text-white">lock</span>
         </div>
 
@@ -92,7 +77,7 @@ export function PaywallOverlay({
         )}
 
         {/* Badge */}
-        <div className="absolute left-3 top-3 rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-white backdrop-blur-md">
+        <div className="absolute left-3 top-3 rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-white">
           {isPpv ? '💎 Premium' : '🔐 Subscribers'}
         </div>
       </div>

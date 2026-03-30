@@ -56,6 +56,10 @@ export class PostService {
       postType: input.postType,
       accessLevel: input.accessLevel,
       ppvPrice: input.ppvPrice,
+      metadata:
+        input.categoryIds && input.categoryIds.length > 0
+          ? ({ categoryIds: input.categoryIds } as unknown as Prisma.InputJsonValue)
+          : undefined,
       isNsfw: input.isNsfw,
       commentsEnabled: input.commentsEnabled,
       scheduledAt: input.scheduledAt,

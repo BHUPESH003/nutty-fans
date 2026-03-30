@@ -115,6 +115,7 @@ export function useMessages(conversationId: string | null) {
       // Mark delivered for messages we didn't send.
       if (myUserId && m.senderId !== myUserId) {
         socket.emit('message:delivered', { messageId: m.id });
+        socket.emit('message:read', { conversationId });
       }
     };
 
@@ -233,6 +234,9 @@ export function useMessages(conversationId: string | null) {
         setIsLoading(false);
 
         if (myUserId) {
+          void apiClient.messaging.markConversationRead(conversationId).catch(() => {
+            // Best effort; socket event below keeps realtime sync.
+          });
           socket.emit('message:read', { conversationId });
         }
       })

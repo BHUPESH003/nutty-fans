@@ -49,6 +49,9 @@ export function ExplorePageContainer() {
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
+  const [activeTab, setActiveTab] = useState<'trending' | 'feed'>(
+    categorySlug ? 'feed' : 'trending'
+  );
 
   useEffect(() => {
     const loadCategories = async () => {
@@ -64,6 +67,12 @@ export function ExplorePageContainer() {
 
     void loadCategories();
   }, []);
+
+  useEffect(() => {
+    if (categorySlug) {
+      setActiveTab('feed');
+    }
+  }, [categorySlug]);
 
   const selectedCategory = categorySlug
     ? categories.find((c) => c.slug === categorySlug)
@@ -101,7 +110,11 @@ export function ExplorePageContainer() {
           </div>
         </div>
       ) : (
-        <Tabs defaultValue="trending" className="w-full">
+        <Tabs
+          value={activeTab}
+          onValueChange={(v) => setActiveTab(v as 'trending' | 'feed')}
+          className="w-full"
+        >
           <header className="glass sticky top-14 z-20 border-b border-neutral-200/80 px-5 py-5 md:top-0">
             <div className="mx-auto flex max-w-[720px] flex-col gap-6">
               <div className="flex items-center gap-3">
@@ -154,11 +167,11 @@ export function ExplorePageContainer() {
 
           <div className="px-5 py-8">
             <TabsContent value="trending" className="mt-0 space-y-8 focus-visible:outline-none">
-              <TrendingCreators />
+              <TrendingCreators categorySlug={categorySlug || undefined} />
             </TabsContent>
 
             <TabsContent value="feed" className="mt-0 focus-visible:outline-none">
-              <ExploreFeed />
+              <ExploreFeed categorySlug={categorySlug || undefined} />
             </TabsContent>
           </div>
         </Tabs>
@@ -247,7 +260,7 @@ function SearchResultsView({ query }: { query: string }) {
             {results.posts.map((post) => (
               <a
                 key={post.id}
-                href={`/posts/${post.id}`}
+                href={`/post/${post.id}`}
                 className="rounded-lg border border-surface-container-high bg-surface-container-lowest p-4 transition-colors hover:bg-surface-container-low"
               >
                 <div className="flex items-center gap-3">
