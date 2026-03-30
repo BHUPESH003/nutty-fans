@@ -11,6 +11,8 @@ import { cn } from '@/lib/utils';
 import { apiClient } from '@/services/apiClient';
 import type { Message } from '@/types/messaging';
 
+import { MediaViewerModal } from '../media/MediaViewerModal';
+
 import { InChatTipModal } from './InChatTipModal';
 
 interface MessageInputProps {
@@ -51,6 +53,8 @@ export function MessageInput({
   const [isRecording, setIsRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
   const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
+  const [previewViewerOpen, setPreviewViewerOpen] = useState(false);
+  const [previewViewerIndex, setPreviewViewerIndex] = useState(0);
   const { toast } = useToast();
 
   const socket = getSocket();
@@ -343,7 +347,7 @@ export function MessageInput({
 
       {attachments.length > 0 && (
         <div className="mb-3 flex gap-3 overflow-x-auto pb-1">
-          {attachments.map((attachment) => (
+          {attachments.map((attachment, index) => (
             <div
               key={attachment.id}
               className="relative h-24 w-24 shrink-0 overflow-hidden rounded-2xl border border-surface-container-high bg-surface-container-low"
@@ -354,6 +358,10 @@ export function MessageInput({
                   className="h-full w-full object-cover"
                   muted
                   playsInline
+                  onClick={() => {
+                    setPreviewViewerIndex(index);
+                    setPreviewViewerOpen(true);
+                  }}
                 />
               ) : (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -361,6 +369,10 @@ export function MessageInput({
                   src={attachment.url}
                   alt={attachment.file.name}
                   className="h-full w-full object-cover"
+                  onClick={() => {
+                    setPreviewViewerIndex(index);
+                    setPreviewViewerOpen(true);
+                  }}
                 />
               )}
               <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-2 pb-2 pt-5">
@@ -379,6 +391,17 @@ export function MessageInput({
           ))}
         </div>
       )}
+
+      <MediaViewerModal
+        open={previewViewerOpen}
+        items={attachments.map((attachment) => ({
+          type: attachment.mediaType === 'video' ? ('video' as const) : ('image' as const),
+          src: attachment.url,
+          alt: attachment.file.name,
+        }))}
+        initialIndex={previewViewerIndex}
+        onClose={() => setPreviewViewerOpen(false)}
+      />
 
       <div className="mb-2 flex items-center justify-between gap-3">
         <div className="flex gap-1">

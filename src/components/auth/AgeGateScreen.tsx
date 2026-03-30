@@ -45,7 +45,7 @@ export function AgeGateScreen({ initialMosaicUrls }: AgeGateScreenProps) {
   return (
     <div className="flex min-h-screen flex-col lg:h-screen lg:overflow-hidden">
       {/* Mobile header — centered wordmark */}
-      <header className="border-b border-surface-container-high bg-white px-4 py-4 lg:hidden">
+      <header className="border-b border-surface-container-high bg-background px-4 py-4 lg:hidden">
         <div className="flex justify-center">
           <Link
             href="/"
@@ -66,7 +66,7 @@ export function AgeGateScreen({ initialMosaicUrls }: AgeGateScreenProps) {
       </header>
 
       {/* Desktop header — logo + nav */}
-      <header className="hidden border-b border-surface-container-high bg-white px-8 py-3 lg:block">
+      <header className="hidden border-b border-surface-container-high bg-background px-8 py-3 lg:block">
         <div className="mx-auto flex max-w-[1600px] items-center justify-between">
           <Link
             href="/"
@@ -203,7 +203,7 @@ export function AgeGateScreen({ initialMosaicUrls }: AgeGateScreenProps) {
         {/* Age gate card — white */}
         <section
           className={cn(
-            'relative z-20 flex flex-col justify-center bg-white px-6 py-8',
+            'relative z-20 flex flex-col justify-center bg-surface-container-lowest px-6 py-8',
             '-mt-10 rounded-t-3xl shadow-[0_-12px_48px_rgba(0,0,0,0.12)] lg:mt-0 lg:rounded-none lg:px-12 lg:py-10 lg:shadow-none'
           )}
         >
@@ -248,7 +248,7 @@ export function AgeGateScreen({ initialMosaicUrls }: AgeGateScreenProps) {
               <Button
                 type="button"
                 variant="outline"
-                className="h-11 w-full rounded-full border-surface-container-high bg-white text-[15px] font-medium text-on-surface hover:bg-surface-container-low"
+                className="h-11 w-full rounded-full border-surface-container-high bg-surface-container-low text-[15px] font-medium text-on-surface hover:bg-surface-container"
                 onClick={handleExit}
               >
                 I am under 18 — Exit

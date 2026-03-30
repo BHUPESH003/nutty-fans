@@ -24,9 +24,15 @@ interface TrendingCreatorsProps {
   variant?: 'grid' | 'rail';
   /** When rail + parent supplies RailHeading */
   hideHeading?: boolean;
+  /** Optional category slug to show only creators with that category */
+  categorySlug?: string;
 }
 
-export function TrendingCreators({ variant = 'grid', hideHeading = false }: TrendingCreatorsProps) {
+export function TrendingCreators({
+  variant = 'grid',
+  hideHeading = false,
+  categorySlug,
+}: TrendingCreatorsProps) {
   const [creators, setCreators] = useState<Creator[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -34,7 +40,14 @@ export function TrendingCreators({ variant = 'grid', hideHeading = false }: Tren
     const loadTrending = async () => {
       try {
         const result = await apiClient.search.getTrendingCreators(10);
-        setCreators(result.creators);
+        // Filter by categorySlug if provided
+        let filtered = result.creators;
+        if (categorySlug) {
+          filtered = result.creators.filter(
+            (creator) => creator.category?.slug?.toLowerCase() === categorySlug.toLowerCase()
+          );
+        }
+        setCreators(filtered);
       } catch (error) {
         console.error('Failed to load trending creators:', error);
       } finally {
@@ -43,7 +56,7 @@ export function TrendingCreators({ variant = 'grid', hideHeading = false }: Tren
     };
 
     void loadTrending();
-  }, []);
+  }, [categorySlug]);
 
   const heading = variant === 'rail' ? 'Suggested Creators' : 'Trending Creators';
 

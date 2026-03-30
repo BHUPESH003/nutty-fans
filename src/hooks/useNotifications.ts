@@ -1,6 +1,8 @@
+import { useEffect } from 'react';
 import useSWR from 'swr';
 
 import { useAuth } from '@/hooks/useAuth';
+import { getSocket } from '@/hooks/useMessages';
 import { apiClient } from '@/services/apiClient';
 
 export function useNotifications(cursor?: string) {
@@ -11,9 +13,25 @@ export function useNotifications(cursor?: string) {
       return apiClient.notifications.list(cursor);
     },
     {
-      refreshInterval: 30000, // Poll every 30s
+      refreshInterval: 30000,
     }
   );
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const socket = getSocket();
+
+    const handleNotificationCount = () => {
+      void mutate();
+    };
+
+    socket.on('notification:count', handleNotificationCount);
+
+    return () => {
+      socket.off('notification:count', handleNotificationCount);
+    };
+  }, [isAuthenticated, mutate]);
 
   return {
     notifications: data?.items || [],
@@ -32,14 +50,30 @@ export function useUnreadNotificationCount() {
       return apiClient.notifications.getUnreadCount();
     },
     {
-      refreshInterval: 60000, // Poll every 60s for badge count
+      refreshInterval: 60000,
     }
   );
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const socket = getSocket();
+
+    const handleNotificationCount = () => {
+      void mutate();
+    };
+
+    socket.on('notification:count', handleNotificationCount);
+
+    return () => {
+      socket.off('notification:count', handleNotificationCount);
+    };
+  }, [isAuthenticated, mutate]);
 
   const markAsRead = async (notificationId: string) => {
     try {
       await apiClient.notifications.markAsRead(notificationId);
-      await mutate(); // Refresh count
+      await mutate();
     } catch (err) {
       console.error(err);
       throw err;
@@ -49,7 +83,7 @@ export function useUnreadNotificationCount() {
   const markAllAsRead = async () => {
     try {
       await apiClient.notifications.markAllAsRead();
-      await mutate(); // Refresh count
+      await mutate();
     } catch (err) {
       console.error(err);
       throw err;

@@ -50,7 +50,7 @@ export const PostDetailContainer = () => {
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-8">
+    <div className="mx-auto w-full max-w-2xl px-3 py-6 sm:px-4 sm:py-8">
       <PostCard post={post} />
 
       {/* Instagram-style bottom comments tray */}

@@ -24,6 +24,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useCreatorStatus } from '@/hooks/useCreatorStatus';
+import { useUnreadMessageCount } from '@/hooks/useUnreadMessageCount';
 import { cn } from '@/lib/utils';
 
 const SIDEBAR_EXPANDED_KEY = 'nuttyfans-sidebar-expanded';
@@ -292,12 +293,14 @@ function SidebarNavLink({
   icon,
   active,
   expanded,
+  badge,
 }: {
   href: Route;
   label: string;
   icon: string;
   active: boolean;
   expanded: boolean;
+  badge?: number;
 }) {
   return (
     <Link
@@ -311,7 +314,14 @@ function SidebarNavLink({
           : 'font-normal text-on-surface-variant hover:bg-surface-container hover:text-on-surface'
       )}
     >
-      <span className="material-symbols-outlined shrink-0 text-[26px] leading-none">{icon}</span>
+      <span className="relative shrink-0">
+        <span className="material-symbols-outlined text-[26px] leading-none">{icon}</span>
+        {badge != null && badge > 0 && (
+          <span className="absolute -right-1.5 -top-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold leading-none text-white">
+            {badge > 99 ? '99+' : badge}
+          </span>
+        )}
+      </span>
       <span
         className={cn(
           'truncate transition-opacity duration-200',
@@ -426,6 +436,7 @@ function SidebarMoreMenu({
 export function AppShell({ children, user }: AppShellProps) {
   const pathname = usePathname();
   const { onboardingStatus, isLoading: creatorStatusLoading } = useCreatorStatus();
+  const { unreadCount: unreadMessageCount } = useUnreadMessageCount();
   const showCreatorDashboard = !creatorStatusLoading && onboardingStatus === 'active';
   const isExploreRoute = pathname === '/explore' || pathname.startsWith('/explore/');
   const isReelsRoute = pathname === '/reels' || pathname.startsWith('/reels/');
@@ -520,15 +531,18 @@ export function AppShell({ children, user }: AppShellProps) {
                 </button>
               ) : null}
               <CreatorNavButton className="hidden sm:flex" />
-              {!isExploreRoute ? (
-                <Link
-                  href="/messages"
-                  className="flex h-10 w-10 items-center justify-center rounded-full text-on-surface-variant transition-colors hover:bg-surface-container-low"
-                  aria-label="Messages"
-                >
-                  <span className="material-symbols-outlined text-[22px]">chat_bubble</span>
-                </Link>
-              ) : null}
+              <Link
+                href="/messages"
+                className="relative flex h-10 w-10 items-center justify-center rounded-full text-on-surface-variant transition-colors hover:bg-surface-container-low"
+                aria-label="Messages"
+              >
+                <span className="material-symbols-outlined text-[22px]">chat_bubble</span>
+                {unreadMessageCount > 0 && (
+                  <span className="absolute right-1 top-1 flex h-[16px] min-w-[16px] items-center justify-center rounded-full bg-primary px-0.5 text-[9px] font-bold leading-none text-white">
+                    {unreadMessageCount > 99 ? '99+' : unreadMessageCount}
+                  </span>
+                )}
+              </Link>
               {showCreatorDashboard ? (
                 <Link
                   href="/creator/dashboard"
@@ -612,6 +626,7 @@ export function AppShell({ children, user }: AppShellProps) {
                     icon={item.icon}
                     active={active}
                     expanded={sidebarExpanded}
+                    badge={item.href === '/messages' ? unreadMessageCount : undefined}
                   />
                 );
               })}
@@ -630,42 +645,23 @@ export function AppShell({ children, user }: AppShellProps) {
                   variant={sidebarExpanded ? 'default' : 'icon'}
                   className={cn(!sidebarExpanded && 'w-12')}
                 />
-                {showCreatorDashboard ? (
-                  <Link
-                    href="/creator/dashboard"
-                    title="Creator dashboard"
-                    className={cn(
-                      'flex items-center justify-center gap-2 rounded-full border border-outline-variant bg-surface-container-low text-xs font-bold text-primary transition-colors hover:bg-surface-container',
-                      sidebarExpanded ? 'px-4 py-2.5' : 'h-12 w-12 border-0 p-0'
-                    )}
-                  >
-                    <span className="material-symbols-outlined shrink-0 text-[22px]">
-                      dashboard
-                    </span>
-                    {sidebarExpanded ? (
-                      <span>Dashboard</span>
-                    ) : (
-                      <span className="sr-only">Dashboard</span>
-                    )}
-                  </Link>
-                ) : null}
               </div>
             </nav>
 
             <div className={cn('mt-3', sidebarExpanded ? 'px-1' : 'flex justify-center')}>
-              {sidebarExpanded ? (
-                <CreatorCTA variant="sidebar" className="w-full" />
-              ) : (
-                <Link
-                  href={showCreatorDashboard ? '/creator/dashboard' : '/creator/start'}
-                  className="flex h-12 w-12 items-center justify-center rounded-full text-primary transition-colors hover:bg-surface-container"
-                  title={showCreatorDashboard ? 'Creator' : 'Become a creator'}
-                >
-                  <span className="material-symbols-outlined text-[26px]">
-                    {showCreatorDashboard ? 'palette' : 'auto_awesome'}
-                  </span>
-                </Link>
-              )}
+              {!showCreatorDashboard ? (
+                sidebarExpanded ? (
+                  <CreatorCTA variant="sidebar" className="w-full" />
+                ) : (
+                  <Link
+                    href="/creator/start"
+                    className="flex h-12 w-12 items-center justify-center rounded-full text-primary transition-colors hover:bg-surface-container"
+                    title="Become a creator"
+                  >
+                    <span className="material-symbols-outlined text-[26px]">auto_awesome</span>
+                  </Link>
+                )
+              ) : null}
             </div>
 
             <div className="mt-auto space-y-1 pt-2">
@@ -773,8 +769,8 @@ export function AppShell({ children, user }: AppShellProps) {
         <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-background/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl md:hidden">
           <div className="mx-auto flex h-[var(--mobile-bottom-nav-height)] max-w-lg items-center justify-around px-1 py-2">
             {navItems.map((item) => {
-              // Keep Messages out of the mobile bottom tray.
-              if (item.href === '/messages') return null;
+              // Keep Messages and Notifications out of the mobile bottom tray.
+              if (item.href === '/messages' || item.href === '/notifications') return null;
               const active =
                 item.href === '/'
                   ? pathname === '/'
@@ -793,6 +789,33 @@ export function AppShell({ children, user }: AppShellProps) {
                 </Link>
               );
             })}
+            {showCreatorDashboard ? (
+              <Link
+                href="/creator/posts/new"
+                className={cn(
+                  'flex h-12 w-12 shrink-0 items-center justify-center rounded-full transition-colors',
+                  pathname === '/creator/posts/new'
+                    ? 'bg-primary text-white'
+                    : 'text-on-surface-variant hover:bg-surface-container-low'
+                )}
+                aria-label="Create post"
+              >
+                <span className="material-symbols-outlined text-[24px]">add</span>
+              </Link>
+            ) : (
+              <Link
+                href="/reels"
+                className={cn(
+                  'flex h-12 w-12 shrink-0 items-center justify-center rounded-full transition-colors',
+                  pathname === '/reels' || pathname.startsWith('/reels/')
+                    ? 'text-primary'
+                    : 'text-on-surface-variant'
+                )}
+                aria-label="Reels"
+              >
+                <span className="material-symbols-outlined text-[24px]">movie</span>
+              </Link>
+            )}
             <MobileAccountDropdown
               pathname={pathname}
               user={user}

@@ -346,9 +346,9 @@ export const contentController = {
     });
   },
 
-  async getExploreFeed(cursor?: string, limit = 20, userId?: string) {
+  async getExploreFeed(cursor?: string, limit = 20, userId?: string, categorySlug?: string) {
     return handleAsyncRoute(async () => {
-      const feed = await feedService.getExploreFeed(cursor, limit, userId);
+      const feed = await feedService.getExploreFeed(cursor, limit, userId, categorySlug);
       return successResponse(feed);
     });
   },

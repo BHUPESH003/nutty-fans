@@ -60,9 +60,14 @@ export class FeedService {
    * Only includes FREE and PPV content
    * PPV content media URLs are stripped until user has purchased
    */
-  async getExploreFeed(cursor?: string, limit = 20, userId?: string): Promise<FeedResult> {
+  async getExploreFeed(
+    cursor?: string,
+    limit = 20,
+    userId?: string,
+    categorySlug?: string
+  ): Promise<FeedResult> {
     // Don't cache per-user since access varies
-    const posts = await this.postRepo.getExploreFeed(cursor, limit);
+    const posts = await this.postRepo.getExploreFeed(cursor, limit, categorySlug);
 
     const hasMore = posts.length > limit;
     const items = hasMore ? posts.slice(0, limit) : posts;

@@ -83,7 +83,7 @@ export function MyProfilePageContainer() {
     .toUpperCase();
 
   return (
-    <div className="space-y-5 pb-6 md:space-y-6 md:pb-6">
+    <div className="w-full min-w-0 space-y-5 overflow-x-hidden pb-6 md:space-y-6 md:pb-6">
       <Card className="overflow-hidden rounded-[28px] bg-surface-container-low">
         <CardContent className="px-3 py-5 sm:px-6 sm:py-8">
           <div className="flex flex-col items-center text-center">
@@ -101,8 +101,8 @@ export function MyProfilePageContainer() {
               </p>
             ) : null}
 
-            <div className="xs:grid-cols-2 mt-5 grid w-full grid-cols-1 gap-2 sm:max-w-md sm:grid-cols-3">
-              <div className="rounded-2xl bg-background px-4 py-3">
+            <div className="mt-5 grid w-full grid-cols-3 gap-2 sm:max-w-md sm:grid-cols-3">
+              <div className="rounded-2xl bg-background px-3 py-2 sm:px-4 sm:py-3">
                 <p className="text-[11px] uppercase tracking-[0.18em] text-on-surface-variant">
                   Posts
                 </p>
@@ -110,7 +110,7 @@ export function MyProfilePageContainer() {
                   {profile.postsCount || 0}
                 </p>
               </div>
-              <div className="rounded-2xl bg-background px-4 py-3">
+              <div className="rounded-2xl bg-background px-3 py-2 sm:px-4 sm:py-3">
                 <p className="text-[11px] uppercase tracking-[0.18em] text-on-surface-variant">
                   Followers
                 </p>
@@ -118,7 +118,7 @@ export function MyProfilePageContainer() {
                   {profile.followersCount}
                 </p>
               </div>
-              <div className="xs:col-span-2 rounded-2xl bg-background px-4 py-3 sm:col-span-1">
+              <div className="rounded-2xl bg-background px-3 py-2 sm:px-4 sm:py-3">
                 <p className="text-[11px] uppercase tracking-[0.18em] text-on-surface-variant">
                   Following
                 </p>
@@ -128,20 +128,20 @@ export function MyProfilePageContainer() {
               </div>
             </div>
 
-            <div className="mt-5 grid w-full grid-cols-1 gap-2 sm:flex sm:flex-wrap sm:justify-center">
-              <Button asChild className="h-11 w-full text-sm sm:h-10 sm:w-auto">
+            <div className="mt-5 grid w-full grid-cols-1 gap-2 sm:grid-cols-2">
+              <Button asChild className="h-11 w-full text-sm sm:h-10">
                 <Link href={'/account/profile/edit' as Route}>Edit profile</Link>
               </Button>
-              <Button asChild variant="outline" className="h-11 w-full text-sm sm:h-10 sm:w-auto">
+              <Button asChild variant="outline" className="h-11 w-full text-sm sm:h-10">
                 <Link href={'/account/settings' as Route}>Settings</Link>
               </Button>
-              <Button asChild variant="outline" className="h-11 w-full text-sm sm:h-10 sm:w-auto">
+              <Button asChild variant="outline" className="h-11 w-full text-sm sm:h-10">
                 <Link href={'/account/wallet' as Route}>
                   <span className="material-symbols-outlined mr-2 text-[18px]">credit_card</span>
                   Wallet
                 </Link>
               </Button>
-              <Button asChild variant="outline" className="h-11 w-full text-sm sm:h-10 sm:w-auto">
+              <Button asChild variant="outline" className="h-11 w-full text-sm sm:h-10">
                 <Link href={'/account/subscriptions' as Route}>Subscriptions</Link>
               </Button>
             </div>

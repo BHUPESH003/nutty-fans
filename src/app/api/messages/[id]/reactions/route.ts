@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 
@@ -57,13 +58,29 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     });
     action = 'removed';
   } else {
-    await prisma.messageReaction.create({
-      data: {
-        messageId,
-        userId: session.user.id,
-        emoji,
-      },
-    });
+    try {
+      await prisma.messageReaction.create({
+        data: {
+          messageId,
+          userId: session.user.id,
+          emoji,
+        },
+      });
+    } catch (error) {
+      // Race-safe toggle: if duplicate create happened in parallel, treat this as remove.
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        await prisma.messageReaction.deleteMany({
+          where: {
+            messageId,
+            userId: session.user.id,
+            emoji,
+          },
+        });
+        action = 'removed';
+      } else {
+        throw error;
+      }
+    }
   }
 
   await emitMessageReaction(message.conversationId, {

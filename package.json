@@ -6,7 +6,7 @@
     "dev": "concurrently \"next dev\" \"tsx watch src/server/index.ts\"",
     "ws:server": "tsx src/server/index.ts",
     "prepare": "husky install || true",
-    "build": "npx prisma migrate deploy && npx prisma generate && next build",
+    "build": "pnpm exec prisma migrate deploy && pnpm exec prisma generate && next build",
     "start": "next start",
     "lint": "eslint . --max-warnings 0 --no-warn-ignored",
     "lint:fix": "eslint . --fix --no-warn-ignored",
@@ -129,7 +129,7 @@
     ]
   },
   "prisma": {
-    "seed": "npx tsx prisma/seed.ts"
+    "seed": "pnpm exec tsx prisma/seed.ts"
   },
   "engines": {
     "node": "^20.19 || ^22.12 || >=24.0"

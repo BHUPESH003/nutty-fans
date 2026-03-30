@@ -1,13 +1,17 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
-import { ExploreRailContent } from '@/components/explore/ExploreRailExtras';
-import { PostCard } from '@/components/posts/PostCard';
+import { MediaRenderer } from '@/components/media/MediaRenderer';
 import { apiClient } from '@/services/apiClient';
 import type { PostWithCreator } from '@/types/content';
 
-export function ExploreFeed() {
+interface ExploreFeedProps {
+  categorySlug?: string;
+}
+
+export function ExploreFeed({ categorySlug }: ExploreFeedProps) {
   const [posts, setPosts] = useState<PostWithCreator[]>([]);
   const [loading, setLoading] = useState(true);
   const [cursor, setCursor] = useState<string | null>(null);
@@ -16,7 +20,11 @@ export function ExploreFeed() {
   const loadFeed = async (reset = false) => {
     try {
       setLoading(true);
-      const result = await apiClient.explore.getFeed(reset ? undefined : cursor || undefined);
+      const result = await apiClient.explore.getFeed(
+        reset ? undefined : cursor || undefined,
+        undefined,
+        categorySlug || undefined
+      );
 
       if (reset) {
         setPosts(result.posts || []);
@@ -36,7 +44,7 @@ export function ExploreFeed() {
   useEffect(() => {
     void loadFeed(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [categorySlug]);
 
   const handleLoadMore = () => {
     if (!loading && hasMore && cursor) {
@@ -63,29 +71,41 @@ export function ExploreFeed() {
   }
 
   return (
-    <div className="space-y-4">
-      {posts.map((post, index) => (
-        <div key={post.id} className="space-y-6">
-          <PostCard post={post} />
-          {index === 3 ? (
-            <div className="xl:hidden">
-              <ExploreRailContent showLiveTeaser={false} />
-            </div>
-          ) : null}
-        </div>
-      ))}
-      {posts.length > 0 && posts.length < 4 ? (
-        <div className="xl:hidden">
-          <ExploreRailContent showLiveTeaser={false} />
-        </div>
-      ) : null}
+    <div className="mx-auto max-w-6xl">
+      {/* Instagram-style grid of media thumbnails */}
+      <div className="grid grid-cols-2 gap-1 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+        {posts.map((post) => {
+          const primaryMedia = post.media?.[0];
+          if (!primaryMedia) return null;
 
+          return (
+            <Link
+              key={post.id}
+              href={`/post/${post.id}`}
+              className="group relative aspect-square overflow-hidden bg-surface-container-low transition-opacity hover:opacity-80"
+            >
+              <MediaRenderer
+                media={post.media || []}
+                variant="feed"
+                isLocked={!post.hasAccess && post.accessLevel !== 'free'}
+                accessLevel={post.accessLevel}
+                ppvPrice={post.ppvPrice}
+                className="!static"
+              />
+              {/* Subtle hover overlay */}
+              <div className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/10" />
+            </Link>
+          );
+        })}
+      </div>
+
+      {/* Load More Button */}
       {hasMore && (
-        <div className="pt-4 text-center">
+        <div className="pt-8 text-center">
           <button
             onClick={handleLoadMore}
             disabled={loading}
-            className="rounded-md border border-input bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground disabled:opacity-50"
+            className="rounded-md border border-input bg-background px-6 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground disabled:opacity-50"
           >
             {loading ? (
               <>

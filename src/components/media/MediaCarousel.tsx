@@ -7,6 +7,7 @@ import { request } from '@/services/apiClient';
 import type { MediaItem } from '@/types/content';
 
 import { getMediaAspectRatio } from './mediaAspect';
+import { MediaViewerModal } from './MediaViewerModal';
 
 interface MediaCarouselProps {
   media: MediaItem[];
@@ -18,6 +19,8 @@ interface MediaCarouselProps {
 export function MediaCarousel({ media, onSlideChange, className }: MediaCarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [signedImageUrlById, setSignedImageUrlById] = useState<Record<string, string>>({});
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [viewerIndex, setViewerIndex] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
@@ -116,6 +119,22 @@ export function MediaCarousel({ media, onSlideChange, className }: MediaCarousel
   const firstMedia = media[0];
   const aspectRatio = getMediaAspectRatio(firstMedia, 'feed');
 
+  const imageViewerItems = media
+    .map((item) => {
+      if (item.mediaType !== 'image') return null;
+      const signedImageUrl = signedImageUrlById[item.id];
+      const src = signedImageUrl ?? item.thumbnailUrl ?? item.originalUrl;
+      if (!src) return null;
+      return {
+        id: item.id,
+        type: 'image' as const,
+        src,
+        poster: item.thumbnailUrl,
+        alt: 'Post media',
+      };
+    })
+    .filter((item): item is NonNullable<typeof item> => Boolean(item));
+
   return (
     <div
       ref={containerRef}
@@ -156,6 +175,11 @@ export function MediaCarousel({ media, onSlideChange, className }: MediaCarousel
                   className="h-full w-full object-cover"
                   draggable={false}
                   onContextMenu={(e) => e.preventDefault()}
+                  onClick={() => {
+                    const idx = imageViewerItems.findIndex((m) => m.id === item.id);
+                    setViewerIndex(idx >= 0 ? idx : 0);
+                    setViewerOpen(true);
+                  }}
                 />
               ) : (
                 <video
@@ -219,6 +243,18 @@ export function MediaCarousel({ media, onSlideChange, className }: MediaCarousel
           {currentIndex + 1}/{media.length}
         </div>
       )}
+
+      <MediaViewerModal
+        open={viewerOpen}
+        items={imageViewerItems.map((item) => ({
+          type: item.type,
+          src: item.src,
+          poster: item.poster,
+          alt: item.alt,
+        }))}
+        initialIndex={viewerIndex}
+        onClose={() => setViewerOpen(false)}
+      />
     </div>
   );
 }

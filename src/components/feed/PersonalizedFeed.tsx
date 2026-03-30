@@ -23,7 +23,7 @@ export function PersonalizedFeed() {
         onValueChange={(value) => setActiveTab(value as 'for-you' | 'following')}
         className="w-full"
       >
-        <div className="sticky top-14 z-10 -mx-px border-b border-neutral-200/90 bg-white/85 backdrop-blur-md md:top-16">
+        <div className="sticky top-14 z-10 -mx-px border-b border-surface-container-high bg-background/85 backdrop-blur-md md:top-16">
           <TabsList className="grid h-14 w-full grid-cols-2 rounded-none border-0 bg-transparent p-0">
             <TabsTrigger
               value="for-you"

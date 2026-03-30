@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/db/prisma';
+import { emitNotificationCountUpdate } from '@/lib/realtime/wsEmitter';
 import { NotificationRepository } from '@/repositories/notificationRepository';
 import { EmailService } from '@/services/auth/emailService';
 
@@ -59,6 +60,13 @@ export class NotificationService {
       actionUrl: params.actionUrl,
       data: params.data as Record<string, string> | undefined,
     });
+
+    // Push real-time notification count update via WebSocket.
+    try {
+      await emitNotificationCountUpdate(params.userId);
+    } catch (err) {
+      console.error('[WS] Failed to emit notification:count:', err);
+    }
 
     return notification;
   }

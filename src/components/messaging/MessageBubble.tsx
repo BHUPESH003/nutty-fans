@@ -6,6 +6,8 @@ import { useToast } from '@/hooks/use-toast';
 import { cn, formatCurrency } from '@/lib/utils';
 import type { Message } from '@/types/messaging';
 
+import { MediaViewerModal } from '../media/MediaViewerModal';
+
 import { VoiceMessagePlayer } from './VoiceMessagePlayer';
 
 interface MessageBubbleProps {
@@ -31,15 +33,24 @@ export function MessageBubble({
   const [unlocking, setUnlocking] = useState(false);
   const [retrying, setRetrying] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [viewerIndex, setViewerIndex] = useState(0);
   const { toast } = useToast();
 
   const REACTION_EMOJIS = ['❤️', '🔥', '💰', '😍', '👏', '😂'];
   const reactions = message.reactions ?? [];
   const mediaItems = message.media ?? [];
   const visualMedia = mediaItems.filter((media) => media.mediaType !== 'audio');
+  const hasVisualMedia = visualMedia.length > 0;
 
   const isTipMessage = message.messageType === 'tip';
   const isAudioMessage = message.messageType === 'audio' || mediaItems[0]?.mediaType === 'audio';
+  const normalizedContent = (message.content || '').trim().toLowerCase();
+  const isAutoMediaLabel = normalizedContent === 'video' || normalizedContent === 'image';
+  const hasTextContent = Boolean(
+    !isAudioMessage && message.content && message.content.trim().length && !isAutoMediaLabel
+  );
+  const shouldUseChatBubbleBg = !hasVisualMedia || hasTextContent || isAudioMessage;
 
   if (isTipMessage) {
     const amountRaw = message.metadata?.['amount'];
@@ -153,6 +164,40 @@ export function MessageBubble({
     );
   }
 
+  const viewerItems = visualMedia
+    .map((media) => {
+      const src =
+        media.mediaType === 'video'
+          ? media.originalUrl || media.processedUrl
+          : media.processedUrl || media.originalUrl;
+      if (!src) return null;
+      return {
+        type: media.mediaType === 'video' ? ('video' as const) : ('image' as const),
+        src,
+        poster: media.thumbnailUrl,
+      };
+    })
+    .filter((item): item is NonNullable<typeof item> => Boolean(item));
+
+  const openMediaViewer = (
+    media: {
+      mediaType: string;
+      originalUrl?: string | null;
+      processedUrl?: string | null;
+      thumbnailUrl?: string | null;
+    },
+    index: number
+  ) => {
+    const src =
+      media.mediaType === 'video'
+        ? media.originalUrl || media.processedUrl
+        : media.processedUrl || media.originalUrl;
+    if (!src) return;
+
+    setViewerIndex(index);
+    setViewerOpen(true);
+  };
+
   return (
     <div className={cn('flex w-full', isSelf ? 'justify-end' : 'justify-start')}>
       {!isSelf ? (
@@ -163,10 +208,15 @@ export function MessageBubble({
       ) : null}
       <div
         className={cn(
-          'relative max-w-[78%] space-y-2 rounded-[22px] px-4 py-3 text-sm',
-          isSelf
-            ? 'rounded-br-[4px] bg-primary-container text-white'
-            : 'rounded-bl-[4px] bg-surface-container-lowest text-on-surface shadow-card'
+          'relative max-w-[78%] space-y-2 text-sm',
+          shouldUseChatBubbleBg
+            ? cn(
+                'rounded-[22px] px-4 py-3',
+                isSelf
+                  ? 'rounded-br-[4px] bg-primary-container text-white'
+                  : 'rounded-bl-[4px] bg-surface-container-lowest text-on-surface shadow-card'
+              )
+            : 'px-0 py-0 text-on-surface'
         )}
         onMouseEnter={() => onReact && setShowPicker(true)}
         onMouseLeave={() => setShowPicker(false)}
@@ -214,33 +264,62 @@ export function MessageBubble({
               <div
                 className={cn(
                   'mb-2 grid gap-2',
-                  visualMedia.length > 1 ? 'grid-cols-2' : 'grid-cols-1'
+                  visualMedia.length > 1
+                    ? 'w-[min(78vw,340px)] grid-cols-2 md:w-[360px]'
+                    : 'w-[min(78vw,280px)] grid-cols-1 md:w-[320px]'
                 )}
               >
-                {visualMedia.map((media) => {
-                  const src = media.processedUrl || media.originalUrl;
-                  if (!src) return null;
+                {visualMedia.map((media, index) => {
+                  const imageSrc = media.processedUrl || media.originalUrl;
+                  const videoSrc = media.originalUrl || media.processedUrl;
+                  if (!imageSrc && !videoSrc) return null;
 
                   return media.mediaType === 'video' ? (
-                    <div key={media.id} className="overflow-hidden rounded-xl">
+                    <button
+                      key={media.id}
+                      type="button"
+                      onClick={() => openMediaViewer(media, index)}
+                      className={cn(
+                        'overflow-hidden rounded-xl bg-black/90 text-left',
+                        visualMedia.length > 1
+                          ? 'aspect-square h-auto w-full'
+                          : 'aspect-[4/5] h-auto w-full'
+                      )}
+                    >
                       <video
-                        src={src}
+                        src={videoSrc || undefined}
+                        poster={media.thumbnailUrl || undefined}
                         controls
                         playsInline
-                        className="max-h-[360px] w-full rounded-xl bg-black object-cover"
+                        preload="metadata"
+                        className="h-full w-full rounded-xl bg-black object-cover"
                       />
-                    </div>
+                    </button>
                   ) : (
-                    <div key={media.id} className="overflow-hidden rounded-xl">
+                    <button
+                      key={media.id}
+                      type="button"
+                      onClick={() => openMediaViewer(media, index)}
+                      className={cn(
+                        'overflow-hidden rounded-xl',
+                        visualMedia.length > 1
+                          ? 'aspect-square h-auto w-full'
+                          : 'aspect-[4/5] h-auto w-full'
+                      )}
+                    >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={src} alt="Attachment" className="h-auto w-full object-cover" />
-                    </div>
+                      <img
+                        src={imageSrc || ''}
+                        alt="Attachment"
+                        className="h-full w-full object-cover"
+                      />
+                    </button>
                   );
                 })}
               </div>
             )}
 
-        {!isAudioMessage && message.content && <p>{message.content}</p>}
+        {!isAudioMessage && hasTextContent && <p>{message.content}</p>}
 
         {reactions.length > 0 && (
           <div className={`mt-1 flex flex-wrap gap-1 ${isSelf ? 'justify-end' : 'justify-start'}`}>
@@ -305,6 +384,13 @@ export function MessageBubble({
             {retrying ? 'Retrying…' : 'Tap to retry'}
           </button>
         )}
+
+        <MediaViewerModal
+          open={viewerOpen}
+          items={viewerItems}
+          initialIndex={viewerIndex}
+          onClose={() => setViewerOpen(false)}
+        />
       </div>
     </div>
   );

@@ -8,6 +8,7 @@ import type { AccessLevel, MediaItem, PostOverlay, PostPreviewConfig } from '@/t
 
 import { getMediaAspectRatio } from './mediaAspect';
 import { MediaCarousel } from './MediaCarousel';
+import { MediaViewerModal } from './MediaViewerModal';
 import { PreviewRenderer } from './PreviewRenderer';
 import { VideoPlayer } from './VideoPlayer';
 
@@ -41,7 +42,7 @@ export function MediaRenderer({
   onUnlock,
   onSubscribe,
   isUnlocking = false,
-  previewConfig,
+  previewConfig: _previewConfig,
   overlays,
   className,
 }: MediaRendererProps) {
@@ -50,6 +51,7 @@ export function MediaRenderer({
   const isVideo = primaryMedia?.mediaType === 'video';
 
   const [signedImageUrl, setSignedImageUrl] = useState<string | null>(null);
+  const [viewerOpen, setViewerOpen] = useState(false);
 
   useEffect(() => {
     // Only sign images, only for single-image rendering (carousel handles its own signing).
@@ -104,30 +106,14 @@ export function MediaRenderer({
             ...(isPortrait ? { maxHeight: 'min(72vh, 860px)' } : {}),
           };
 
-  // Render locked state - show paywall overlay
+  // Render locked state - show paywall overlay (without blur/crop teaser effects)
   if (isLocked && accessLevel !== 'free') {
-    const creatorPreviewType = previewConfig?.type;
-    const shouldUseCreatorPreview =
-      typeof creatorPreviewType === 'string' &&
-      creatorPreviewType.length > 0 &&
-      creatorPreviewType !== 'none';
-
-    if (process.env.NODE_ENV === 'development') {
-      // Temporary debug signal: verify creator preview config reaches the renderer.
-      // eslint-disable-next-line no-console
-      console.log('[MediaRenderer] locked preview', {
-        previewConfig,
-        creatorPreviewType,
-        shouldUseCreatorPreview,
-      });
-    }
-
     return (
       <div className={containerStyles} style={frameStyle}>
         <PreviewRenderer
           media={media}
           variant={variant}
-          previewConfig={shouldUseCreatorPreview ? previewConfig : undefined}
+          previewConfig={undefined}
           overlays={overlays ?? []}
           accessLevel={accessLevel}
           ppvPrice={ppvPrice}
@@ -222,22 +208,52 @@ export function MediaRenderer({
     );
   }
 
-  // Render single image
+  // Render single image - images open fullscreen on click, videos use player controls only
+  const isImage = !isVideo;
+
   return (
     <div className={containerStyles} style={frameStyle}>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={unlockedImageUrl}
-        alt="Post media"
-        className={cn(
-          'h-full w-full',
-          variant === 'feed' || variant === 'profile' ? 'object-contain' : 'object-cover'
-        )}
-        draggable={false}
-        onContextMenu={(e) => e.preventDefault()}
-      />
+      {isImage ? (
+        <button
+          type="button"
+          className="h-full w-full"
+          onClick={() => setViewerOpen(true)}
+          aria-label="Open media fullscreen"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={unlockedImageUrl}
+            alt="Post media"
+            className={cn(
+              'h-full w-full',
+              variant === 'feed' || variant === 'profile' ? 'object-contain' : 'object-cover'
+            )}
+            draggable={false}
+            onContextMenu={(e) => e.preventDefault()}
+          />
+        </button>
+      ) : (
+        <div className="h-full w-full">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={unlockedImageUrl}
+            alt="Post media"
+            className={cn(
+              'h-full w-full',
+              variant === 'feed' || variant === 'profile' ? 'object-contain' : 'object-cover'
+            )}
+            draggable={false}
+            onContextMenu={(e) => e.preventDefault()}
+          />
+        </div>
+      )}
       {overlayLayer}
       {/* Watermark will be added on download only via download handler */}
+      <MediaViewerModal
+        open={viewerOpen}
+        items={[{ type: 'image', src: unlockedImageUrl, alt: 'Post media' }]}
+        onClose={() => setViewerOpen(false)}
+      />
     </div>
   );
 }

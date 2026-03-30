@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -25,8 +24,6 @@ export function CategoryGrid({
   selectedCategory,
   variant = 'default',
 }: CategoryGridProps) {
-  const pathname = usePathname();
-
   if (categories.length === 0) {
     return null;
   }
@@ -48,11 +45,9 @@ export function CategoryGrid({
         </Badge>
       </Link>
       {categories.map((category) => {
-        const isSelected =
-          selectedCategory === category.id || pathname === `/explore/${category.slug}`;
+        const isSelected = selectedCategory === category.id;
         return (
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          <Link key={category.id} href={`/explore/${category.slug}` as any}>
+          <Link key={category.id} href={`/explore?category=${encodeURIComponent(category.slug)}`}>
             <Badge
               variant={isSelected ? 'default' : 'outline'}
               className={cn(

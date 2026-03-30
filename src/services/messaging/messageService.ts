@@ -10,8 +10,13 @@ import {
   PAYMENT_INSUFFICIENT_BALANCE,
 } from '@/lib/errors/errorHandler';
 import { messageEmitter } from '@/lib/realtime/messageEmitter';
-import { emitMessageUnlockedToUser, emitNewMessageToUser } from '@/lib/realtime/wsEmitter';
+import {
+  emitConversationUpdated,
+  emitMessageUnlockedToUser,
+  emitNewMessageToUser,
+} from '@/lib/realtime/wsEmitter';
 import { redisPub } from '@/lib/redis/redisClient';
+import { NotificationService } from '@/services/notifications/notificationService';
 
 export class MessageService {
   async send(
@@ -217,6 +222,47 @@ export class MessageService {
         type: 'conversation_updated',
         conversationId,
       });
+
+      // Publish conversation:updated via WebSocket so sidebar refreshes in real time.
+      const preview = { content: message.content, createdAt: message.createdAt };
+      const updatedConv = await prisma.conversation.findUnique({
+        where: { id: conversationId },
+        select: { unreadCount1: true, unreadCount2: true },
+      });
+      try {
+        await emitConversationUpdated(
+          conversation.participant1,
+          conversationId,
+          preview,
+          updatedConv?.unreadCount1 ?? 0
+        );
+        await emitConversationUpdated(
+          conversation.participant2,
+          conversationId,
+          preview,
+          updatedConv?.unreadCount2 ?? 0
+        );
+      } catch (err) {
+        console.error('[WS] Failed to emit conversation:updated:', err);
+      }
+
+      // Trigger in-app + push + email notification for the recipient.
+      try {
+        const sender = await prisma.user.findUnique({
+          where: { id: senderId },
+          select: { displayName: true, username: true },
+        });
+        const senderName = sender?.displayName ?? sender?.username ?? 'Someone';
+        const notificationService = new NotificationService();
+        await notificationService.notifyNewMessage(
+          recipientId,
+          senderId,
+          senderName,
+          conversationId
+        );
+      } catch (err) {
+        console.error('[Notification] Failed to create new-message notification:', err);
+      }
     }
 
     return message;

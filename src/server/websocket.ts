@@ -14,6 +14,7 @@ import { redisPub, redisSub } from '@/lib/redis/redisClient';
 export interface ServerToClientEvents {
   'message:new': (msg: unknown) => void;
   'message:unlocked': (msg: unknown) => void;
+  'message:reaction': (data: unknown) => void;
 
   'presence:online': (data: { userId: string }) => void;
   'presence:offline': (data: { userId: string; lastSeen: string }) => void;
@@ -23,6 +24,13 @@ export interface ServerToClientEvents {
 
   'message:delivered': (data: { messageId: string; deliveredAt: string }) => void;
   'message:read': (data: { conversationId: string; readBy: string; readAt: string }) => void;
+
+  'conversation:updated': (data: {
+    conversationId: string;
+    lastMessage: { content: string | null; createdAt: string };
+    unreadCount: number;
+  }) => void;
+  'notification:count': (data: Record<string, never>) => void;
 }
 
 export interface ClientToServerEvents {
@@ -229,6 +237,7 @@ io.use(async (socket, next) => {
 });
 io.on('connection', (socket: Socket<ClientToServerEvents, ServerToClientEvents>) => {
   const userId = socket.data.userId as string;
+  const PRESENCE_REFRESH_MS = 15000;
 
   // Join personal room
   void socket.join(`user:${userId}`);
@@ -254,6 +263,12 @@ io.on('connection', (socket: Socket<ClientToServerEvents, ServerToClientEvents>)
     .catch(() => {
       // Presence cache is best-effort.
     });
+
+  const presenceHeartbeat = setInterval(() => {
+    void setPresence(userId, socket.id).catch(() => {
+      // Presence refresh is best-effort.
+    });
+  }, PRESENCE_REFRESH_MS);
 
   socket.on('conversation:join', (conversationId) => {
     void socket.join(`conv:${conversationId}`);
@@ -319,6 +334,8 @@ io.on('connection', (socket: Socket<ClientToServerEvents, ServerToClientEvents>)
   });
 
   socket.on('message:read', async ({ conversationId }) => {
+    const readAtIso = new Date().toISOString();
+
     // Mark as read messages that were sent by the other participant.
     await prisma.message.updateMany({
       where: {
@@ -328,7 +345,7 @@ io.on('connection', (socket: Socket<ClientToServerEvents, ServerToClientEvents>)
       data: {
         isRead: true,
         status: 'READ',
-        readAt: new Date(),
+        readAt: new Date(readAtIso),
       },
     });
 
@@ -348,19 +365,37 @@ io.on('connection', (socket: Socket<ClientToServerEvents, ServerToClientEvents>)
       void redisPub.set(`chat_unread:${userId}:${conversationId}`, '0').catch(() => {
         // ignore
       });
+
+      // Refresh conversation list + unread badges for the reader immediately.
+      io.to(`user:${userId}`).emit('conversation:updated', {
+        conversationId,
+        lastMessage: { content: null, createdAt: readAtIso },
+        unreadCount: 0,
+      });
     }
 
     const otherUserId = await getOtherParticipant(conversationId, userId);
-    if (!otherUserId) return;
+    if (!otherUserId) {
+      io.to(`user:${userId}`).emit('message:read', {
+        conversationId,
+        readBy: userId,
+        readAt: readAtIso,
+      });
+      return;
+    }
 
-    io.to(`user:${otherUserId}`).emit('message:read', {
+    const payload = {
       conversationId,
       readBy: userId,
-      readAt: new Date().toISOString(),
-    });
+      readAt: readAtIso,
+    };
+
+    io.to(`user:${otherUserId}`).emit('message:read', payload);
+    io.to(`user:${userId}`).emit('message:read', payload);
   });
 
   socket.on('disconnect', () => {
+    clearInterval(presenceHeartbeat);
     const lastSeen = new Date().toISOString();
     void clearPresence(userId, lastSeen)
       .then(() => {

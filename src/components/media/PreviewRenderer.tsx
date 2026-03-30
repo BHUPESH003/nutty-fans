@@ -99,14 +99,6 @@ export function PreviewRenderer({
 
   const configType = typeof previewConfig?.type === 'string' ? previewConfig.type : 'none';
 
-  if (process.env.NODE_ENV === 'development') {
-    // eslint-disable-next-line no-console
-    console.log('[PreviewRenderer] configType', {
-      previewConfig,
-      configType,
-    });
-  }
-
   const clampedIndex = media.length > 0 ? Math.max(0, Math.min(currentIndex, media.length - 1)) : 0;
   const activeMedia = media[clampedIndex];
   const aspectRatio = getMediaAspectRatio(activeMedia, variant);
@@ -222,9 +214,6 @@ export function PreviewRenderer({
         <PaywallOverlay
           accessLevel={accessLevel}
           ppvPrice={ppvPrice}
-          // Default locked background preview (used when creator config is missing/none).
-          // This replicates the previous "generic locked UI" feel.
-          previewUrl={configType === 'none' ? (previewImageUrl ?? posterUrl) : undefined}
           onUnlock={onUnlock}
           onSubscribe={onSubscribe}
           isLoading={isUnlocking}

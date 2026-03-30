@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
-import { redirect } from 'next/navigation';
+
+import { PostDetailContainer } from '@/components/containers/posts/PostDetailContainer';
 
 export const metadata: Metadata = {
   title: 'Post | NuttyFans',
@@ -7,7 +8,5 @@ export const metadata: Metadata = {
 };
 
 export default function PostPage() {
-  // Comments are handled via an in-feed bottom tray. Keep this route from
-  // rendering a navigation-less view.
-  redirect('/');
+  return <PostDetailContainer />;
 }

@@ -3,6 +3,23 @@ import { Conversation } from '@prisma/client';
 import { prisma } from '@/lib/db/prisma';
 import { AppError, RESOURCE_UNAUTHORIZED, VALIDATION_ERROR } from '@/lib/errors/errorHandler';
 
+type ConversationMetadata = {
+  mutedBy?: string[];
+  favoritedBy?: string[];
+  hiddenBy?: string[];
+  restrictedBy?: string[];
+};
+
+function parseConversationMetadata(raw: unknown): ConversationMetadata {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+  return raw as ConversationMetadata;
+}
+
+function hasUser(metadata: ConversationMetadata, key: keyof ConversationMetadata, userId: string) {
+  const arr = metadata[key];
+  return Array.isArray(arr) && arr.includes(userId);
+}
+
 export class ConversationService {
   async create(userId: string, participantId: string): Promise<Conversation> {
     if (userId === participantId) {
@@ -53,6 +70,11 @@ export class ConversationService {
     // Transform conversations to include user details
     const items = await Promise.all(
       conversations.map(async (conv) => {
+        const metadata = parseConversationMetadata(conv.metadata);
+        if (hasUser(metadata, 'hiddenBy', userId)) {
+          return null;
+        }
+
         const otherUserId = conv.participant1 === userId ? conv.participant2 : conv.participant1;
         const otherUser = await prisma.user.findUnique({
           where: { id: otherUserId },
@@ -122,11 +144,13 @@ export class ConversationService {
           },
           lastMessage,
           unreadCount,
+          isMuted: hasUser(metadata, 'mutedBy', userId),
+          isFavorite: hasUser(metadata, 'favoritedBy', userId),
         };
       })
     );
 
-    return { items, nextCursor };
+    return { items: items.filter((item) => item !== null), nextCursor };
   }
 
   async get(userId: string, conversationId: string) {
@@ -154,6 +178,8 @@ export class ConversationService {
       },
     });
 
+    const metadata = parseConversationMetadata(conversation.metadata);
+
     return {
       id: conversation.id,
       otherUser: {
@@ -162,6 +188,12 @@ export class ConversationService {
         username: otherUser?.username ?? 'unknown',
         avatarUrl: otherUser?.avatarUrl ?? null,
       },
+      isMuted: hasUser(metadata, 'mutedBy', userId),
+      isFavorite: hasUser(metadata, 'favoritedBy', userId),
+      isRestricted: hasUser(metadata, 'restrictedBy', userId),
+      isHidden: hasUser(metadata, 'hiddenBy', userId),
+      isBlocked: conversation.isBlocked,
+      blockedBy: conversation.blockedBy,
     };
   }
 
