@@ -40,22 +40,16 @@ export async function initSocket(): Promise<Socket> {
       cache: 'no-store',
     });
 
-    if (!tokenResponse.ok) {
-      throw new Error(`[WS] Failed to fetch auth token: ${tokenResponse.status}`);
-    }
-
-    const data = (await tokenResponse.json()) as { token?: string };
-    const token = data.token;
-
-    if (!token) {
-      throw new Error('[WS] Missing auth token');
-    }
+    // In development, token might not be available — fall back to cookie-based handshake.
+    const token = tokenResponse.ok
+      ? ((await tokenResponse.json()) as { token?: string }).token
+      : undefined;
 
     sharedSocket = io(wsUrl, {
-      auth: { token },
       transports: ['websocket'],
       reconnectionAttempts: 10,
       reconnectionDelay: 1000,
+      ...(token ? { auth: { token } } : { withCredentials: true }),
     });
 
     return sharedSocket;

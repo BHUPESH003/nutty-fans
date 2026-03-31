@@ -58,6 +58,22 @@ export interface TransactionResult {
  * - Merchandise purchases
  */
 export class TransactionService {
+  private async resolveCreatorProfileId(creatorId?: string): Promise<string | undefined> {
+    if (!creatorId) return undefined;
+
+    const byProfileId = await prisma.creatorProfile.findUnique({
+      where: { id: creatorId },
+      select: { id: true },
+    });
+    if (byProfileId) return byProfileId.id;
+
+    const byUserId = await prisma.creatorProfile.findUnique({
+      where: { userId: creatorId },
+      select: { id: true },
+    });
+    return byUserId?.id;
+  }
+
   /**
    * Create a transaction with automatic commission calculation
    *
@@ -76,17 +92,19 @@ export class TransactionService {
     input: CreateTransactionInput,
     options: TransactionOptions = {}
   ): Promise<TransactionResult> {
+    const creatorProfileId = await this.resolveCreatorProfileId(input.creatorId);
+
     let commission: CommissionResult | null = null;
 
     // Calculate commission for creator transactions
-    if (input.creatorId && !options.skipCommission) {
-      commission = await commissionService.calculateCommission(input.creatorId, input.amount);
+    if (creatorProfileId && !options.skipCommission) {
+      commission = await commissionService.calculateCommission(creatorProfileId, input.amount);
     }
 
     const transaction = await prisma.transaction.create({
       data: {
         userId: input.userId,
-        creatorId: input.creatorId,
+        creatorId: creatorProfileId,
         transactionType: input.transactionType,
         amount: input.amount,
         currency: 'USD',

@@ -397,7 +397,7 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-surface">
-      <div className="sticky top-0 z-30 flex items-center gap-3 border-b border-border bg-surface-container-lowest px-4 py-4 md:px-5">
+      <div className="flex items-center gap-3 border-b border-border bg-surface-container-lowest px-4 py-4 md:px-5">
         <Link
           href="/messages"
           className="mr-1 inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-surface-container-low hover:bg-surface-container md:hidden"
@@ -569,7 +569,7 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
       </div>
 
       {isSearchOpen && (
-        <div className="sticky top-[72px] z-20 border-b border-border bg-surface-container-low px-4 py-2 md:px-5">
+        <div className="border-b border-border bg-surface-container-low px-4 py-2 md:px-5">
           <div className="flex items-center gap-2">
             <div className="relative flex-1">
               <span className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[18px] text-on-surface-variant">

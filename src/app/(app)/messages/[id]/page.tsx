@@ -10,5 +10,9 @@ export default function ConversationPage() {
 
   if (!id) return null;
 
-  return <ChatWindow conversationId={id} />;
+  return (
+    <div className="h-full overflow-hidden">
+      <ChatWindow conversationId={id} />
+    </div>
+  );
 }

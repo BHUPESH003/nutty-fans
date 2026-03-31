@@ -39,17 +39,20 @@ export const authOptions: NextAuthOptions = {
       return PrismaAdapter(prisma).linkAccount(cleanedAccount as any);
     },
   },
-  cookies: {
-    sessionToken: {
-      name: '__Secure-next-auth.session-token',
-      options: {
-        httpOnly: true,
-        sameSite: 'none', // required for cross-origin cookie sending
-        secure: true, // required when sameSite: none
-        path: '/',
-      },
-    },
-  },
+  cookies:
+    process.env['NODE_ENV'] === 'production'
+      ? {
+          sessionToken: {
+            name: '__Secure-next-auth.session-token',
+            options: {
+              httpOnly: true,
+              sameSite: 'none', // required for cross-origin cookie sending
+              secure: true, // required when sameSite: none
+              path: '/',
+            },
+          },
+        }
+      : undefined,
   secret: process.env['NEXTAUTH_SECRET'],
   providers: [
     CredentialsProvider({

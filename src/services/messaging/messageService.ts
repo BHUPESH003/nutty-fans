@@ -427,6 +427,11 @@ export class MessageService {
 
     // Process transaction (atomic)
     return prisma.$transaction(async (tx) => {
+      const creatorProfile = await tx.creatorProfile.findUnique({
+        where: { userId: message.senderId },
+        select: { id: true },
+      });
+
       // Deduct from user
       await tx.user.update({
         where: { id: userId },
@@ -437,7 +442,7 @@ export class MessageService {
       const transaction = await tx.transaction.create({
         data: {
           userId,
-          creatorId: message.senderId, // Assuming sender is creator
+          creatorId: creatorProfile?.id,
           transactionType: 'message',
           amount: message.ppvPrice!,
           status: 'completed',
@@ -485,10 +490,12 @@ export class MessageService {
 
       // Credit creator (simplified, usually involves commission)
       // TODO: Use PayoutService/TransactionService for proper commission handling
-      await tx.creatorProfile.update({
-        where: { userId: message.senderId },
-        data: { totalEarnings: { increment: message.ppvPrice! } },
-      });
+      if (creatorProfile) {
+        await tx.creatorProfile.update({
+          where: { userId: message.senderId },
+          data: { totalEarnings: { increment: message.ppvPrice! } },
+        });
+      }
 
       // Get the updated message with media
       const unlockedMessage = await tx.message.findUnique({
