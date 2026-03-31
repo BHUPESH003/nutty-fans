@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import useSWR from 'swr';
 
 import { useAuth } from '@/hooks/useAuth';
-import { getSocket } from '@/hooks/useMessages';
+import { initSocket } from '@/hooks/useMessages';
 import { apiClient } from '@/services/apiClient';
 
 export function useUnreadMessageCount() {
@@ -22,22 +22,32 @@ export function useUnreadMessageCount() {
   useEffect(() => {
     if (!isAuthenticated) return;
 
-    const socket = getSocket();
+    let cancelled = false;
+    let cleanup = () => {};
 
-    const handleConversationUpdated = () => {
-      void mutate();
-    };
+    void initSocket().then((socket) => {
+      if (cancelled) return;
 
-    const handleMessageRead = () => {
-      void mutate();
-    };
+      const handleConversationUpdated = () => {
+        void mutate();
+      };
 
-    socket.on('conversation:updated', handleConversationUpdated);
-    socket.on('message:read', handleMessageRead);
+      const handleMessageRead = () => {
+        void mutate();
+      };
+
+      socket.on('conversation:updated', handleConversationUpdated);
+      socket.on('message:read', handleMessageRead);
+
+      cleanup = () => {
+        socket.off('conversation:updated', handleConversationUpdated);
+        socket.off('message:read', handleMessageRead);
+      };
+    });
 
     return () => {
-      socket.off('conversation:updated', handleConversationUpdated);
-      socket.off('message:read', handleMessageRead);
+      cancelled = true;
+      cleanup();
     };
   }, [isAuthenticated, mutate]);
 

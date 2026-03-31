@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import useSWR from 'swr';
 
 import { useAuth } from '@/hooks/useAuth';
-import { getSocket } from '@/hooks/useMessages';
+import { initSocket } from '@/hooks/useMessages';
 import { apiClient } from '@/services/apiClient';
 
 export function useNotifications(cursor?: string) {
@@ -20,16 +20,26 @@ export function useNotifications(cursor?: string) {
   useEffect(() => {
     if (!isAuthenticated) return;
 
-    const socket = getSocket();
+    let cancelled = false;
+    let cleanup = () => {};
 
-    const handleNotificationCount = () => {
-      void mutate();
-    };
+    void initSocket().then((socket) => {
+      if (cancelled) return;
 
-    socket.on('notification:count', handleNotificationCount);
+      const handleNotificationCount = () => {
+        void mutate();
+      };
+
+      socket.on('notification:count', handleNotificationCount);
+
+      cleanup = () => {
+        socket.off('notification:count', handleNotificationCount);
+      };
+    });
 
     return () => {
-      socket.off('notification:count', handleNotificationCount);
+      cancelled = true;
+      cleanup();
     };
   }, [isAuthenticated, mutate]);
 
@@ -57,16 +67,26 @@ export function useUnreadNotificationCount() {
   useEffect(() => {
     if (!isAuthenticated) return;
 
-    const socket = getSocket();
+    let cancelled = false;
+    let cleanup = () => {};
 
-    const handleNotificationCount = () => {
-      void mutate();
-    };
+    void initSocket().then((socket) => {
+      if (cancelled) return;
 
-    socket.on('notification:count', handleNotificationCount);
+      const handleNotificationCount = () => {
+        void mutate();
+      };
+
+      socket.on('notification:count', handleNotificationCount);
+
+      cleanup = () => {
+        socket.off('notification:count', handleNotificationCount);
+      };
+    });
 
     return () => {
-      socket.off('notification:count', handleNotificationCount);
+      cancelled = true;
+      cleanup();
     };
   }, [isAuthenticated, mutate]);
 

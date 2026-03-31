@@ -16,20 +16,7 @@ let initPromise: Promise<Socket> | null = null;
 
 export function getSocket(): Socket {
   if (!sharedSocket) {
-    const envWsUrl = process.env['NEXT_PUBLIC_WS_URL'];
-    const wsPort = process.env['NEXT_PUBLIC_WS_PORT'] ?? '3001';
-    const wsUrl =
-      envWsUrl ??
-      (typeof window !== 'undefined' ? `http://${window.location.hostname}:${wsPort}` : null);
-
-    if (!wsUrl) throw new Error('Missing NEXT_PUBLIC_WS_URL (and window is unavailable)');
-
-    sharedSocket = io(wsUrl, {
-      withCredentials: true,
-      transports: ['websocket'],
-      reconnectionAttempts: 10,
-      reconnectionDelay: 1000,
-    });
+    throw new Error('[Socket] getSocket() called before initSocket() completed');
   }
 
   return sharedSocket;

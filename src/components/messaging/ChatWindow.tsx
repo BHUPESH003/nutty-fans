@@ -18,7 +18,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { useConversation as useConversationHook } from '@/hooks/useConversations';
-import { getSocket, useMessages } from '@/hooks/useMessages';
+import { initSocket, useMessages } from '@/hooks/useMessages';
 import { cn } from '@/lib/utils';
 import { apiClient } from '@/services/apiClient';
 import type { Message } from '@/types/messaging';
@@ -95,75 +95,82 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
   useEffect(() => {
     if (!conversation || !otherUserId) return;
 
-    let isMounted = true;
+    let cancelled = false;
+    let cleanup = () => {};
 
-    const socket = getSocket();
+    void initSocket().then((socket) => {
+      if (cancelled) return;
 
-    void apiClient.user
-      .getPresence(otherUserId)
-      .then(({ online, lastSeen }) => {
-        if (!isMounted) return;
-        setIsOnline(online);
-        setLastSeen(lastSeen);
-      })
-      .catch(() => {
-        // Best effort: WS will still update online/offline.
-      });
+      void apiClient.user
+        .getPresence(otherUserId)
+        .then(({ online, lastSeen }) => {
+          if (cancelled) return;
+          setIsOnline(online);
+          setLastSeen(lastSeen);
+        })
+        .catch(() => {
+          // Best effort: WS will still update online/offline.
+        });
 
-    const handlePresenceOnline = ({ userId }: { userId: string }) => {
-      if (!isMounted) return;
-      if (userId === otherUserId) {
-        setIsOnline(true);
-        setLastSeen(null);
-      }
-    };
+      const handlePresenceOnline = ({ userId }: { userId: string }) => {
+        if (cancelled) return;
+        if (userId === otherUserId) {
+          setIsOnline(true);
+          setLastSeen(null);
+        }
+      };
 
-    const handlePresenceOffline = ({
-      userId,
-      lastSeen: ls,
-    }: {
-      userId: string;
-      lastSeen: string;
-    }) => {
-      if (!isMounted) return;
-      if (userId === otherUserId) {
-        setIsOnline(false);
-        setLastSeen(ls);
-      }
-    };
+      const handlePresenceOffline = ({
+        userId,
+        lastSeen: ls,
+      }: {
+        userId: string;
+        lastSeen: string;
+      }) => {
+        if (cancelled) return;
+        if (userId === otherUserId) {
+          setIsOnline(false);
+          setLastSeen(ls);
+        }
+      };
 
-    const handleTypingStart = ({
-      userId,
-    }: {
-      conversationId: string;
-      userId: string;
-      userName: string;
-    }) => {
-      if (!isMounted) return;
-      if (userId === otherUserId) {
-        setTypingUsers(new Set([userId]));
-      }
-    };
+      const handleTypingStart = ({
+        userId,
+      }: {
+        conversationId: string;
+        userId: string;
+        userName: string;
+      }) => {
+        if (cancelled) return;
+        if (userId === otherUserId) {
+          setTypingUsers(new Set([userId]));
+        }
+      };
 
-    const handleTypingStop = ({ userId }: { conversationId: string; userId: string }) => {
-      if (!isMounted) return;
-      if (userId === otherUserId) {
+      const handleTypingStop = ({ userId }: { conversationId: string; userId: string }) => {
+        if (cancelled) return;
+        if (userId === otherUserId) {
+          setTypingUsers(new Set());
+        }
+      };
+
+      socket.on('presence:online', handlePresenceOnline);
+      socket.on('presence:offline', handlePresenceOffline);
+      socket.on('typing:start', handleTypingStart);
+      socket.on('typing:stop', handleTypingStop);
+
+      cleanup = () => {
+        socket.off('presence:online', handlePresenceOnline);
+        socket.off('presence:offline', handlePresenceOffline);
+        socket.off('typing:start', handleTypingStart);
+        socket.off('typing:stop', handleTypingStop);
         setTypingUsers(new Set());
-      }
-    };
-
-    socket.on('presence:online', handlePresenceOnline);
-    socket.on('presence:offline', handlePresenceOffline);
-    socket.on('typing:start', handleTypingStart);
-    socket.on('typing:stop', handleTypingStop);
+      };
+    });
 
     return () => {
-      isMounted = false;
-      socket.off('presence:online', handlePresenceOnline);
-      socket.off('presence:offline', handlePresenceOffline);
-      socket.off('typing:start', handleTypingStart);
-      socket.off('typing:stop', handleTypingStop);
-      setTypingUsers(new Set());
+      cancelled = true;
+      cleanup();
     };
   }, [conversationId, conversation, otherUserId]);
 

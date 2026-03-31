@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import type { Socket } from 'socket.io-client';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { getSocket } from '@/hooks/useMessages';
+import { initSocket } from '@/hooks/useMessages';
 import { cn } from '@/lib/utils';
 import { apiClient } from '@/services/apiClient';
 import type { Message } from '@/types/messaging';
@@ -57,7 +58,7 @@ export function MessageInput({
   const [previewViewerIndex, setPreviewViewerIndex] = useState(0);
   const { toast } = useToast();
 
-  const socket = getSocket();
+  const socketRef = useRef<Socket | null>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isTypingRef = useRef(false);
 
@@ -77,8 +78,21 @@ export function MessageInput({
   const emitTypingStop = () => {
     if (!isTypingRef.current) return;
     isTypingRef.current = false;
-    socket.emit('typing:stop', { conversationId });
+    socketRef.current?.emit('typing:stop', { conversationId });
   };
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void initSocket().then((socket) => {
+      if (cancelled) return;
+      socketRef.current = socket;
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     attachmentsRef.current = attachments;
@@ -307,7 +321,7 @@ export function MessageInput({
 
     if (!isTypingRef.current) {
       isTypingRef.current = true;
-      socket.emit('typing:start', { conversationId });
+      socketRef.current?.emit('typing:start', { conversationId });
     }
 
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);

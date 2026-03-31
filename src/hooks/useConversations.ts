@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import useSWR from 'swr';
 
-import { getSocket } from '@/hooks/useMessages';
+import { initSocket } from '@/hooks/useMessages';
 import { apiClient } from '@/services/apiClient';
 
 /**
@@ -24,16 +24,26 @@ export function useConversations() {
   );
 
   useEffect(() => {
-    const socket = getSocket();
+    let cancelled = false;
+    let cleanup = () => {};
 
-    const handleConversationUpdated = () => {
-      void mutate();
-    };
+    void initSocket().then((socket) => {
+      if (cancelled) return;
 
-    socket.on('conversation:updated', handleConversationUpdated);
+      const handleConversationUpdated = () => {
+        void mutate();
+      };
+
+      socket.on('conversation:updated', handleConversationUpdated);
+
+      cleanup = () => {
+        socket.off('conversation:updated', handleConversationUpdated);
+      };
+    });
 
     return () => {
-      socket.off('conversation:updated', handleConversationUpdated);
+      cancelled = true;
+      cleanup();
     };
   }, [mutate]);
 
