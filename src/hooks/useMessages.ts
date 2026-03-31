@@ -128,199 +128,214 @@ export function useMessages(conversationId: string | null) {
     setIsLoading(true);
     setIsError(false);
 
-    const socket = getSocket();
-    socketRef.current = socket;
+    let cancelled = false;
+    let cleanup = () => {};
 
-    const handleConnect = () => {
-      socket.emit('conversation:join', conversationId);
-    };
+    void initSocket().then((socket) => {
+      if (cancelled) return;
 
-    const handleMessageNew = (msg: unknown) => {
-      if (!msg || typeof msg !== 'object') return;
+      socketRef.current = socket;
 
-      const m = msg as Partial<Message> & {
-        id?: string;
-        senderId?: string;
-        clientId?: string;
-        conversationId?: string;
+      const handleConnect = () => {
+        socket.emit('conversation:join', conversationId);
       };
-      if (!m.id || !m.senderId) return;
-      if (m.conversationId && m.conversationId !== conversationId) return;
 
-      setMessages((prev) => {
-        // If this message corresponds to an optimistic placeholder, replace it in-place.
-        if (m.clientId) {
-          const existingByClientId = prev.find((p) => p.clientId === m.clientId);
-          if (existingByClientId) {
-            return [...prev.map((p) => (p.id === existingByClientId.id ? (m as Message) : p))].sort(
-              (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-            );
+      const handleMessageNew = (msg: unknown) => {
+        if (!msg || typeof msg !== 'object') return;
+
+        const m = msg as Partial<Message> & {
+          id?: string;
+          senderId?: string;
+          clientId?: string;
+          conversationId?: string;
+        };
+        if (!m.id || !m.senderId) return;
+        if (m.conversationId && m.conversationId !== conversationId) return;
+
+        setMessages((prev) => {
+          // If this message corresponds to an optimistic placeholder, replace it in-place.
+          if (m.clientId) {
+            const existingByClientId = prev.find((p) => p.clientId === m.clientId);
+            if (existingByClientId) {
+              return [
+                ...prev.map((p) => (p.id === existingByClientId.id ? (m as Message) : p)),
+              ].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+            }
           }
-        }
 
-        // Normal dedup by message id.
-        if (prev.some((existing) => existing.id === m.id)) return prev;
+          // Normal dedup by message id.
+          if (prev.some((existing) => existing.id === m.id)) return prev;
 
-        const updated = [...prev, m as Message].sort(
-          (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-        );
-        return updated;
-      });
-
-      // Mark delivered for messages we didn't send.
-      if (myUserId && m.senderId !== myUserId) {
-        socket.emit('message:delivered', { messageId: m.id });
-        socket.emit('message:read', { conversationId });
-      }
-    };
-
-    const handleMessageUnlocked = (msg: unknown) => {
-      if (!msg || typeof msg !== 'object') return;
-
-      const m = msg as Partial<Message> & { id?: string };
-      if (!m.id) return;
-
-      setMessages((prev) =>
-        prev.map((existing) =>
-          existing.id === m.id
-            ? {
-                ...existing,
-                content: (m.content ?? existing.content) as Message['content'],
-                media: m.media as Message['media'],
-                isLocked: false,
-              }
-            : existing
-        )
-      );
-    };
-
-    const handleMessageDelivered = (data: unknown) => {
-      if (!data || typeof data !== 'object') return;
-      const d = data as { messageId?: string; deliveredAt?: string };
-      if (!d.messageId || !d.deliveredAt) return;
-
-      setMessages((prev) =>
-        prev.map((existing) =>
-          existing.id === d.messageId
-            ? {
-                ...existing,
-                status: 'DELIVERED',
-                deliveredAt: d.deliveredAt,
-              }
-            : existing
-        )
-      );
-    };
-
-    const handleMessageRead = (data: unknown) => {
-      if (!data || typeof data !== 'object') return;
-      const d = data as { conversationId?: string; readBy?: string; readAt?: string };
-      if (!d.conversationId || d.conversationId !== conversationId) return;
-      if (!d.readAt) return;
-      if (!myUserId) return;
-
-      setMessages((prev) =>
-        prev.map((existing) =>
-          existing.senderId === myUserId
-            ? {
-                ...existing,
-                status: 'READ',
-                isRead: true,
-                readAt: d.readAt,
-              }
-            : existing
-        )
-      );
-    };
-
-    const handleMessageReaction = (data: unknown) => {
-      if (!data || typeof data !== 'object') return;
-      const d = data as { messageId?: string; emoji?: string; userId?: string; action?: string };
-      if (!d.messageId || !d.emoji || !d.userId) return;
-
-      const reactionUserId = d.userId as string;
-      const reactionEmoji = d.emoji as string;
-
-      setMessages((prev) =>
-        prev.map((m) => {
-          if (m.id !== d.messageId) return m;
-
-          const reactions = m.reactions ?? [];
-          const has = reactions.some(
-            (r) => r.userId === reactionUserId && r.emoji === reactionEmoji
+          const updated = [...prev, m as Message].sort(
+            (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
           );
+          return updated;
+        });
 
-          if (d.action === 'removed') {
-            return {
-              ...m,
-              reactions: reactions.filter(
-                (r) => !(r.userId === reactionUserId && r.emoji === reactionEmoji)
-              ),
-            };
-          }
-
-          if (has) return m;
-          return {
-            ...m,
-            reactions: [...reactions, { userId: reactionUserId, emoji: reactionEmoji }],
-          };
-        })
-      );
-    };
-
-    const handleConnectError = (err: unknown) => {
-      console.error('[WS] connect_error:', err);
-      setIsError(true);
-      setIsLoading(false);
-    };
-
-    const storedCursor = safeLoadCursor(conversationId);
-
-    void apiClient.messaging
-      .listMessages(conversationId, storedCursor)
-      .then((data) => {
-        const items = data.items || [];
-        // Keep consistent ascending render order.
-        const sorted = [...items].sort(
-          (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-        );
-
-        setMessages(sorted);
-        setIsLoading(false);
-
-        if (myUserId) {
-          void apiClient.messaging.markConversationRead(conversationId).catch(() => {
-            // Best effort; socket event below keeps realtime sync.
-          });
+        // Mark delivered for messages we didn't send.
+        if (myUserId && m.senderId !== myUserId) {
+          socket.emit('message:delivered', { messageId: m.id });
           socket.emit('message:read', { conversationId });
         }
-      })
-      .catch((err) => {
-        console.error('Failed to load messages:', err);
+      };
+
+      const handleMessageUnlocked = (msg: unknown) => {
+        if (!msg || typeof msg !== 'object') return;
+
+        const m = msg as Partial<Message> & { id?: string };
+        if (!m.id) return;
+
+        setMessages((prev) =>
+          prev.map((existing) =>
+            existing.id === m.id
+              ? {
+                  ...existing,
+                  content: (m.content ?? existing.content) as Message['content'],
+                  media: m.media as Message['media'],
+                  isLocked: false,
+                }
+              : existing
+          )
+        );
+      };
+
+      const handleMessageDelivered = (data: unknown) => {
+        if (!data || typeof data !== 'object') return;
+        const d = data as { messageId?: string; deliveredAt?: string };
+        if (!d.messageId || !d.deliveredAt) return;
+
+        setMessages((prev) =>
+          prev.map((existing) =>
+            existing.id === d.messageId
+              ? {
+                  ...existing,
+                  status: 'DELIVERED',
+                  deliveredAt: d.deliveredAt,
+                }
+              : existing
+          )
+        );
+      };
+
+      const handleMessageRead = (data: unknown) => {
+        if (!data || typeof data !== 'object') return;
+        const d = data as { conversationId?: string; readBy?: string; readAt?: string };
+        if (!d.conversationId || d.conversationId !== conversationId) return;
+        if (!d.readAt) return;
+        if (!myUserId) return;
+
+        setMessages((prev) =>
+          prev.map((existing) =>
+            existing.senderId === myUserId
+              ? {
+                  ...existing,
+                  status: 'READ',
+                  isRead: true,
+                  readAt: d.readAt,
+                }
+              : existing
+          )
+        );
+      };
+
+      const handleMessageReaction = (data: unknown) => {
+        if (!data || typeof data !== 'object') return;
+        const d = data as { messageId?: string; emoji?: string; userId?: string; action?: string };
+        if (!d.messageId || !d.emoji || !d.userId) return;
+
+        const reactionUserId = d.userId as string;
+        const reactionEmoji = d.emoji as string;
+
+        setMessages((prev) =>
+          prev.map((m) => {
+            if (m.id !== d.messageId) return m;
+
+            const reactions = m.reactions ?? [];
+            const has = reactions.some(
+              (r) => r.userId === reactionUserId && r.emoji === reactionEmoji
+            );
+
+            if (d.action === 'removed') {
+              return {
+                ...m,
+                reactions: reactions.filter(
+                  (r) => !(r.userId === reactionUserId && r.emoji === reactionEmoji)
+                ),
+              };
+            }
+
+            if (has) return m;
+            return {
+              ...m,
+              reactions: [...reactions, { userId: reactionUserId, emoji: reactionEmoji }],
+            };
+          })
+        );
+      };
+
+      const handleConnectError = (err: unknown) => {
+        console.error('[WS] connect_error:', err);
         setIsError(true);
         setIsLoading(false);
-      });
+      };
 
-    socket.on('connect', handleConnect);
-    socket.on('message:new', handleMessageNew);
-    socket.on('message:unlocked', handleMessageUnlocked);
-    socket.on('message:delivered', handleMessageDelivered);
-    socket.on('message:read', handleMessageRead);
-    socket.on('message:reaction', handleMessageReaction);
-    socket.on('connect_error', handleConnectError);
+      const storedCursor = safeLoadCursor(conversationId);
 
-    // Ensure we join immediately if the socket is already connected.
-    if (socket.connected) socket.emit('conversation:join', conversationId);
+      void apiClient.messaging
+        .listMessages(conversationId, storedCursor)
+        .then((data) => {
+          if (cancelled) return;
+
+          const items = data.items || [];
+          // Keep consistent ascending render order.
+          const sorted = [...items].sort(
+            (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          );
+
+          setMessages(sorted);
+          setIsLoading(false);
+
+          if (myUserId) {
+            void apiClient.messaging.markConversationRead(conversationId).catch(() => {
+              // Best effort; socket event below keeps realtime sync.
+            });
+            socket.emit('message:read', { conversationId });
+          }
+        })
+        .catch((err) => {
+          if (cancelled) return;
+
+          console.error('Failed to load messages:', err);
+          setIsError(true);
+          setIsLoading(false);
+        });
+
+      socket.on('connect', handleConnect);
+      socket.on('message:new', handleMessageNew);
+      socket.on('message:unlocked', handleMessageUnlocked);
+      socket.on('message:delivered', handleMessageDelivered);
+      socket.on('message:read', handleMessageRead);
+      socket.on('message:reaction', handleMessageReaction);
+      socket.on('connect_error', handleConnectError);
+
+      // Ensure we join immediately if the socket is already connected.
+      if (socket.connected) socket.emit('conversation:join', conversationId);
+
+      cleanup = () => {
+        socket.emit('conversation:leave', conversationId);
+        socket.off('connect', handleConnect);
+        socket.off('message:new', handleMessageNew);
+        socket.off('message:unlocked', handleMessageUnlocked);
+        socket.off('message:delivered', handleMessageDelivered);
+        socket.off('message:read', handleMessageRead);
+        socket.off('message:reaction', handleMessageReaction);
+        socket.off('connect_error', handleConnectError);
+      };
+    });
 
     return () => {
-      socket.emit('conversation:leave', conversationId);
-      socket.off('connect', handleConnect);
-      socket.off('message:new', handleMessageNew);
-      socket.off('message:unlocked', handleMessageUnlocked);
-      socket.off('message:delivered', handleMessageDelivered);
-      socket.off('message:read', handleMessageRead);
-      socket.off('message:reaction', handleMessageReaction);
-      socket.off('connect_error', handleConnectError);
+      cancelled = true;
+      cleanup();
     };
   }, [conversationId, myUserId]);
 
