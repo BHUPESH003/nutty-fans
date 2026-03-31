@@ -168,35 +168,12 @@ io.adapter(createAdapter(redisPub, redisSub));
 // });
 io.use(async (socket, next) => {
   try {
-    const cookieHeader = socket.handshake.headers.cookie || '';
-
-    if (!cookieHeader) {
-      console.warn('[WS] No cookies in handshake', {
-        origin: socket.handshake.headers.origin,
-      });
-      return next(new Error('Unauthorized'));
-    }
-
-    // Parse cookie string into a map
-    const cookies: Record<string, string> = {};
-    for (const part of cookieHeader.split(';')) {
-      const eqIdx = part.indexOf('=');
-      if (eqIdx === -1) continue;
-      const key = part.slice(0, eqIdx).trim();
-      const val = part.slice(eqIdx + 1).trim();
-      cookies[key] = decodeURIComponent(val);
-    }
-
-    // Try all three Next-Auth cookie name variants
     const sessionToken =
-      cookies['next-auth.session-token'] ??
-      cookies['__Secure-next-auth.session-token'] ??
-      cookies['__Host-next-auth.session-token'];
+      typeof socket.handshake.auth?.['token'] === 'string' ? socket.handshake.auth['token'] : '';
 
     if (!sessionToken) {
-      console.warn('[WS] No session-token cookie found', {
+      console.warn('[WS] Missing auth token in handshake', {
         origin: socket.handshake.headers.origin,
-        cookieKeys: Object.keys(cookies).slice(0, 12).join(', ') || '(none)',
       });
       return next(new Error('Unauthorized'));
     }
@@ -207,7 +184,7 @@ io.use(async (socket, next) => {
       return next(new Error('Server misconfiguration'));
     }
 
-    // decode() works on the raw JWT string directly — no fake Request needed
+    // decode() works on the raw JWT string directly.
     const decoded = await decode({ token: sessionToken, secret });
 
     if (!decoded) {

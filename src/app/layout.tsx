@@ -6,6 +6,7 @@ import type { ReactNode } from 'react';
 
 import { VerificationBanner } from '@/components/common/VerificationBanner';
 import { SessionProvider } from '@/components/providers/SessionProvider';
+import { SocketProvider } from '@/components/providers/SocketProvider';
 import { ThemeProvider } from '@/components/providers/ThemeProvider';
 import { LowBalanceProvider } from '@/lib/contexts/LowBalanceContext';
 import './globals.css';
@@ -72,10 +73,12 @@ export default function RootLayout({
         />
         <ThemeProvider>
           <SessionProvider>
-            <LowBalanceProvider>
-              <VerificationBanner />
-              {children}
-            </LowBalanceProvider>
+            <SocketProvider>
+              <LowBalanceProvider>
+                <VerificationBanner />
+                {children}
+              </LowBalanceProvider>
+            </SocketProvider>
           </SessionProvider>
         </ThemeProvider>
         <Analytics />

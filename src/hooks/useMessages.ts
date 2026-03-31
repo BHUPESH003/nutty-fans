@@ -12,6 +12,7 @@ import { apiClient } from '@/services/apiClient';
 import type { Message } from '@/types/messaging';
 
 let sharedSocket: Socket | null = null;
+let initPromise: Promise<Socket> | null = null;
 
 export function getSocket(): Socket {
   if (!sharedSocket) {
@@ -32,6 +33,60 @@ export function getSocket(): Socket {
   }
 
   return sharedSocket;
+}
+
+export async function initSocket(): Promise<Socket> {
+  if (sharedSocket) return sharedSocket;
+  if (initPromise) return initPromise;
+
+  initPromise = (async () => {
+    const envWsUrl = process.env['NEXT_PUBLIC_WS_URL'];
+    const wsPort = process.env['NEXT_PUBLIC_WS_PORT'] ?? '3001';
+    const wsUrl =
+      envWsUrl ??
+      (typeof window !== 'undefined' ? `http://${window.location.hostname}:${wsPort}` : null);
+
+    if (!wsUrl) throw new Error('Missing NEXT_PUBLIC_WS_URL (and window is unavailable)');
+
+    const tokenResponse = await fetch('/api/auth/token', {
+      method: 'GET',
+      cache: 'no-store',
+    });
+
+    if (!tokenResponse.ok) {
+      throw new Error(`[WS] Failed to fetch auth token: ${tokenResponse.status}`);
+    }
+
+    const data = (await tokenResponse.json()) as { token?: string };
+    const token = data.token;
+
+    if (!token) {
+      throw new Error('[WS] Missing auth token');
+    }
+
+    sharedSocket = io(wsUrl, {
+      auth: { token },
+      transports: ['websocket'],
+      reconnectionAttempts: 10,
+      reconnectionDelay: 1000,
+    });
+
+    return sharedSocket;
+  })();
+
+  try {
+    return await initPromise;
+  } finally {
+    initPromise = null;
+  }
+}
+
+export function destroySocket() {
+  if (sharedSocket) {
+    sharedSocket.disconnect();
+  }
+  sharedSocket = null;
+  initPromise = null;
 }
 
 const OPTIMISTIC_PREFIX = 'optimistic-';
