@@ -1,5 +1,5 @@
-import { LiveStreamsPageContainer } from '@/components/containers/live/LiveStreamsPageContainer';
+import { redirect } from 'next/navigation';
 
 export default function LivePage() {
-  return <LiveStreamsPageContainer />;
+  redirect('/');
 }

@@ -18,6 +18,16 @@ export async function middleware(request: NextRequest) {
   const isAuth = !!token;
   const { pathname } = request.nextUrl;
 
+  const isLiveRoute =
+    pathname === '/live' ||
+    pathname.startsWith('/live/') ||
+    pathname === '/creator/live' ||
+    pathname.startsWith('/creator/live/');
+
+  if (isLiveRoute) {
+    return NextResponse.redirect(new URL('/', request.url));
+  }
+
   const isPublicRoute =
     PUBLIC_ROUTES.includes(pathname as (typeof PUBLIC_ROUTES)[number]) ||
     PUBLIC_ROUTE_PREFIXES.some((routePrefix) => pathname.startsWith(routePrefix));

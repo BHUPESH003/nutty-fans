@@ -1,5 +1,5 @@
-import { CreatorLiveContainer } from '@/components/containers/creator/CreatorLiveContainer';
+import { redirect } from 'next/navigation';
 
 export default function CreatorLivePage() {
-  return <CreatorLiveContainer />;
+  redirect('/');
 }

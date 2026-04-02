@@ -64,9 +64,7 @@ export function LoginContainer({ onLoggedIn }: LoginContainerProps) {
       if (!isMountedRef.current) return;
 
       if (result?.error) {
-        setError(
-          result.error === 'CredentialsSignin' ? 'Invalid email or password.' : result.error
-        );
+        setError('Unable to sign in. Please check your email and password and try again.');
         setIsSubmitting(false);
         return;
       }

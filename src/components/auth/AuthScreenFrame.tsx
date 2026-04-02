@@ -33,7 +33,7 @@ export function AuthScreenFrame({
         className
       )}
     >
-      <div className="rounded-b-[24px] bg-[linear-gradient(135deg,hsl(var(--primary))_0%,hsl(var(--primary-container))_55%,hsl(var(--secondary))_100%)] px-6 pb-8 pt-7 text-white sm:px-7">
+      <div className="rounded-b-[24px] bg-[linear-gradient(135deg,hsl(var(--primary))_0%,hsl(var(--primary-container))_55%,hsl(var(--secondary))_100%)] px-5 pb-6 pt-6 text-white sm:px-7 sm:pb-8 sm:pt-7">
         {showBrand ? (
           <Link href="/" className="inline-flex items-center gap-2.5">
             <Image
@@ -50,13 +50,15 @@ export function AuthScreenFrame({
             </span>
           </Link>
         ) : null}
-        <h1 className="mt-8 font-headline text-5xl font-bold tracking-tight">{bannerTitle}</h1>
-        <p className="mt-2 max-w-lg text-lg text-white/80">{bannerSubtitle}</p>
+        <h1 className="mt-6 font-headline text-4xl font-bold tracking-tight sm:mt-8 sm:text-5xl">
+          {bannerTitle}
+        </h1>
+        <p className="mt-2 max-w-lg text-base text-white/80 sm:text-lg">{bannerSubtitle}</p>
       </div>
 
-      <div className="px-6 pb-8 pt-6 sm:px-7">
-        <div className="mb-6 text-center">
-          <h2 className="font-headline text-5xl font-extrabold tracking-tight text-on-surface">
+      <div className="px-5 pb-6 pt-5 sm:px-7 sm:pb-8 sm:pt-6">
+        <div className="mb-5 text-center sm:mb-6">
+          <h2 className="font-headline text-4xl font-extrabold tracking-tight text-on-surface sm:text-5xl">
             {title}
           </h2>
           <p className="mt-2 text-sm text-on-surface-variant">{subtitle}</p>

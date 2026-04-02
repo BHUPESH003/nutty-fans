@@ -67,15 +67,20 @@ export const authOptions: NextAuthOptions = {
         if (!email || !password) {
           return null;
         }
-        const user = await authService.verifyCredentials(email, password);
-        if (!user) return null;
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.displayName,
-          accountState: (user.metadata as unknown as { authState?: { accountState?: string } })
-            ?.authState?.accountState,
-        };
+        try {
+          const user = await authService.verifyCredentials(email, password);
+          if (!user) return null;
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.displayName,
+            accountState: (user.metadata as unknown as { authState?: { accountState?: string } })
+              ?.authState?.accountState,
+          };
+        } catch (error) {
+          console.error('Credentials authorization failed', error);
+          return null;
+        }
       },
     }),
     GoogleProvider({
