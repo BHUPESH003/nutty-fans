@@ -561,6 +561,14 @@ export const apiClient = {
         data: data,
       });
     },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    updatePost(postId: string, data: any) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return request<any>(`/api/posts/${postId}`, {
+        method: 'PATCH',
+        data: data,
+      });
+    },
     getFeed(params?: { cursor?: string; limit?: number; type?: 'for-you' | 'following' }) {
       const searchParams = new URLSearchParams();
       if (params?.cursor) searchParams.append('cursor', params.cursor);

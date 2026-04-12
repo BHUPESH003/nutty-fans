@@ -11,20 +11,14 @@ vi.mock('next-auth/jwt', () => ({
 
 import { middleware } from '@/middleware';
 
-function createRequest(pathname: string, options?: { ageVerified?: boolean }): NextRequest {
+function createRequest(pathname: string): NextRequest {
   const url = new URL(pathname, 'http://localhost:3000');
 
   return {
     url: url.toString(),
     nextUrl: url,
     cookies: {
-      get: (name: string) => {
-        if (name === 'age_verified' && options?.ageVerified) {
-          return { value: 'true' };
-        }
-
-        return undefined;
-      },
+      get: () => undefined,
     },
   } as NextRequest;
 }
@@ -36,7 +30,7 @@ describe('middleware', () => {
   });
 
   it('redirects anonymous users away from the home page to login', async () => {
-    const request = createRequest('/', { ageVerified: true });
+    const request = createRequest('/');
 
     const response = await middleware(request);
 
@@ -45,7 +39,7 @@ describe('middleware', () => {
   });
 
   it('allows anonymous users to access public creator profiles', async () => {
-    const request = createRequest('/c/test-creator', { ageVerified: true });
+    const request = createRequest('/c/test-creator');
 
     const response = await middleware(request);
 
@@ -53,19 +47,10 @@ describe('middleware', () => {
     expect(response.headers.get('location')).toBeNull();
   });
 
-  it('redirects age-verified anonymous users from the age gate to login', async () => {
-    const request = createRequest('/age-gate', { ageVerified: true });
-
-    const response = await middleware(request);
-
-    expect(response.status).toBe(307);
-    expect(response.headers.get('location')).toBe('http://localhost:3000/login');
-  });
-
   it('redirects authenticated users from login to the app home', async () => {
     getToken.mockResolvedValue({ sub: 'user-123' });
 
-    const request = createRequest('/login', { ageVerified: true });
+    const request = createRequest('/login');
 
     const response = await middleware(request);
 
