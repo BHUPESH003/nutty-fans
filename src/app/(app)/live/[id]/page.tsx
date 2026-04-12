@@ -1,6 +1,6 @@
-import { LiveStreamWatchContainer } from '@/components/containers/live/LiveStreamWatchContainer';
+import { redirect } from 'next/navigation';
 
 export default async function LiveWatchPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  return <LiveStreamWatchContainer streamId={id} />;
+  await params;
+  redirect('/');
 }

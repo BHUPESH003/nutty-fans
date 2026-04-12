@@ -77,7 +77,7 @@ export const CreatorDashboardContainer = () => {
       />
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-6">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
         <Button variant="outline" className="h-auto flex-col gap-1 py-3" asChild>
           <Link href="/creator/posts/new">
             <span className="material-symbols-outlined h-4 w-4 text-[20px] text-primary">add</span>
@@ -102,12 +102,6 @@ export const CreatorDashboardContainer = () => {
           <Link href={'/creator/bundles' as Route}>
             <span className="material-symbols-outlined text-[20px] text-primary">inventory_2</span>
             <span className="text-xs">Bundles</span>
-          </Link>
-        </Button>
-        <Button variant="outline" className="h-auto flex-col gap-1 py-3" asChild>
-          <Link href={'/creator/live' as Route}>
-            <span className="material-symbols-outlined text-[20px] text-tertiary">videocam</span>
-            <span className="text-xs">Go Live</span>
           </Link>
         </Button>
         {payoutConnected ? (

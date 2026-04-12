@@ -8,7 +8,6 @@ const PUBLIC_ROUTES = [
   '/forgot-password',
   '/reset-password',
   '/verify-email',
-  '/age-gate',
 ] as const;
 
 const PUBLIC_ROUTE_PREFIXES = ['/c/'] as const;
@@ -18,35 +17,19 @@ export async function middleware(request: NextRequest) {
   const isAuth = !!token;
   const { pathname } = request.nextUrl;
 
+  const isLiveRoute =
+    pathname === '/live' ||
+    pathname.startsWith('/live/') ||
+    pathname === '/creator/live' ||
+    pathname.startsWith('/creator/live/');
+
+  if (isLiveRoute) {
+    return NextResponse.redirect(new URL('/', request.url));
+  }
+
   const isPublicRoute =
     PUBLIC_ROUTES.includes(pathname as (typeof PUBLIC_ROUTES)[number]) ||
     PUBLIC_ROUTE_PREFIXES.some((routePrefix) => pathname.startsWith(routePrefix));
-
-  // Age Gate Check
-  const isAgeVerified = request.cookies.get('age_verified')?.value === 'true';
-  const isAgeGatePage = pathname === '/age-gate';
-  /** Auth entry routes reachable from the age gate header (user can sign in/up; app rules still apply after login). */
-  const bypassAgeForPath =
-    pathname.startsWith('/login') ||
-    pathname.startsWith('/register') ||
-    pathname.startsWith('/forgot-password') ||
-    pathname.startsWith('/reset-password');
-
-  if (
-    !isAgeVerified &&
-    !isAgeGatePage &&
-    !bypassAgeForPath &&
-    !pathname.startsWith('/api') &&
-    !pathname.startsWith('/_next') &&
-    !pathname.startsWith('/static')
-  ) {
-    return NextResponse.redirect(new URL('/age-gate', request.url));
-  }
-
-  // If already verified and trying to access age gate, redirect to home
-  if (isAgeVerified && isAgeGatePage) {
-    return NextResponse.redirect(new URL(isAuth ? '/' : '/login', request.url));
-  }
 
   // Auth pages (login, register) - redirect to home if already logged in
   const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/register');

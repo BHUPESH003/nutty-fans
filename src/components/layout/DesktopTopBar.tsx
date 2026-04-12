@@ -1,9 +1,7 @@
 'use client';
 
-import Link from 'next/link';
 import { Suspense } from 'react';
 
-import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { SearchBar } from '@/components/search/SearchBar';
 
 export function DesktopTopBar() {
@@ -21,14 +19,6 @@ export function DesktopTopBar() {
             placeholder="Search creators or tags..."
           />
         </Suspense>
-        <Link
-          href="/messages"
-          className="flex h-10 w-10 items-center justify-center rounded-full text-on-surface-variant transition-colors hover:bg-surface-container-low"
-          aria-label="Messages"
-        >
-          <span className="material-symbols-outlined text-[22px]">chat_bubble</span>
-        </Link>
-        <NotificationBell />
       </div>
     </header>
   );

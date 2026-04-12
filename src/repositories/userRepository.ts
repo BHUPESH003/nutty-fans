@@ -4,7 +4,7 @@ import { prisma } from '@/lib/db/prisma';
 
 export class UserRepository {
   async findByEmail(email: string) {
-    return prisma.user.findUnique({
+    return prisma.user.findFirst({
       where: { email },
     });
   }
@@ -91,7 +91,7 @@ export class UserRepository {
   }
 
   async findByUsername(username: string) {
-    return prisma.user.findUnique({
+    return prisma.user.findFirst({
       where: { username },
     });
   }

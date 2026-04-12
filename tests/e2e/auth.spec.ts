@@ -8,29 +8,6 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Authentication Flow', () => {
-  test.describe('Age Gate', () => {
-    test('AUTH-013: should allow 18+ users to proceed', async ({ page }) => {
-      await page.goto('/');
-
-      // Check for age gate
-      const ageGate = page.locator('[data-testid="age-gate"]');
-      if (await ageGate.isVisible()) {
-        await page.click('[data-testid="age-confirm-yes"]');
-        await expect(page).not.toHaveURL(/age-gate/);
-      }
-    });
-
-    test('AUTH-014: should block underage users', async ({ page }) => {
-      await page.goto('/');
-
-      const ageGate = page.locator('[data-testid="age-gate"]');
-      if (await ageGate.isVisible()) {
-        await page.click('[data-testid="age-confirm-no"]');
-        await expect(page.locator('[data-testid="access-denied"]')).toBeVisible();
-      }
-    });
-  });
-
   test.describe('Registration', () => {
     test('AUTH-001: should register new user with valid data', async ({ page }) => {
       await page.goto('/register');

@@ -1,10 +1,6 @@
-import { getServerSession } from 'next-auth';
-
-import { liveStreamController } from '@/app/api/_controllers/liveStreamController';
-import { authOptions } from '@/lib/auth/authOptions';
+import { NextResponse } from 'next/server';
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  const session = await getServerSession(authOptions);
-  return liveStreamController.get(id, session?.user?.id);
+  await params;
+  return NextResponse.redirect(new URL('/', _req.url));
 }

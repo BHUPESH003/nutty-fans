@@ -24,6 +24,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useCreatorStatus } from '@/hooks/useCreatorStatus';
+import { useUnreadNotificationCount } from '@/hooks/useNotifications';
 import { useUnreadMessageCount } from '@/hooks/useUnreadMessageCount';
 import { cn } from '@/lib/utils';
 
@@ -43,9 +44,9 @@ interface AppShellProps {
 const navItems: Array<{ href: Route; label: string; icon: string }> = [
   { href: '/' as Route, label: 'Home', icon: 'home' },
   { href: '/explore' as Route, label: 'Explore', icon: 'search' },
-  { href: '/notifications' as Route, label: 'Notifications', icon: 'notifications' },
   { href: '/messages' as Route, label: 'Messages', icon: 'chat_bubble' },
-  { href: '/account/subscriptions' as Route, label: 'Subscriptions', icon: 'subscriptions' },
+  { href: '/account/subscriptions' as Route, label: 'Subscriptions', icon: 'card_membership' },
+  { href: '/notifications' as Route, label: 'Notifications', icon: 'notifications' },
 ];
 
 function accountInitials(user?: UserSummary | null) {
@@ -417,17 +418,17 @@ function SidebarMoreMenu({
           <DropdownMenuRadioItem value="system">System</DropdownMenuRadioItem>
         </DropdownMenuRadioGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem asChild className="cursor-pointer rounded-xl p-0">
-          <Link
-            href={showCreatorDashboard ? '/creator/dashboard' : '/creator/start'}
-            className="flex w-full items-center gap-2 px-3 py-2.5 text-sm"
-          >
-            <span className="material-symbols-outlined text-[18px]">
-              {showCreatorDashboard ? 'dashboard' : 'auto_awesome'}
-            </span>
-            {showCreatorDashboard ? 'Creator dashboard' : 'Become a creator'}
-          </Link>
-        </DropdownMenuItem>
+        {!showCreatorDashboard ? (
+          <DropdownMenuItem asChild className="cursor-pointer rounded-xl p-0">
+            <Link
+              href="/creator/start"
+              className="flex w-full items-center gap-2 px-3 py-2.5 text-sm"
+            >
+              <span className="material-symbols-outlined text-[18px]">auto_awesome</span>
+              Become a creator
+            </Link>
+          </DropdownMenuItem>
+        ) : null}
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -437,6 +438,7 @@ export function AppShell({ children, user }: AppShellProps) {
   const pathname = usePathname();
   const { onboardingStatus, isLoading: creatorStatusLoading } = useCreatorStatus();
   const { unreadCount: unreadMessageCount } = useUnreadMessageCount();
+  const { unreadCount: unreadNotificationCount } = useUnreadNotificationCount();
   const showCreatorDashboard = !creatorStatusLoading && onboardingStatus === 'active';
   const isExploreRoute = pathname === '/explore' || pathname.startsWith('/explore/');
   const isReelsRoute = pathname === '/reels' || pathname.startsWith('/reels/');
@@ -626,10 +628,27 @@ export function AppShell({ children, user }: AppShellProps) {
                     icon={item.icon}
                     active={active}
                     expanded={sidebarExpanded}
-                    badge={item.href === '/messages' ? unreadMessageCount : undefined}
+                    badge={
+                      item.href === '/messages'
+                        ? unreadMessageCount
+                        : item.href === '/notifications'
+                          ? unreadNotificationCount
+                          : undefined
+                    }
                   />
                 );
               })}
+              {showCreatorDashboard ? (
+                <SidebarNavLink
+                  href={'/creator/dashboard' as Route}
+                  label="Creator dashboard"
+                  icon="dashboard"
+                  active={
+                    pathname === '/creator/dashboard' || pathname.startsWith('/creator/dashboard/')
+                  }
+                  expanded={sidebarExpanded}
+                />
+              ) : null}
               <SidebarMoreMenu
                 expanded={sidebarExpanded}
                 showCreatorDashboard={showCreatorDashboard}
